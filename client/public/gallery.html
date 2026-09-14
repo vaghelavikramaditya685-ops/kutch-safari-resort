@@ -1,0 +1,39 @@
+﻿<!DOCTYPE html>
+<html>
+<head><style>img {width: 200px; height: 150px; object-fit: cover; margin: 10px;} div {display: inline-block; text-align: center; font-size: 10px; width: 220px; overflow: hidden;}</style></head>
+<body>
+<script>
+const files = [
+'camel-rann-reference.jpg',
+'dholavira-road-open-license.jpg',
+'dholavira-ruins-reference.jpg',
+'hero-kutch-safari.png',
+'kutch-embroidery-cc-by.jpg',
+'kutch-weaving-reference.jpg',
+'lake-and-cottages-reference.png',
+'lake-sunrise-reference.png',
+'road-to-heaven-reference.png',
+'white-rann-of-kutch-cc-by-sa.jpg',
+'white-salt-desert-road-dholavira-cc-by-sa.jpg',
+'new/kutch-destination-mandvi-beach.jpg',
+'new/kutch-destination-road_2.jpg',
+'new/kutch-handicrafts-air-dance.jpg',
+'new/kutch-handicrafts-block-demo.jpg',
+'new/kutch-handicrafts-embroidery-workshop.jpg',
+'new/kutch-handicrafts-weaving.jpg',
+'new/kutchi-tribes-rabari-community.jpg',
+'new/kutchi-tribes-rabari-embroidery.jpg',
+'new/kutchi-tribes-rabari-n-camels.jpg',
+'new/kutchi-tribes-rabari-ravechi-festival.jpg',
+'new/pics-rogan.jpg',
+'new/pics-textile-ahit-embroidery.jpg',
+'new/pics-textile-blockprinting1.jpg',
+'new/outside-view-lakeview-kutch-safari.jpeg',
+'new/pics-lakeview-kutch-safari1.jpeg'
+];
+files.forEach(f => {
+  document.write('<div><img src="http://localhost:3000/assets/images/' + f + '"><br>' + f + '</div>');
+});
+</script>
+</body>
+</html>
