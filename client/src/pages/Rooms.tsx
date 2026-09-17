@@ -55,7 +55,7 @@ const NAV = [
   { label: "Packages", href: "#packages" },
   { label: "Beyond Bhuj", href: "#explore" },
   { label: "Rann Utsav", href: "#rann-utsav" },
-  { label: "Contact", href: "#contact" },
+  { label: "Contact", href: "/#contact" },
 ];
 
 function LogoBlock({ light = false }: { light?: boolean }) {
@@ -306,7 +306,7 @@ function RannUtsav() {
               Join us for the vibrant Rann Utsav! We offer exclusive White Rann Camp details and packages. Sleep under the moonlight on the salt flats and experience local folk dances, music, and Kutchi handicrafts.
             </p>
             <div className="mt-4">
-              <a href="/#contact" className="btn-explore">Book Rann Utsav Package</a>
+              <Link href="/rann-utsav-package"><a className="btn-explore">Book Rann Utsav Package</a></Link>
             </div>
           </div>
         </div>
@@ -481,7 +481,7 @@ function RoomTemplate({ title, exteriorTitle, interiorTitle, extImgs, intImgs, s
             <p className="text-foreground/70 text-base md:text-lg leading-relaxed font-light mb-8">
               {description}
             </p>
-            <a href="#contact" className="bg-[var(--terracotta)] text-white px-8 py-3 w-fit uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition-opacity rounded-sm shadow-md">
+            <a href="/contact" className="bg-[var(--terracotta)] text-white px-8 py-3 w-fit uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition-opacity rounded-sm shadow-md">
               Book Now
             </a>
           </div>
@@ -491,15 +491,12 @@ function RoomTemplate({ title, exteriorTitle, interiorTitle, extImgs, intImgs, s
       {/* Amenities Strip */}
       <div className="bg-[#f9f9f9] py-8 border-y border-black/5 mt-16">
         <div className="container px-4 mx-auto">
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-4 text-center divide-x divide-black/5">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-4 text-center divide-x divide-black/5">
             <div className="flex flex-col items-center gap-3">
               <Snowflake className="h-8 w-8 text-foreground/40 stroke-[1.5]" />
               <span className="text-xs uppercase tracking-wider text-foreground/60 font-medium">Air Conditioner</span>
             </div>
-            <div className="flex flex-col items-center gap-3">
-              <PhoneCall className="h-8 w-8 text-foreground/40 stroke-[1.5]" />
-              <span className="text-xs uppercase tracking-wider text-foreground/60 font-medium">Intercom</span>
-            </div>
+
             <div className="flex flex-col items-center gap-3">
               <Wifi className="h-8 w-8 text-foreground/40 stroke-[1.5]" />
               <span className="text-xs uppercase tracking-wider text-foreground/60 font-medium">Wi-Fi</span>
@@ -516,10 +513,7 @@ function RoomTemplate({ title, exteriorTitle, interiorTitle, extImgs, intImgs, s
               <Lock className="h-8 w-8 text-foreground/40 stroke-[1.5]" />
               <span className="text-xs uppercase tracking-wider text-foreground/60 font-medium">In-Room Safe</span>
             </div>
-            <div className="flex flex-col items-center gap-3">
-              <Archive className="h-8 w-8 text-foreground/40 stroke-[1.5]" />
-              <span className="text-xs uppercase tracking-wider text-foreground/60 font-medium">Mini Refrigerator</span>
-            </div>
+
             <div className="flex flex-col items-center gap-3">
               <Wind className="h-8 w-8 text-foreground/40 stroke-[1.5]" />
               <span className="text-xs uppercase tracking-wider text-foreground/60 font-medium">Hair-Dryer</span>
@@ -624,11 +618,11 @@ function Accommodation() {
             interiorTitle="Interior"
             extImgs={[
               "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-deluxe-ac-cottage.jpg",
-              "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-kutchi-ac-room1.jpg"
+              "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-kutch-safari-ab-vision-17.jpg"
             ]}
             intImgs={[
               "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-deluxe-ac-cottage-interior.jpg",
-              "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-kutchi-ac-room.jpeg"
+              "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-deluxe-ac-cottage-interior-02.jpg"
             ]}
             subtitle="Spacious & Elegantly Designed"
             description="The deluxe cottages offer enhanced comfort while retaining the rich cultural aesthetics of the region. Perfect for families looking for an extended lakeside retreat, these spacious rooms feature exquisite decor, beautiful garden views, and full amenities."
@@ -685,7 +679,7 @@ function Packages() {
           <p className="text-base md:text-lg leading-relaxed text-foreground/80 mb-6">
             We offer a variety of tailored packages designed to give you the complete Kutch experience. From romantic getaways to adventurous family safaris, our packages are currently being updated for the new season.
           </p>
-          <a href="/#contact" className="btn-explore">Enquire for Packages</a>
+          <a href="/contact" className="btn-explore">Enquire for Packages</a>
         </div>
       </div>
     </section>
@@ -825,32 +819,6 @@ function Sustainability() {
 }
 
 
-function Contact() {
-  return (
-    <section id="contact" className="bg-secondary py-20">
-      <div className="container max-w-xl">
-        <SectionHead title="Get in Touch" tagline="Plan your escape to the lake" />
-        <div className="bg-background p-8 rounded border border-border mt-8">
-          <p className="text-base md:text-lg mb-6 text-center">For reservations and inquiries, please reach out to us.</p>
-          <div className="flex flex-col gap-4 text-center">
-            <div>
-              <p className="text-sm uppercase tracking-widest text-muted-foreground mb-1">Email</p>
-              <a href="mailto:kutchsafaribhuj@yahoo.com" className="font-semibold hover:text-[var(--terracotta)] transition-colors">kutchsafaribhuj@yahoo.com</a>
-            </div>
-            <div>
-              <p className="text-sm uppercase tracking-widest text-muted-foreground mb-1">Reservations</p>
-              <p className="font-semibold">+91 99252 38599</p>
-              <p className="font-semibold">+91 97275 96420</p>
-            </div>
-          </div>
-          <div className="mt-8">
-            <a href="https://wa.me/919925238599" target="_blank" rel="noreferrer" className="btn-explore w-full text-center block">WhatsApp Us</a>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 function Footer() {
   return (
@@ -925,7 +893,7 @@ function GuestReviews() {
 function FloatingWidgets() {
   return (
     <>
-      <a href="/#contact" aria-label="Enquire now" className="hidden">Enquire Now</a>
+      <a href="/contact" aria-label="Enquire now" className="hidden">Enquire Now</a>
       <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-3">
         <a href="https://wa.me/919925238599" target="_blank" rel="noreferrer" className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--terracotta)] text-white shadow-lg hover:opacity-90 transition-opacity">
           <Phone className="h-5 w-5" />
@@ -967,11 +935,11 @@ export default function Rooms() {
               interiorTitle="Interior"
               extImgs={[
                 "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-deluxe-ac-cottage.jpg",
-                "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-kutchi-ac-room1.jpg"
+                "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-kutch-safari-ab-vision-17.jpg"
               ]}
               intImgs={[
                 "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-deluxe-ac-cottage-interior.jpg",
-                "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-kutchi-ac-room.jpeg"
+                "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-deluxe-ac-cottage-interior-02.jpg"
               ]}
               subtitle="Spacious & Elegantly Designed"
               description="The deluxe cottages offer enhanced comfort while retaining the rich cultural aesthetics of the region. Perfect for families looking for an extended lakeside retreat, these spacious rooms feature exquisite decor, beautiful garden views, and full amenities."

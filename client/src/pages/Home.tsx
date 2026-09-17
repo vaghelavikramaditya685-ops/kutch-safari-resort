@@ -1,3 +1,4 @@
+import { Phone, Mail, MapPin, Clock, Send, CheckCircle2, User, PhoneCall } from 'lucide-react';
 import { Link } from "wouter";
 /*
  * RANNRIDERS-STYLE HOMEPAGE — Kutch Safari Resort (v2)
@@ -36,13 +37,14 @@ const IMG = {
   sketchAss: "/assets/images/sketch-wild-ass.png",
   sketchCamel: "/assets/images/sketch-camel.png",
   resortFront: "/assets/images/new/kutch-ac-cottage-bhunga1.jpg",
-  cottagesLawn: "/assets/images/new/guests-img-20180402-wa0053.jpg",
+  cottagesLawn: "/assets/images/new/aerial-property-shot.jpg",
   nightCottages: "/assets/images/campfire-night.png",
   bougainvillea: "/assets/images/new/guests-20180326_174202.jpg",
   room1: "/assets/images/new/kutch-ac-cottage-kutchi-cottage-interior.jpg",
   room2: "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-deluxe-ac-cottage-interior.jpg",
-  sunrisePath: "/assets/images/lake-sunrise-reference.png",
-  sunsetTree: "/assets/images/new/pro-kala_dungar.jpg",
+  sunrisePath: "/assets/images/new/authentic-sunrise-bhungas.jpg",
+  sunriseBreakfast: "/assets/images/new/authentic-sunrise-bhungas.jpg",
+  sunsetTree: "/assets/images/new/safari-camel-experience.png",
   roadToHeaven: "/assets/images/new/kutch-destination-road_2.jpg",
   whiteRann: "/assets/images/new/kutchi-tribes-rabari-ravechi-festival.jpg",
   mandviBeach: "/assets/images/new/kutch-destination-mandvi-beach.jpg",
@@ -180,11 +182,11 @@ function Welcome() {
         muted
         loop
         playsInline
-        poster={IMG.heroWide}
-        className="absolute inset-0 h-full w-full object-cover"
+        
+        className="absolute inset-0 h-full w-full object-cover bg-[#2a2a2a]"
         aria-hidden
       >
-        <source src="/assets/images/new/outside-view-aerial-view-3.mp4" type="video/mp4" />
+        <source src="/assets/images/new/KSR_VIDEO.mp4" type="video/mp4" />
       </video>
       {/* Gradient overlay for text contrast */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/25" />
@@ -325,7 +327,7 @@ function RannUtsav() {
               Join us for the vibrant Rann Utsav! We offer exclusive White Rann Camp details and packages. Sleep under the moonlight on the salt flats and experience local folk dances, music, and Kutchi handicrafts.
             </p>
             <div className="mt-4">
-              <a href="/#contact" className="btn-explore">Book Rann Utsav Package</a>
+              <Link href="/rann-utsav-package"><a className="btn-explore">Book Rann Utsav Package</a></Link>
             </div>
           </div>
         </div>
@@ -426,7 +428,7 @@ function TheResort() {
               <div className="mirror-frame bg-background flex-1">
                 <img
                   src={IMG.cottagesLawn}
-                  alt="Guests enjoying the lawn at Kutch Safari Resort"
+                  alt="Aerial view of Kutch Safari Resort by the lake showing property size"
                   className="h-full w-full object-cover img-lift"
                 />
               </div>
@@ -500,7 +502,7 @@ function RoomTemplate({ title, exteriorTitle, interiorTitle, extImgs, intImgs, s
             <p className="text-foreground/70 text-base md:text-lg leading-relaxed font-light mb-8">
               {description}
             </p>
-            <a href="#contact" className="bg-[var(--terracotta)] text-white px-8 py-3 w-fit uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition-opacity rounded-sm shadow-md">
+            <a href="/contact" className="bg-[var(--terracotta)] text-white px-8 py-3 w-fit uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition-opacity rounded-sm shadow-md">
               Book Now
             </a>
           </div>
@@ -510,15 +512,12 @@ function RoomTemplate({ title, exteriorTitle, interiorTitle, extImgs, intImgs, s
       {/* Amenities Strip */}
       <div className="bg-[#f9f9f9] py-8 border-y border-black/5 mt-16">
         <div className="container px-4 mx-auto">
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-4 text-center divide-x divide-black/5">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-4 text-center divide-x divide-black/5">
             <div className="flex flex-col items-center gap-3">
               <Snowflake className="h-8 w-8 text-foreground/40 stroke-[1.5]" />
               <span className="text-xs uppercase tracking-wider text-foreground/60 font-medium">Air Conditioner</span>
             </div>
-            <div className="flex flex-col items-center gap-3">
-              <PhoneCall className="h-8 w-8 text-foreground/40 stroke-[1.5]" />
-              <span className="text-xs uppercase tracking-wider text-foreground/60 font-medium">Intercom</span>
-            </div>
+
             <div className="flex flex-col items-center gap-3">
               <Wifi className="h-8 w-8 text-foreground/40 stroke-[1.5]" />
               <span className="text-xs uppercase tracking-wider text-foreground/60 font-medium">Wi-Fi</span>
@@ -535,10 +534,7 @@ function RoomTemplate({ title, exteriorTitle, interiorTitle, extImgs, intImgs, s
               <Lock className="h-8 w-8 text-foreground/40 stroke-[1.5]" />
               <span className="text-xs uppercase tracking-wider text-foreground/60 font-medium">In-Room Safe</span>
             </div>
-            <div className="flex flex-col items-center gap-3">
-              <Archive className="h-8 w-8 text-foreground/40 stroke-[1.5]" />
-              <span className="text-xs uppercase tracking-wider text-foreground/60 font-medium">Mini Refrigerator</span>
-            </div>
+
             <div className="flex flex-col items-center gap-3">
               <Wind className="h-8 w-8 text-foreground/40 stroke-[1.5]" />
               <span className="text-xs uppercase tracking-wider text-foreground/60 font-medium">Hair-Dryer</span>
@@ -587,7 +583,7 @@ function Accommodation() {
             <img 
               src="/assets/images/new/kutch-ac-cottage-bhunga1.jpg" 
               alt="Kutch AC Cottage" 
-              className="w-full aspect-[3/4] object-cover shadow-lg border-2 border-white/20" 
+              className="w-full aspect-[4/3] object-cover shadow-lg border-2 border-white/20" 
             />
             <div className="text-center">
               <h3 className="font-display text-xl tracking-[0.15em] text-[#4a4a4a] uppercase">Kutch AC Cottage</h3>
@@ -598,7 +594,7 @@ function Accommodation() {
             <img 
               src="/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-deluxe-ac-cottage.jpg" 
               alt="Deluxe AC Cottage" 
-              className="w-full aspect-[3/4] object-cover shadow-lg border-2 border-white/20" 
+              className="w-full aspect-[4/3] object-cover shadow-lg border-2 border-white/20" 
             />
             <div className="text-center">
               <h3 className="font-display text-xl tracking-[0.15em] text-[#4a4a4a] uppercase">Deluxe AC Cottage</h3>
@@ -635,7 +631,7 @@ function Experiences() {
           </div>
           <div className="flex flex-col gap-3">
             <div className="mirror-frame bg-background">
-              <img src={IMG.sunrisePath} alt="Sunrise Breakfast by lake" className="w-full object-cover img-lift aspect-[4/3]" />
+              <img src={IMG.sunriseBreakfast} alt="Sunrise Breakfast by lake" className="w-full object-cover img-lift aspect-[4/3]" />
             </div>
             <h4 className="font-semibold text-center mt-2">Sunrise Breakfast</h4>
           </div>
@@ -666,7 +662,7 @@ function Packages() {
           <p className="text-base md:text-lg leading-relaxed text-foreground/80 mb-6">
             We offer a variety of tailored packages designed to give you the complete Kutch experience. From romantic getaways to adventurous family safaris, our packages are currently being updated for the new season.
           </p>
-          <a href="/#contact" className="btn-explore">Enquire for Packages</a>
+          <a href="/contact" className="btn-explore">Enquire for Packages</a>
         </div>
       </div>
     </section>
@@ -725,8 +721,8 @@ const DESTINATIONS = [
     subtitle: "Highest Peak in Kutch",
     tag: "Panoramic Summit",
     desc: "Rising 458 meters above sea level, Kala Dungar offers a panoramic 360-degree overlook of the entire White Rann and houses the sacred 400-year-old Dattatreya Temple.",
-    img: "/assets/images/new/pro-kala_dungar.jpg",
-    alt: "Rabari camel caravan near Kala Dungar",
+    img: "/assets/images/new/kala-dungar-scenic.jpg",
+    alt: "Panoramic view of the White Rann from Kala Dungar",
   },
 ];
 
@@ -806,32 +802,6 @@ function Sustainability() {
 }
 
 
-function Contact() {
-  return (
-    <section id="contact" className="bg-secondary py-20">
-      <div className="container max-w-xl">
-        <SectionHead title="Get in Touch" tagline="Plan your escape to the lake" />
-        <div className="bg-background p-8 rounded border border-border mt-8">
-          <p className="text-base md:text-lg mb-6 text-center">For reservations and inquiries, please reach out to us.</p>
-          <div className="flex flex-col gap-4 text-center">
-            <div>
-              <p className="text-sm uppercase tracking-widest text-muted-foreground mb-1">Email</p>
-              <a href="mailto:kutchsafaribhuj@yahoo.com" className="font-semibold hover:text-[var(--terracotta)] transition-colors">kutchsafaribhuj@yahoo.com</a>
-            </div>
-            <div>
-              <p className="text-sm uppercase tracking-widest text-muted-foreground mb-1">Reservations</p>
-              <p className="font-semibold">+91 99252 38599</p>
-              <p className="font-semibold">+91 97275 96420</p>
-            </div>
-          </div>
-          <div className="mt-8">
-            <a href="https://wa.me/919925238599" target="_blank" rel="noreferrer" className="btn-explore w-full text-center block">WhatsApp Us</a>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 function Footer() {
   return (
@@ -871,7 +841,7 @@ function GuestReviews() {
         <SectionHead title="Guest Experiences" tagline="See what our guests have to say" />
         <div className="mt-12 grid gap-8 lg:grid-cols-2 items-center">
           <div>
-            <video controls className="w-full rounded-xl shadow-lg aspect-video object-cover bg-black" poster="/assets/images/new/guests-20180326_174201.jpg">
+            <video controls className="w-full rounded-xl shadow-lg aspect-video object-cover bg-black" >
               <source src="/assets/images/new/guest-feedback-video-guest-feedback-mr-parekh.mov" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
@@ -906,13 +876,215 @@ function GuestReviews() {
 function FloatingWidgets() {
   return (
     <>
-      <a href="/#contact" aria-label="Enquire now" className="hidden">Enquire Now</a>
+      <a href="/contact" aria-label="Enquire now" className="hidden">Enquire Now</a>
       <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-3">
         <a href="https://wa.me/919925238599" target="_blank" rel="noreferrer" className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--terracotta)] text-white shadow-lg hover:opacity-90 transition-opacity">
           <Phone className="h-5 w-5" />
         </a>
       </div>
     </>
+  );
+}
+
+
+function Contact() {
+
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    dates: '',
+    message: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleChange = (e: any) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e: any) => {
+    e.preventDefault();
+    setSubmitting(true);
+    // Simulate network request
+    setTimeout(() => {
+      setSubmitting(false);
+      setSubmitted(true);
+      toast.success("Message sent successfully! We'll get back to you shortly.");
+      setFormData({ name: '', email: '', phone: '', dates: '', message: '' });
+      setTimeout(() => setSubmitted(false), 5000);
+    }, 1500);
+  };
+
+  
+  return (
+    <section id="contact" className="relative">
+
+      <div className="relative pt-32 pb-16 md:pt-40 md:pb-24 overflow-hidden border-b border-[#e4d5c7]">
+        <div className="absolute inset-0 z-0">
+          <img src="/assets/images/new/kutch-safari-resort-authentic-stay.jpg" className="w-full h-full object-cover opacity-10" alt="Background pattern" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#fcfbfa] via-transparent to-[#fcfbfa]" />
+        </div>
+        
+        <div className="container relative z-10 px-4 mx-auto text-center max-w-3xl">
+          <p className="text-sm font-semibold tracking-[0.2em] uppercase text-[var(--terracotta)] mb-4">We are here for you</p>
+          <h1 className="text-5xl md:text-6xl font-display text-zinc-900 font-bold mb-6">Get in Touch</h1>
+          <p className="text-lg text-zinc-600 leading-relaxed max-w-2xl mx-auto">
+            Whether you are planning a grand family getaway, a romantic retreat, or need help crafting your itinerary for the Rann Utsav, our dedicated team is at your service.
+          </p>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-16 md:py-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 max-w-7xl mx-auto">
+          
+          {/* Left Column: Contact Details */}
+          <div className="lg:col-span-5 flex flex-col gap-10 lg:pr-8">
+            <div>
+              <h2 className="text-3xl font-display font-semibold text-zinc-900 mb-6">Contact Details</h2>
+              <p className="text-zinc-600 leading-relaxed mb-8">
+                We'd love to hear from you. You can reach out directly via phone or WhatsApp for immediate reservations, or send us an email for detailed inquiries.
+              </p>
+            </div>
+
+            <div className="space-y-8">
+              <div className="flex gap-4 items-start group">
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center border border-[#e4d5c7] shadow-sm text-[var(--terracotta)] group-hover:bg-[var(--terracotta)] group-hover:text-white transition-colors duration-300 shrink-0">
+                  <Phone className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm uppercase tracking-widest text-zinc-500 font-medium mb-1">Reservations & WhatsApp</p>
+                  <a href="https://wa.me/919925238599" className="text-lg md:text-xl font-medium text-zinc-900 hover:text-[var(--terracotta)] transition-colors block">+91 9925238599</a>
+                  <a href="tel:+919727783354" className="text-lg md:text-xl font-medium text-zinc-900 hover:text-[var(--terracotta)] transition-colors block mt-1">+91 9727783354</a>
+                </div>
+              </div>
+
+              <div className="flex gap-4 items-start group">
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center border border-[#e4d5c7] shadow-sm text-[var(--terracotta)] group-hover:bg-[var(--terracotta)] group-hover:text-white transition-colors duration-300 shrink-0">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm uppercase tracking-widest text-zinc-500 font-medium mb-1">Email Address</p>
+                  <a href="mailto:kutchsafaribhuj@yahoo.com" className="text-lg font-medium text-zinc-900 hover:text-[var(--terracotta)] transition-colors break-all">kutchsafaribhuj@yahoo.com</a>
+                </div>
+              </div>
+
+              <div className="flex gap-4 items-start group">
+                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center border border-[#e4d5c7] shadow-sm text-[var(--terracotta)] group-hover:bg-[var(--terracotta)] group-hover:text-white transition-colors duration-300 shrink-0">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm uppercase tracking-widest text-zinc-500 font-medium mb-1">Resort Address</p>
+                  <p className="text-base text-zinc-800 leading-relaxed font-medium">
+                    Kutch Safari Resort<br/>
+                    Near Rudramata Dam, Khavda Road,<br/>
+                    Bhuj, Kutch - 370001, Gujarat, India
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-8 p-6 bg-white border border-[#e4d5c7] rounded-sm shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--terracotta)]/5 rounded-full -translate-y-16 translate-x-16 blur-2xl pointer-events-none" />
+              <div className="flex items-center gap-3 mb-3">
+                <Clock className="w-5 h-5 text-[var(--terracotta)]" />
+                <h3 className="font-semibold text-zinc-900 text-lg">Operating Hours</h3>
+              </div>
+              <p className="text-zinc-600 text-sm leading-relaxed">
+                Reception is open 24/7 for our in-house guests.<br />
+                <strong>Check-in:</strong> 12:00 PM | <strong>Check-out:</strong> 10:00 AM
+              </p>
+            </div>
+          </div>
+
+          {/* Right Column: Contact Form */}
+          <div className="lg:col-span-7">
+            <div className="bg-white border border-[#e4d5c7] p-8 md:p-12 shadow-sm rounded-sm relative">
+              
+              <div className="mb-8 border-b border-[#e4d5c7] pb-6">
+                <h3 className="text-2xl font-display font-semibold text-zinc-900 mb-2">Send us a Message</h3>
+                <p className="text-zinc-500 text-sm">Fill out the form below and we will get back to you as soon as possible.</p>
+              </div>
+
+              {submitted ? (
+                <div className="py-16 flex flex-col items-center justify-center text-center animate-in fade-in duration-500">
+                  <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center text-green-600 mb-6 border border-green-100 shadow-sm">
+                    <CheckCircle2 className="w-10 h-10" />
+                  </div>
+                  <h4 className="text-2xl font-display font-semibold text-zinc-900 mb-3">Message Sent!</h4>
+                  <p className="text-zinc-600 max-w-sm">Thank you for reaching out. A member of our team will review your inquiry and contact you shortly.</p>
+                  <button 
+                    onClick={() => setSubmitted(false)}
+                    className="mt-8 text-sm uppercase tracking-widest font-medium text-[var(--terracotta)] hover:text-black transition-colors"
+                  >
+                    Send another message
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase tracking-wider font-semibold text-zinc-600">Full Name</label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400"><User className="w-4 h-4" /></div>
+                        <input required type="text" name="name" value={formData.name} onChange={handleChange} className="w-full pl-11 pr-4 py-3 bg-[#fcfbfa] border border-[#e4d5c7] focus:outline-none focus:border-[var(--terracotta)] focus:ring-1 focus:ring-[var(--terracotta)] transition-all rounded-sm text-sm" placeholder="John Doe" />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase tracking-wider font-semibold text-zinc-600">Email Address</label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400"><Mail className="w-4 h-4" /></div>
+                        <input required type="email" name="email" value={formData.email} onChange={handleChange} className="w-full pl-11 pr-4 py-3 bg-[#fcfbfa] border border-[#e4d5c7] focus:outline-none focus:border-[var(--terracotta)] focus:ring-1 focus:ring-[var(--terracotta)] transition-all rounded-sm text-sm" placeholder="john@example.com" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase tracking-wider font-semibold text-zinc-600">Phone Number</label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400"><PhoneCall className="w-4 h-4" /></div>
+                        <input required type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full pl-11 pr-4 py-3 bg-[#fcfbfa] border border-[#e4d5c7] focus:outline-none focus:border-[var(--terracotta)] focus:ring-1 focus:ring-[var(--terracotta)] transition-all rounded-sm text-sm" placeholder="+91 98765 43210" />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-xs uppercase tracking-wider font-semibold text-zinc-600">Travel Dates (Optional)</label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400"><Clock className="w-4 h-4" /></div>
+                        <input type="text" name="dates" value={formData.dates} onChange={handleChange} className="w-full pl-11 pr-4 py-3 bg-[#fcfbfa] border border-[#e4d5c7] focus:outline-none focus:border-[var(--terracotta)] focus:ring-1 focus:ring-[var(--terracotta)] transition-all rounded-sm text-sm" placeholder="e.g., Oct 15 - Oct 18" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-wider font-semibold text-zinc-600">Your Message</label>
+                    <textarea required name="message" value={formData.message} onChange={handleChange} rows={5} className="w-full p-4 bg-[#fcfbfa] border border-[#e4d5c7] focus:outline-none focus:border-[var(--terracotta)] focus:ring-1 focus:ring-[var(--terracotta)] transition-all rounded-sm text-sm resize-none" placeholder="Tell us about your requirements..."></textarea>
+                  </div>
+
+                  <button 
+                    disabled={submitting} 
+                    type="submit" 
+                    className="w-full flex items-center justify-center gap-2 bg-[var(--terracotta)] text-white py-4 uppercase tracking-[0.15em] text-sm font-semibold hover:bg-[#b04838] transition-colors shadow-md shadow-orange-900/10 disabled:opacity-70 disabled:cursor-not-allowed rounded-sm"
+                  >
+                    {submitting ? 'Sending Message...' : (
+                      <>
+                        Submit Inquiry
+                        <Send className="w-4 h-4 ml-2" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      
+</section>
   );
 }
 
@@ -931,6 +1103,7 @@ export default function Home() {
       <StatsBand />
       <Sustainability />
       <GuestReviews />
+      
       <Contact />
       <Footer />
       <FloatingWidgets />
