@@ -1,4 +1,3 @@
-import { Phone, Mail, MapPin, Clock, Send, CheckCircle2, User, PhoneCall } from 'lucide-react';
 import { Link } from "wouter";
 /*
  * RANNRIDERS-STYLE HOMEPAGE — Kutch Safari Resort (v2)
@@ -11,8 +10,8 @@ import { Link } from "wouter";
  * - Dark charcoal footer with link columns + contact block
  * Headings: Playfair Display uppercase; body: Jost sans.
  */
-import { PhoneCall, Archive, Lock, Tv, Coffee, Wifi, Snowflake, useEffect, useState } from "react";
-import { PhoneCall, Archive, Lock, Tv, Coffee, Wifi, Snowflake, toast } from "sonner";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { PhoneCall, Archive, Lock, Tv, Coffee, Wifi, Snowflake,
   Phone,
   Mail,
@@ -28,6 +27,10 @@ import { PhoneCall, Archive, Lock, Tv, Coffee, Wifi, Snowflake,
   Waves,
   Heart,
   UtensilsCrossed,
+  Clock,
+  Send,
+  CheckCircle2,
+  User,
 } from "lucide-react";
 
 const IMG = {
@@ -922,7 +925,7 @@ function Contact() {
 
       <div className="relative pt-32 pb-16 md:pt-40 md:pb-24 overflow-hidden border-b border-[#e4d5c7]">
         <div className="absolute inset-0 z-0">
-          <img src="/assets/images/new/kutch-safari-resort-authentic-stay.jpg" className="w-full h-full object-cover opacity-10" alt="Background pattern" />
+          <img src="/assets/images/new/authentic-sunrise-bhungas.jpg" className="w-full h-full object-cover opacity-10" alt="Background pattern" />
           <div className="absolute inset-0 bg-gradient-to-b from-[#fcfbfa] via-transparent to-[#fcfbfa]" />
         </div>
         

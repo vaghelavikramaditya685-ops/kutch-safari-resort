@@ -10,8 +10,8 @@ import { Link } from "wouter";
  * - Dark charcoal footer with link columns + contact block
  * Headings: Playfair Display uppercase; body: Jost sans.
  */
-import { PhoneCall, Archive, Lock, Tv, Coffee, Wifi, Snowflake, useEffect, useState } from "react";
-import { PhoneCall, Archive, Lock, Tv, Coffee, Wifi, Snowflake, toast } from "sonner";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { PhoneCall, Archive, Lock, Tv, Coffee, Wifi, Snowflake,
   Phone,
   Mail,
@@ -165,7 +165,7 @@ function Welcome() {
         className="absolute inset-0 h-full w-full object-cover"
         aria-hidden
       >
-        <source src="/assets/images/new/outside-view-aerial-view-3.mp4" type="video/mp4" />
+        <source src="/assets/images/new/kutch-safari-resort-website-hero.mp4" type="video/mp4" />
       </video>
       {/* Gradient overlay for text contrast */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/25" />
