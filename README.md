@@ -28,14 +28,50 @@ client/
   index.html
   public/assets/      static images and video served at /assets/...
   src/
-    pages/            Home, Rooms, Destination, RannUtsavPackage, NotFound
+    pages/            Home, Stay, Experiences, Destination, RannUtsavPackage, …
     components/ui/    shadcn components in use (button, card, sonner, tooltip)
     contexts/         ThemeContext
+    lib/booking.ts    links into the booking engine
 api/contact.ts        Vercel serverless contact handler
 server/index.ts       Express static server + POST /api/contact
+booking-engine/       PHP + MySQL booking engine, served at /book/
 ```
 
-Routes: `/`, `/rooms`, `/destination/:slug`, `/rann-utsav-package`.
+Routes: `/`, `/stay`, `/experiences`, `/our-journey`, `/dining`, `/gallery`,
+`/plan-your-visit`, `/packages`, `/destination/:slug`, `/rann-utsav-package`
+(also `/white-rann-camp`). `/booking` forwards to the booking engine.
+
+## Booking engine
+
+`booking-engine/` is a standalone **PHP 8 + MySQL** app (its own README has the
+full cPanel setup, Razorpay, UPI QR and Stayflexi notes). The React site does not
+contain booking code — every Book Now button links to it via
+`bookingUrl()` in `client/src/lib/booking.ts`:
+
+```
+/book/?property=kutch-safari-resort&check_in=YYYY-MM-DD&check_out=…&adults=2&rooms=1
+```
+
+`property` is `kutch-safari-resort` or `white-rann-camp`. The old `/booking` and
+`/book` routes forward there.
+
+**Run it locally** (needs PHP 8 with `pdo_sqlite` enabled; no MySQL needed —
+`booking-engine/config.local.php` switches it to SQLite):
+
+```bash
+pnpm setup:book   # once: creates booking-engine/data/booking.sqlite
+pnpm dev:book     # PHP on :8080
+pnpm dev          # site on :3000, proxies /book/ to :8080
+```
+
+Admin panel: `/book/admin/`. Create a login with
+`php booking-engine/bin/setup.php --admin "email" "Name" "password"`.
+
+**Production.** Vercel cannot run PHP. Upload `booking-engine/` to a PHP host
+(cPanel `public_html/book`) and either serve the site from the same domain, or
+build the site with `VITE_BOOKING_URL=https://that-host/book/`. Real keys go in
+`config.local.php` on the server, never in git. Add the site's domain to
+`allowed_origins` in `booking-engine/config.php`.
 
 ## Notes
 

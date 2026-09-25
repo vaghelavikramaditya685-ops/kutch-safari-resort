@@ -1,0 +1,35 @@
+/* Admin-only additions on top of the engine's stylesheet. */
+body.admin { background: var(--sand-2); font-size: 14px; }
+.admin .wrap { max-width: 1280px; }
+.admin .eng-header nav a.on { color: var(--clay); }
+.admin table.grid { width: 100%; border-collapse: collapse; background: var(--paper);
+  border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.admin table.grid th { background: var(--indigo); color: #fff; font-size: .68rem;
+  letter-spacing: .12em; text-transform: uppercase; text-align: left; padding: 11px 12px; font-weight: 600; }
+.admin table.grid td { padding: 11px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+.admin table.grid tbody tr:hover { background: var(--sand-2); }
+.admin .tag { display: inline-block; font-size: .66rem; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; padding: 3px 9px; border-radius: 100px; }
+.admin .tag--confirmed { background: #EAF5EB; color: var(--ok); }
+.admin .tag--pending   { background: #FFF4E0; color: var(--warn); }
+.admin .tag--cancelled { background: #FCEDEA; color: var(--err); }
+.admin .tag--warn      { background: #FCEDEA; color: var(--err); }
+.admin .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-bottom: 18px; }
+.admin .filters .field { min-width: 150px; }
+.admin .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px; margin-bottom: 20px; }
+.admin .stat-card { background: var(--paper); border: 1px solid var(--line);
+  border-top: 3px solid var(--clay); border-radius: var(--radius); padding: 14px 16px; }
+.admin .stat-card b { font-family: var(--font-display); font-size: 1.5rem; color: var(--ink); display: block; }
+.admin .stat-card span { font-size: .66rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.admin .cal { overflow-x: auto; }
+.admin .cal table { border-collapse: collapse; font-size: .78rem; background: var(--paper); }
+.admin .cal th, .admin .cal td { border: 1px solid var(--line); padding: 5px 7px; text-align: center; min-width: 46px; }
+.admin .cal th.room { text-align: left; min-width: 190px; position: sticky; left: 0; background: var(--indigo); z-index: 2; }
+.admin .cal td.room { text-align: left; position: sticky; left: 0; background: var(--paper); font-weight: 600; z-index: 1; }
+.admin .cal td.zero { background: #FCEDEA; color: var(--err); font-weight: 700; }
+.admin .cal td.low  { background: #FFF4E0; color: var(--warn); font-weight: 600; }
+.admin .cal input { width: 42px; border: 0; background: transparent; text-align: center;
+  font-family: inherit; font-size: .78rem; color: inherit; }
+.admin .cal input:focus { outline: 2px solid var(--clay); background: #fff; }
+.admin .weekend { background: var(--sand); }

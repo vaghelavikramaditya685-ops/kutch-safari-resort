@@ -3,6 +3,9 @@ import react from "@vitejs/plugin-react";
 import path from "node:path";
 import { defineConfig } from "vite";
 
+/** Where `pnpm dev:book` serves the PHP booking engine (booking-engine/). */
+const BOOKING_ENGINE_DEV = "http://127.0.0.1:8080";
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -23,6 +26,13 @@ export default defineConfig({
     fs: {
       strict: true,
       deny: ["**/.*"],
+    },
+    // The engine uses relative paths (assets/…, api/…), so it runs unchanged under /book/.
+    proxy: {
+      "/book/": {
+        target: BOOKING_ENGINE_DEV,
+        rewrite: (p) => p.replace(/^\/book/, ""),
+      },
     },
   },
 });

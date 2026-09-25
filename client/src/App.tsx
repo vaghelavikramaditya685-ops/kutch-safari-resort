@@ -4,10 +4,17 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import OurJourney from "./pages/OurJourney";
+import Dining from "./pages/Dining";
+import GalleryPage from "./pages/GalleryPage";
+import PlanYourVisit from "./pages/PlanYourVisit";
+import Packages from "./pages/Packages";
 import Home from "./pages/Home";
-import Rooms from "./pages/Rooms";
+import Stay from "./pages/Stay";
 import Destination from "./pages/Destination";
 import RannUtsavPackage from "./pages/RannUtsavPackage";
+import Experiences from "./pages/Experiences";
+import BookingRedirect from "./pages/BookingRedirect";
 
 
 
@@ -15,9 +22,20 @@ function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
-      <Route path={"/rooms"} component={Rooms} />
+      <Route path={"/booking"} component={BookingRedirect} />
+      <Route path={"/book"} component={BookingRedirect} />
+      <Route path={"/book/*"} component={BookingRedirect} />
+      <Route path={"/stay"} component={Stay} />
+      <Route path={"/experiences"} component={Experiences} />
+      <Route path={"/our-journey"} component={OurJourney} />
+      <Route path={"/dining"} component={Dining} />
+      <Route path={"/gallery"} component={GalleryPage} />
+      <Route path={"/plan-your-visit"} component={PlanYourVisit} />
+      <Route path={"/packages"} component={Packages} />
+
       <Route path={"/destination/:slug"} component={Destination} />
       <Route path={"/rann-utsav-package"} component={RannUtsavPackage} />
+      <Route path={"/white-rann-camp"} component={RannUtsavPackage} />
       
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

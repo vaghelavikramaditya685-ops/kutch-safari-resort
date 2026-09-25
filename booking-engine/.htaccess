@@ -1,0 +1,30 @@
+# ===========================================================================
+#  cPanel / Apache settings for the booking engine.
+#  Uploading this file is what keeps your keys and database private.
+# ===========================================================================
+
+Options -Indexes
+
+# Never serve config, the SQLite database, SQL dumps or logs over the web.
+<FilesMatch "^(config\.php|config\.local\.php)$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "\.(sql|sqlite|log|md)$">
+  Require all denied
+</FilesMatch>
+RedirectMatch 404 ^/.*/(data|bin)/
+
+# Send everything over HTTPS — card details must never travel in the clear.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Strict-Transport-Security "max-age=31536000"
+</IfModule>

@@ -5,6 +5,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite --host",
+    "dev:book": "php -S 127.0.0.1:8080 -t booking-engine",
+    "setup:book": "php booking-engine/bin/setup.php",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "preview": "vite preview --host",
