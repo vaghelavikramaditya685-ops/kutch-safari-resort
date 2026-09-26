@@ -1,6 +1,6 @@
 # Project Overview: Kutch Safari Resort Website
 
-_Last updated: 25 Sep 2026 — booking engine replaced with the PHP engine in `booking-engine/`._
+_Last updated: 26 Sep 2026. The PHP booking engine in `booking-engine/` now handles booking, desk changes priced as a difference, 50%/full payment tracking and the admin panel. Docs 21–30 explain the logic and the lessons learned._
 
 ## 1. Business Context
 Kutch Safari Resort is a family-run resort near Bhuj, Gujarat, operating for over 35 years. Founder: Mike Vaghela.
@@ -9,7 +9,7 @@ Kutch Safari Resort is a family-run resort near Bhuj, Gujarat, operating for ove
 * **Kutch Safari Resort** — Near Rudramata Dam, Bhuj–Khavda Road, Bhuj, Kutch, Gujarat 370001, about 15 km from Bhuj. Open all year.
   * 20 lake-view cottages: 12 Kutchi AC Cottages and 8 Deluxe AC Cottages.
   * Restaurant: The Banni (multi-cuisine, veg and non-veg). Pool and garden lawn (events up to 300).
-* **White Rann Camp** (sister property) — Dhordo, three minutes from the White Rann entry and Rann Utsav. **Seasonal: 1 Dec 2026 – 31 Jan 2027.**
+* **White Rann Camp** (sister property; **switched off in the booking engine for now**, enquiries by WhatsApp) — Dhordo, three minutes from the White Rann entry and Rann Utsav. **Seasonal: 1 Dec 2026 – 31 Jan 2027.**
   * 20 Swiss tents: 6 Deluxe Air-Cool and 14 Non-AC, each with an attached bathroom.
 * **Colors of Kutch** tour packages (2N/3D and 3N/4D), priced per person by group size.
 
@@ -69,11 +69,29 @@ Without PHP installed, `pnpm dev` still runs the site. Book Now buttons then hav
 ---
 
 ## 5. Current state (summary)
-Working: all 12 routes, destination guides, the new booking engine (once hosted), and the typecheck and production build.
+Working: all 12 routes, destination guides, the booking engine locally (search → rooms → extras → details → pay, check status, receipts, admin), and the typecheck and production build.
+
+The booking database on this PC has **no bookings** (test bookings removed 26 Sep 2026). Sample mode and test payments are still **on**. See the go-live checklist in `30-TESTING-GO-LIVE-AND-HANDOVER.md`.
+
+**Where to read what:**
+| Docs | Topic |
+|---|---|
+| 01–20 | The website, its pages and design, deployment, known issues, change log |
+| 21 | How prices are worked out |
+| 22 | Changing a booking; what to collect or give back (50% or full) |
+| 23 | Availability, what holds a room, the Availability calendar |
+| 24 | Admin panel, screen by screen |
+| 25 | The guest's booking flow, receipts, check status |
+| 26 | Payments (Razorpay, UPI, test, refunds) |
+| 27 | Stayflexi |
+| 28 | Database, hidden couplings, the no-invented-data rule |
+| 29 | Lessons learned: what broke and why |
+| 30 | Testing, go-live checklist, handover |
 
 Outstanding, detailed in `16-KNOWN-ISSUES-AND-BUGS.md`:
 1. The Home contact form is still a mock (`setTimeout`).
 2. `/white-rann-camp/tariff` is linked but has no route. The `/#explore`, `/#rann-utsav` and `/#contact` anchors point to sections that don't exist.
 3. Placeholder content: Our Journey (lorem ipsum), Dining and Our Journey placeholder boxes, FAQ, `[WRC LOGO]`.
 4. About 269 MB of unoptimised assets, including a 4.5 MB favicon.
-5. The booking engine is not yet deployed. Its rates, GST and cancellation terms need the owner's sign-off.
+5. The booking engine is not yet deployed. Its rates, GST, the 50% balance date and cancellation terms need the owner's sign-off.
+6. Stayflexi is not connected, and Razorpay is on test keys only.

@@ -12,18 +12,32 @@ $flash = '';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     switch ($_POST['action'] ?? '') {
         case 'record_payment':
-            record_offline_payment($id, (float) $_POST['amount'], $_POST['method'], $user['name'], $_POST['note'] ?? '');
-            $flash = 'Payment recorded.'; break;
+            $cur = get_booking($id);
+            $due = $cur ? round((float) $cur['total'] - (float) $cur['amount_paid'], 2) : 0;
+            $amt = round((float) ($_POST['amount'] ?? 0), 2);
+            if (!$cur || $cur['status'] === 'cancelled') { $flash = 'This booking is cancelled — no payment can be recorded.'; break; }
+            if ($due <= 0.5)  { $flash = 'This booking is already fully paid.'; break; }
+            if ($amt <= 0 || $amt > $due + 0.5) { $flash = 'Enter an amount up to the balance due (' . inr($due) . ').'; break; }
+            record_offline_payment($id, $amt, $_POST['method'], $user['name'], $_POST['note'] ?? '');
+            $flash = 'Payment of ' . inr($amt) . ' recorded.'; break;
+        case 'record_refund':
+            $cur = get_booking($id);
+            $owed = $cur ? round((float) $cur['amount_paid'] - (float) $cur['total'], 2) : 0;
+            $amt = round((float) ($_POST['amount'] ?? 0), 2);
+            if (!$cur || $cur['status'] === 'cancelled') { $flash = 'Refunds on a cancelled booking follow the cancellation.'; break; }
+            if ($owed <= 0.5) { $flash = 'Nothing is owed back to the guest.'; break; }
+            if ($amt <= 0 || $amt > $owed + 0.5) { $flash = 'Enter an amount up to what is owed back (' . inr($owed) . ').'; break; }
+            record_offline_refund($id, $amt, $_POST['method'], $user['name'], $_POST['note'] ?? '');
+            $flash = 'Refund of ' . inr($amt) . ' recorded.'; break;
         case 'cancel':
             $r = cancel_booking($id, $_POST['reason'] ?? '', $user['name']);
-            $flash = $r['ok'] ? 'Cancelled. ' . $r['note'] : $r['error']; break;
-        case 'resync':
-            $r = channel_push_booking($id);
-            $flash = $r['ok'] ? 'Sent to Stayflexi.' : 'Stayflexi refused it: ' . ($r['reason'] ?? ''); break;
-        case 'mark_status':
-            update('bookings', $id, ['status' => $_POST['status'], 'updated_at' => now()]);
-            audit('status_changed', 'booking', $id, ['to' => $_POST['status']], $user['name']);
-            $flash = 'Status updated.'; break;
+            $flash = $r['ok'] ? 'Cancelled. ' . $r['note'] : $r['error'];
+            // Money taken by card goes back automatically; anything else is refunded by the desk.
+            if ($r['ok'] && $r['refund_due'] > 0 && razorpay_enabled()) {
+                $rf = razorpay_refund($id, (float) $r['refund_due'], 'Cancelled by ' . $user['name']);
+                $flash .= !empty($rf['ok']) ? ' Razorpay refund started.' : ' Razorpay refund failed — refund by hand.';
+            }
+            break;
         case 'note':
             update('bookings', $id, ['special_requests' => $_POST['special_requests'], 'updated_at' => now()]);
             $flash = 'Note saved.'; break;
@@ -33,80 +47,194 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 $b = get_booking($id);
 if (!$b) { admin_head('Not found', $user); echo '<div class="notice notice--err">No such booking.</div>'; admin_foot(); exit; }
 $balance = (float) $b['total'] - (float) $b['amount_paid'];
+$money = booking_money($b);
 
 admin_head($b['ref'], $user);
 ?>
 <p><a href="index.php">&larr; All bookings</a></p>
 <?php if ($flash): ?><div class="notice notice--ok"><?= h($flash) ?></div><?php endif; ?>
+<?php if (!empty($_GET['changed']) && !$flash): $d = round((float) $b['total'] - (float) $b['amount_paid'], 2);
+  $last = json_decode((string) (q1("SELECT detail FROM audit_log WHERE action = 'booking_modified' AND entity_id = ? ORDER BY id DESC LIMIT 1", [(string) $b['id']])['detail'] ?? ''), true);
+  $ch = $last['changes'] ?? null; ?>
+  <div class="notice notice--ok"><strong>Booking changed.</strong>
+    <?php if ($ch): ?>Old total <?= inr($last['total_from']) ?><?= $ch['added'] ? ' + added ' . inr($ch['added_total']) : '' ?><?= $ch['removed'] ? ' − taken off ' . inr(-$ch['removed_total']) : '' ?><?= $ch['changed'] ? ($ch['changed_total'] >= 0 ? ' + ' : ' − ') . 'changed ' . inr(abs($ch['changed_total'])) : '' ?> = new total <?= inr($b['total']) ?>.
+    <?php else: ?>New total <?= inr($b['total']) ?>.<?php endif; ?>
+    <?= $money['refund'] > 0.5 ? 'Give back ' . inr($money['refund']) . ' to the guest — record it under Payments.'
+      : ($money['due_now'] > 0.5 ? 'Collect ' . inr($money['due_now']) . ' now' . ($money['later'] > 0.5 ? ' and ' . inr($money['later']) . ' before arrival' : '') . ' — record it under Payments.'
+      : ($money['later'] > 0.5 ? 'Nothing to collect now; ' . inr($money['later']) . ' is due before arrival.' : 'Nothing to collect or give back.')) ?>
+    The guest sees the new details under "Already booked? Check status" and on the receipt.</div>
+<?php endif; ?>
 <?php if ($b['sf_sync_error']): ?>
-  <div class="notice notice--err"><strong>Not in Stayflexi.</strong>
-    This room may still be on sale on the OTAs. <?= h(substr($b['sf_sync_error'], 0, 200)) ?></div>
+  <div class="notice notice--err"><strong>Stayflexi has not been updated yet.</strong>
+    It is retried automatically every hour. <?= h(substr($b['sf_sync_error'], 0, 200)) ?></div>
 <?php endif; ?>
 
-<div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start">
-  <div>
-    <div class="panel">
-      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px">
+<?php
+/* One card per room: which cottage, how many sleep in it, extra bed, price.
+   Bookings store one line per room; older ones may hold several rooms on a
+   line, with the occupancy written into the plan name ("Room 1 Double, …"). */
+$incl = prices_include_tax(['code' => $b['property_code']]);
+$room_cards = [];
+foreach ($b['rooms'] as $line) {
+    $rt = q1("SELECT base_occupancy, extra_adult_price FROM room_types WHERE id = ?", [$line['room_type_id']]);
+    [$plan] = explode(' — ', (string) $line['rate_plan_name'], 2) + [''];
+    preg_match_all('/Room (\d+) (Single|Double|Triple)/', (string) $line['rate_plan_name'], $m, PREG_SET_ORDER);
+    $n = max(1, (int) $line['rooms']);
+    $nightly = json_decode((string) $line['nightly'], true) ?: [];
+    $amount = ($incl ? (float) $line['subtotal'] + (float) $line['tax_amount'] : (float) $line['subtotal']) / $n;
+    for ($i = 0; $i < $n; $i++) {
+        $label = $m[$i][2] ?? null;
+        $guests = $label ? ['Single' => 1, 'Double' => 2, 'Triple' => 3][$label] : (int) round((int) $line['adults'] / $n);
+        $extra = max(0, $guests - (int) ($rt['base_occupancy'] ?? 2));
+        $room_cards[] = [
+            'no' => isset($m[$i][1]) ? (int) $m[$i][1] : count($room_cards) + 1,
+            'cottage' => $line['room_type_name'], 'plan' => $plan, 'label' => $label ?: "$guests guests",
+            'guests' => $guests, 'extra' => $extra, 'extra_price' => (float) ($rt['extra_adult_price'] ?? 0),
+            'nights' => count($nightly) ?: (int) $b['nights'], 'amount' => $amount,
+        ];
+    }
+}
+// Similar rooms together: cottage in the site's order (as get_booking returns them), then room number.
+$type_order = array_flip(array_values(array_unique(array_column($room_cards, 'cottage'))));
+usort($room_cards, fn($x, $y) => [$type_order[$x['cottage']], $x['no']] <=> [$type_order[$y['cottage']], $y['no']]);
+$rooms_total  = array_sum(array_column($room_cards, 'amount'));
+$extras_total = array_sum(array_map(fn($a) => $incl ? (float) $a['subtotal'] + (float) $a['tax_amount'] : (float) $a['subtotal'], $b['addons']));
+$received = array_filter($b['payments'], fn($p) => in_array($p['status'], ['paid', 'refunded'], true));
+$attempts = array_filter($b['payments'], fn($p) => !in_array($p['status'], ['paid', 'refunded'], true));
+$status_word = ['confirmed' => 'Confirmed', 'pending' => booking_lapsed($b) ? 'Not paid' : 'Awaiting payment',
+                'cancelled' => 'Cancelled'][$b['status']] ?? ucfirst((string) $b['status']);
+?>
+<div class="bk">
+  <div class="bk__main">
+    <div class="panel bk__head">
+      <div class="bk__title">
         <div>
-          <h2 style="margin-bottom:.1em"><?= h($b['ref']) ?></h2>
-          <p style="margin:0;color:var(--muted);font-size:.86rem"><?= h($b['property_name']) ?> ·
-             booked <?= date('j M Y, g:i a', strtotime($b['created_at'])) ?> · via <?= h($b['source']) ?></p>
+          <h2><?= h($b['ref']) ?> <span class="bk__status bk__status--<?= h($b['status']) ?>"><?= h($status_word) ?></span></h2>
+          <p><?= h($b['property_name']) ?> · booked <?= date('j M Y, g:i a', strtotime($b['created_at'])) ?> · via <?= h($b['source']) ?>
+             <?php if ($mod = booking_modified_at((int) $b['id'])): ?> · changed <?= date('j M Y, g:i a', strtotime($mod)) ?><?php endif; ?></p>
         </div>
-        <span class="tag tag--<?= h($b['status']) ?>"><?= h($b['status']) ?></span>
+        <div class="bk__buttons">
+          <a class="btn btn--plain btn--sm" target="_blank" rel="noopener"
+             href="../document.php?doc=receipt&amp;ref=<?= urlencode($b['ref']) ?>">Receipt (PDF)</a>
+          <?php if ($b['status'] !== 'cancelled'): ?>
+          <a class="btn btn--sm" href="edit.php?id=<?= (int) $b['id'] ?>">Change this booking</a>
+          <?php endif; ?>
+        </div>
       </div>
 
-      <div class="summary__dates" style="margin-top:16px">
-        <div><span>Check in</span><b><?= date('D j M Y', strtotime($b['check_in'])) ?></b></div>
-        <div><span>Check out</span><b><?= date('D j M Y', strtotime($b['check_out'])) ?></b></div>
-        <div><span>Guests</span><b><?= (int) $b['adults'] ?> adults<?= (int) $b['children'] ? ', ' . (int) $b['children'] . ' children' : '' ?></b></div>
+      <div class="bk__facts">
+        <div><span>Check in</span><b><?= date('D j M Y', strtotime($b['check_in'])) ?></b><small>from <?= h($b['check_in_time']) ?></small></div>
+        <div><span>Check out</span><b><?= date('D j M Y', strtotime($b['check_out'])) ?></b><small>by <?= h($b['check_out_time']) ?></small></div>
+        <div><span>Nights</span><b><?= (int) $b['nights'] ?></b></div>
+        <div><span>Rooms</span><b><?= count($room_cards) ?></b></div>
+        <div><span>Guests</span><b><?= (int) $b['adults'] ?></b><small><?= (int) $b['children'] ? (int) $b['children'] . ' children' : 'adults' ?></small></div>
       </div>
+    </div>
 
-      <table class="grid" style="margin-top:16px">
-        <tr><th>Room</th><th>Plan</th><th>Qty</th><th>Amount</th></tr>
-        <?php foreach ($b['rooms'] as $r): ?>
-          <tr><td><?= h($r['room_type_name']) ?></td><td><?= h($r['rate_plan_name']) ?></td>
-              <td><?= (int) $r['rooms'] ?></td><td><?= inr($r['subtotal']) ?></td></tr>
+    <div class="panel">
+      <table class="grid bk__table">
+        <tr><th>Room</th><th>Cottage</th><th>Guests</th><th>Extra bed</th><th>Plan</th><th>Nights</th><th class="num">Amount</th></tr>
+        <?php foreach ($room_cards as $rc): ?>
+          <tr>
+            <td>Room <?= $rc['no'] ?></td>
+            <td><?= h($rc['cottage']) ?></td>
+            <td><?= h($rc['label']) ?> · <?= $rc['guests'] ?></td>
+            <td><?= $rc['extra'] ? '<b class="bk__yes">Yes' . ($rc['extra'] > 1 ? ' × ' . $rc['extra'] : '') . '</b>' : '<span style="color:var(--muted)">No</span>' ?></td>
+            <td><?= h($rc['plan']) ?></td>
+            <td><?= $rc['nights'] ?></td>
+            <td class="num"><?= inr($rc['amount']) ?></td>
+          </tr>
         <?php endforeach; ?>
         <?php foreach ($b['addons'] as $a): ?>
-          <tr><td colspan="2"><?= h($a['addon_name']) ?></td>
-              <td><?= (int) $a['quantity'] ?></td><td><?= inr($a['subtotal']) ?></td></tr>
+          <tr>
+            <td colspan="5"><?= h($a['addon_name']) ?> <small style="color:var(--muted)">· <?= inr((float) $a['unit_price']) ?> each</small></td>
+            <td><?= (int) $a['quantity'] ?></td>
+            <td class="num"><?= inr($incl ? (float) $a['subtotal'] + (float) $a['tax_amount'] : (float) $a['subtotal']) ?></td>
+          </tr>
         <?php endforeach; ?>
-        <tr><td colspan="3" style="text-align:right;color:var(--muted)">Taxes</td><td><?= inr($b['tax_amount']) ?></td></tr>
-        <tr><td colspan="3" style="text-align:right"><strong>Total</strong></td><td><strong><?= inr($b['total']) ?></strong></td></tr>
-        <tr><td colspan="3" style="text-align:right;color:var(--muted)">Paid</td><td><?= inr($b['amount_paid']) ?></td></tr>
-        <?php if ($balance > 0.5): ?>
-        <tr><td colspan="3" style="text-align:right;color:var(--warn)"><strong>Balance due</strong></td>
-            <td style="color:var(--warn)"><strong><?= inr($balance) ?></strong></td></tr>
+        <?php if ((float) $b['discount'] > 0): ?>
+          <tr><td colspan="6" class="num" style="color:var(--muted)">Discount<?= $b['coupon_code'] ? ' (' . h($b['coupon_code']) . ')' : '' ?></td><td class="num">− <?= inr($b['discount']) ?></td></tr>
+        <?php endif; ?>
+        <?php if (!$incl): ?>
+          <tr><td colspan="6" class="num" style="color:var(--muted)">GST</td><td class="num"><?= inr($b['tax_amount']) ?></td></tr>
+        <?php endif; ?>
+        <tr class="bk__total"><td colspan="6" class="num"><strong>Total</strong><?= $incl ? ' <small style="color:var(--muted)">includes GST ' . inr($b['tax_amount']) . '</small>' : '' ?></td>
+            <td class="num"><strong><?= inr($b['total']) ?></strong></td></tr>
+        <tr><td colspan="6" class="num" style="color:var(--muted)">Paid</td><td class="num"><?= inr($b['amount_paid']) ?></td></tr>
+        <?php if ($b['status'] !== 'cancelled' && $balance > 0.5): ?>
+          <?php if ($money['due_now'] > 0.5): ?>
+          <tr><td colspan="6" class="num" style="color:var(--warn)"><strong>Due now</strong><?= $money['mode'] === 'advance' ? ' <small>(to make up the ' . (int) $money['percent'] . '% advance)</small>' : '' ?></td>
+              <td class="num" style="color:var(--warn)"><strong><?= inr($money['due_now']) ?></strong></td></tr>
+          <?php endif; ?>
+          <?php if ($money['later'] > 0.5): ?>
+          <tr><td colspan="6" class="num"><strong>Due before arrival</strong></td>
+              <td class="num"><strong><?= inr($money['later']) ?></strong></td></tr>
+          <?php endif; ?>
+        <?php elseif ($b['status'] !== 'cancelled' && $balance < -0.5): ?>
+          <tr><td colspan="6" class="num" style="color:var(--ok)"><strong>Refund due to guest</strong></td>
+              <td class="num" style="color:var(--ok)"><strong><?= inr(-$balance) ?></strong></td></tr>
         <?php endif; ?>
       </table>
     </div>
 
-    <div class="panel">
-      <h3 style="font-size:1rem">Payments</h3>
-      <?php if (!$b['payments']): ?><p style="font-size:.86rem;color:var(--muted)">Nothing recorded yet.</p><?php endif; ?>
-      <?php foreach ($b['payments'] as $p): ?>
+    <div class="panel" id="payments">
+      <h3 class="bk__h">Payments</h3>
+      <?php if (!$received): ?><p style="font-size:.86rem;color:var(--muted)">No money received yet.</p><?php endif; ?>
+      <?php foreach ($received as $p): ?>
         <div class="sline">
-          <span><?= h($p['provider']) ?><?= $p['method'] ? ' · ' . h($p['method']) : '' ?>
-            <small><?= h($p['status']) ?><?= $p['verified_by'] ? ' · confirmed by ' . h($p['verified_by']) : '' ?>
-              <?= $p['upi_ref'] ? ' · ref ' . h($p['upi_ref']) : '' ?></small></span>
+          <span><?= $p['purpose'] === 'refund' ? 'Refund to guest' . ($p['method'] ? ' · ' . h($p['method']) : '')
+                   : ($p['provider'] === 'test' ? 'Test payment — no money taken'
+                   : h(['razorpay' => 'Razorpay (online)', 'upi_qr' => 'UPI to bank', 'offline' => 'Paid at the property'][$p['provider']] ?? $p['provider'])
+                     . ($p['method'] ? ' · ' . h($p['method']) : '')) ?>
+            <small><?= date('j M Y, g:i a', strtotime($p['paid_at'] ?: $p['created_at'])) ?>
+              <?= $p['verified_by'] ? ' · by ' . h($p['verified_by']) : '' ?><?= $p['upi_ref'] ? ' · ref ' . h($p['upi_ref']) : '' ?></small></span>
           <span><?= inr($p['amount']) ?></span>
         </div>
       <?php endforeach; ?>
+      <?php if ($attempts): ?>
+        <details class="bk__attempts"><summary><?= count($attempts) ?> payment attempt<?= count($attempts) > 1 ? 's' : '' ?> not completed</summary>
+        <?php foreach ($attempts as $p): ?>
+          <div class="sline"><span><?= h(['razorpay' => 'Online payment started', 'upi_qr' => 'UPI QR shown', 'test' => 'Test payment started'][$p['provider']] ?? $p['provider']) ?>
+            <small><?= date('j M, g:i a', strtotime($p['created_at'])) ?> · <?= h($p['status'] === 'awaiting_confirmation' ? 'waiting for you to check the bank' : $p['status']) ?></small></span>
+            <span style="color:var(--muted)"><?= inr($p['amount']) ?></span></div>
+        <?php endforeach; ?>
+        </details>
+      <?php endif; ?>
 
-      <form method="post" style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">
+      <?php if ($b['status'] === 'cancelled'): ?>
+      <?php elseif ($balance < -0.5): ?>
+      <h4 style="font-size:.86rem;margin:16px 0 0">Give back to the guest — <?= inr(-$balance) ?> owed</h4>
+      <p style="font-size:.8rem;color:var(--muted);margin:2px 0 0">The booking was changed and now costs less than was paid.</p>
+      <form method="post" style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="record_refund">
+        <div class="field"><label>Amount</label>
+          <input name="amount" type="number" step="0.01" min="1" max="<?= round(-$balance, 2) ?>" value="<?= round(-$balance, 2) ?>" required></div>
+        <div class="field"><label>Method</label>
+          <select name="method"><option>cash</option><option>bank transfer</option><option>upi</option><option>card</option></select></div>
+        <div class="field"><label>Note</label><input name="note" placeholder="Given back at reception"></div>
+        <button class="btn btn--sm" type="submit">Record refund</button>
+      </form>
+      <?php elseif ($balance <= 0.5): ?>
+      <p class="notice notice--ok" style="margin:14px 0 0">Fully paid — nothing left to collect.</p>
+      <?php else: ?>
+      <h4 style="font-size:.86rem;margin:16px 0 0">Collect the balance — <?= inr($balance) ?> due<?php if ($money['mode'] === 'advance'): ?>
+        <small class="muted">(<?= inr($money['due_now']) ?> now, <?= inr($money['later']) ?> before arrival)</small><?php endif; ?></h4>
+      <form method="post" style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="record_payment">
         <div class="field"><label>Amount</label>
-          <input name="amount" type="number" step="0.01" value="<?= $balance > 0 ? round($balance, 2) : '' ?>" required></div>
+          <input name="amount" type="number" step="0.01" min="1" max="<?= round($balance, 2) ?>" value="<?= round($balance, 2) ?>" required></div>
         <div class="field"><label>Method</label>
           <select name="method"><option>cash</option><option>card</option><option>bank transfer</option><option>upi</option></select></div>
         <div class="field"><label>Note</label><input name="note" placeholder="Taken at reception"></div>
         <button class="btn btn--sm" type="submit">Record</button>
       </form>
+      <?php endif; ?>
     </div>
 
     <div class="panel">
-      <h3 style="font-size:1rem">Notes from the guest</h3>
+      <h3 class="bk__h">Notes</h3>
       <form method="post">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="note">
@@ -116,7 +244,7 @@ admin_head($b['ref'], $user);
     </div>
   </div>
 
-  <aside>
+  <aside class="bk__side">
     <div class="panel">
       <h3 style="font-size:1rem">Guest</h3>
       <p style="margin:0 0 4px"><strong><?= h($b['guest_name']) ?></strong></p>
@@ -130,24 +258,17 @@ admin_head($b['ref'], $user);
 
     <div class="panel">
       <h3 style="font-size:1rem">Actions</h3>
-      <form method="post" style="margin-bottom:10px">
-        <?= csrf_field() ?><input type="hidden" name="action" value="mark_status">
-        <div class="field"><label>Set status</label>
-          <select name="status">
-            <?php foreach (['pending','confirmed','completed','no_show'] as $s): ?>
-              <option value="<?= $s ?>" <?= $b['status'] === $s ? 'selected' : '' ?>><?= ucfirst(str_replace('_',' ',$s)) ?></option>
-            <?php endforeach; ?>
-          </select></div>
-        <button class="btn btn--plain btn--sm btn--block" style="margin-top:8px" type="submit">Update</button>
-      </form>
-
-      <form method="post" style="margin-bottom:10px">
-        <?= csrf_field() ?><input type="hidden" name="action" value="resync">
-        <button class="btn btn--plain btn--sm btn--block" type="submit">Send to Stayflexi</button>
-      </form>
+      <p style="font-size:.8rem;color:var(--muted);margin:0 0 12px">
+        The status changes by itself: confirmed when paid, cancelled when you cancel.
+        Stayflexi is updated automatically either way.</p>
 
       <?php if ($b['status'] !== 'cancelled'): ?>
-      <form method="post" onsubmit="return confirm('Cancel <?= h($b['ref']) ?>? The rooms go back on sale.')">
+      <form method="post" id="cancel" class="cancelbox" data-confirm="Cancel <?= h($b['ref']) ?>? The rooms go back on sale." data-ok="Yes, cancel it" data-danger="1">
+        <h3 style="font-size:.95rem;margin:0 0 6px">Cancel this booking</h3>
+        <?php $sched = array_values(array_filter(cancellation_schedule($b['check_in'], (float) $b['total']), fn($c) => !$c['past'])); ?>
+        <?php if ($sched): ?><p style="font-size:.8rem;margin:0 0 8px;color:var(--muted)">
+          Charge if cancelled today: <strong><?= h(rtrim(rtrim(number_format($sched[0]['charge_percent'], 2), '0'), '.')) ?>%</strong>
+          (<?= inr($sched[0]['charge_amount']) ?>). Paid so far: <?= inr($b['amount_paid']) ?>.</p><?php endif; ?>
         <?= csrf_field() ?><input type="hidden" name="action" value="cancel">
         <div class="field"><label>Reason</label><input name="reason" placeholder="Guest called"></div>
         <button class="btn btn--sm btn--block" style="margin-top:8px;background:var(--err);border-color:var(--err)"

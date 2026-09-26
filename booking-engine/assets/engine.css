@@ -26,9 +26,11 @@
   --font-body: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   --radius: 4px;
-  --shadow-sm: 0 2px 10px rgba(36,31,27,.06);
-  --shadow: 0 10px 34px rgba(36,31,27,.10);
-  --ease: cubic-bezier(.22,.61,.36,1);
+  /* Matte finish: soft, wide, low-contrast shadows instead of a glossy lift. */
+  --shadow-sm: 0 1px 3px rgba(36,31,27,.04), 0 2px 8px -2px rgba(36,31,27,.04);
+  --shadow: 0 8px 28px -12px rgba(36,31,27,.10);
+  --ease: cubic-bezier(.23,1,.32,1);
+  --t: .35s var(--ease);
 }
 
 * { box-sizing: border-box; }
@@ -42,17 +44,22 @@ body {
   color: var(--body);
   background: var(--sand-2);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
 }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+::selection { background: color-mix(in srgb, var(--clay) 18%, transparent); color: var(--ink); }
 
 h1, h2, h3 { font-family: var(--font-display); font-weight: 400; color: var(--ink); line-height: 1.2; margin: 0 0 .4em; }
 h1 { font-size: 1.6rem; }
 h2 { font-size: 1.3rem; }
 h3 { font-size: 1.1rem; }
 p { margin: 0 0 1em; }
-a { color: var(--clay); text-decoration: none; }
+a { color: var(--clay); text-decoration: none; transition: color var(--t); }
 a:hover { color: var(--clay-dark); }
 img { max-width: 100%; display: block; }
-:focus-visible { outline: 2px solid var(--clay); outline-offset: 3px; }
+:focus-visible { outline: 2px solid color-mix(in srgb, var(--clay) 55%, transparent); outline-offset: 3px; }
 
 .wrap { max-width: 1160px; margin-inline: auto; padding-inline: 20px; }
 
@@ -91,8 +98,9 @@ img { max-width: 100%; display: block; }
   font-family: var(--font-body); font-size: .92rem; color: var(--ink);
   padding: 11px 12px; border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--paper); width: 100%;
+  transition: border-color var(--t), box-shadow var(--t);
 }
-.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--clay); outline: none; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--clay); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--clay) 10%, transparent); }
 .field textarea { resize: vertical; min-height: 84px; }
 .field .hint { font-size: .72rem; color: var(--muted); }
 
@@ -103,8 +111,9 @@ img { max-width: 100%; display: block; }
   letter-spacing: .16em; text-transform: uppercase;
   padding: 14px 26px; border: 1px solid var(--clay); border-radius: var(--radius);
   background: var(--clay); color: #fff; cursor: pointer;
-  transition: background .25s var(--ease), transform .25s var(--ease);
+  transition: background var(--t), border-color var(--t), color var(--t), opacity var(--t), transform var(--t);
 }
+.btn:active:not(:disabled) { transform: translateY(1px); }
 .btn:hover { background: var(--clay-dark); border-color: var(--clay-dark); color: #fff; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn--ghost { background: transparent; color: var(--clay); }
@@ -121,12 +130,14 @@ img { max-width: 100%; display: block; }
 .room {
   background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
   overflow: hidden; margin-bottom: 18px;
+  box-shadow: var(--shadow-sm); transition: box-shadow var(--t), border-color var(--t);
 }
+.room:hover { box-shadow: var(--shadow); }
 .room__top { display: grid; grid-template-columns: 240px 1fr; gap: 0; }
 .room__gallery { position: relative; background: var(--sand); }
 .room__gallery img { width: 100%; height: 100%; min-height: 190px; object-fit: cover; }
 .room__thumbs { display: flex; gap: 4px; padding: 4px; background: var(--paper); }
-.room__thumbs img { width: 100%; height: 44px; object-fit: cover; cursor: pointer; border-radius: 2px; opacity: .7; }
+.room__thumbs img { width: 100%; height: 44px; object-fit: cover; cursor: pointer; border-radius: 2px; opacity: .7; transition: opacity var(--t); }
 .room__thumbs img:hover, .room__thumbs img.is-active { opacity: 1; }
 .room__info { padding: 20px 22px; }
 .room__info h3 { margin-bottom: .2em; }
@@ -185,7 +196,8 @@ img { max-width: 100%; display: block; }
 
 /* ---- Payment choices ---- */
 .paymode { display: block; border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 14px 16px; margin-bottom: 10px; cursor: pointer; background: var(--paper); }
+  padding: 14px 16px; margin-bottom: 10px; cursor: pointer; background: var(--paper);
+  transition: border-color var(--t), background var(--t); }
 .paymode:hover { border-color: var(--clay); }
 .paymode input { margin-right: 10px; }
 .paymode.is-on { border-color: var(--clay); background: var(--clay-soft); }
@@ -251,3 +263,186 @@ img { max-width: 100%; display: block; }
   /* iOS zooms in on any field under 16px. */
   .field input, .field select, .field textarea { font-size: 16px; }
 }
+
+/* ---- Matte finish ----
+   Faint paper grain over the page, the same texture the main website uses.
+   Multiply keeps it a texture rather than a tint; colours are unchanged. */
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+  opacity: .6; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='discrete' tableValues='0 0.03 0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* Step changes fade in instead of snapping. */
+@media (prefers-reduced-motion: no-preference) {
+  #stage > * { animation: eng-in .45s var(--ease) both; }
+}
+@keyframes eng-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---- Buttons that look like buttons ----
+   Header links and the plain/ghost buttons were bare coloured text on the sand
+   background. Give every clickable thing a filled, bordered, matte shape and a
+   hover/press response. Existing colour tokens only. */
+.btn { box-shadow: var(--shadow-sm); }
+.btn:hover:not(:disabled) { box-shadow: var(--shadow); }
+.btn--ghost { background: var(--paper); }
+.btn--ghost:hover { background: var(--clay); color: #fff; }
+.btn--plain {
+  background: var(--paper); color: var(--ink);
+  border-color: color-mix(in srgb, var(--muted) 45%, var(--line));
+}
+.btn--plain:hover { background: var(--clay-soft); border-color: var(--clay); color: var(--clay-dark); }
+
+.eng-header nav { gap: 10px; }
+.eng-header nav a {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 9px 16px; min-height: 38px; white-space: nowrap;
+  background: var(--paper); color: var(--clay);
+  border: 1px solid color-mix(in srgb, var(--clay) 45%, var(--line));
+  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  transition: background var(--t), border-color var(--t), color var(--t), box-shadow var(--t), transform var(--t);
+}
+.eng-header nav a:hover { background: var(--clay-soft); border-color: var(--clay); color: var(--clay-dark); box-shadow: var(--shadow); }
+.eng-header nav a:active, .btn:active:not(:disabled) { transform: translateY(1px); }
+/* The phone number is the main action in the header, so it gets the solid fill. */
+.eng-header nav a[href^="tel:"] { background: var(--clay); border-color: var(--clay); color: #fff; }
+.eng-header nav a[href^="tel:"]:hover { background: var(--clay-dark); border-color: var(--clay-dark); color: #fff; }
+
+.qty button { transition: background var(--t); border-radius: var(--radius); }
+.qty button:hover { background: var(--sand); }
+
+@media (max-width: 960px) {
+  .eng-header .wrap { flex-wrap: wrap; padding-block: 10px; gap: 10px; }
+  .eng-header nav { width: 100%; gap: 8px; font-size: .68rem; flex-wrap: wrap; }
+  .eng-header nav a { flex: 1 1 0; min-width: 0; padding: 8px 10px; }
+  /* Three buttons don't fit across a phone: the call button takes its own row. */
+  .eng-header nav a[href^="tel:"] { flex-basis: 100%; }
+}
+
+/* ---- Per-room extras (extra bed): one tick box per room in the booking ---- */
+.roompick { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.roompick__room {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  padding: 11px 14px; background: var(--paper);
+  border: 1px solid color-mix(in srgb, var(--muted) 45%, var(--line)); border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--t), background var(--t), box-shadow var(--t);
+}
+.roompick__room:hover { border-color: var(--clay); box-shadow: var(--shadow); }
+.roompick__room.is-on { border-color: var(--clay); background: var(--clay-soft); }
+.roompick__room input { accent-color: var(--clay); width: 18px; height: 18px; margin: 0; flex: none; }
+.roompick__room b { display: block; color: var(--ink); font-size: .88rem; }
+.roompick__room small { display: block; color: var(--muted); font-size: .74rem; }
+
+/* ---- Right-hand column scrolls as one piece ----
+   Only .summary was sticky, so the "Rather talk to someone?" box under it
+   scrolled up over the pinned summary. Pin the whole column instead; if it is
+   taller than the window it scrolls inside itself rather than being cut off. */
+.layout > aside {
+  position: sticky; top: 90px; align-self: start;
+  max-height: calc(100vh - 110px); overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.layout > aside .summary { position: static; }
+@media (max-width: 900px) {
+  .layout > aside { position: static; max-height: none; overflow: visible; }
+}
+
+/* ---- Guests in each room (Single / Double / Triple) ---- */
+.searchbar { grid-template-columns: repeat(3, 1fr) auto; }
+.field--occ { grid-column: 1 / -1; }
+.field__label { font-size: .64rem; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.occ { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.occ__room {
+  display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 12px;
+  background: var(--sand-2); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.occ__room span { font-size: .78rem; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.occ__room select {
+  flex: 1; min-width: 0; font-family: var(--font-body); font-size: .86rem; color: var(--ink);
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper);
+  transition: border-color var(--t);
+}
+.occ__room select:focus { border-color: var(--clay); outline: none; }
+@media (max-width: 560px) { .occ__room select { font-size: 16px; } }
+
+/* ---- Grouped extras: one card, a row per choice (Airport transfer → Sedan / Ertiga / Innova) ---- */
+.variants { grid-column: 1 / -1; display: grid; gap: 8px; }
+.variant {
+  display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 16px;
+  padding: 8px 8px 8px 14px; background: var(--sand-2);
+  border: 1px solid var(--line); border-radius: var(--radius);
+}
+.variant__name { font-weight: 600; color: var(--ink); font-size: .9rem; }
+.variant__price { font-family: var(--font-display); color: var(--ink); font-size: 1.05rem; }
+.variant__price small { font-family: var(--font-body); font-size: .72rem; color: var(--muted); }
+.variant .qty { background: var(--paper); }
+@media (max-width: 560px) { .variant { grid-template-columns: 1fr auto; } .variant .qty { grid-column: 1 / -1; justify-self: start; } }
+
+/* Sample mode reminder on "Who is coming?" (config rules.guest_details_optional). */
+.notice--sample { background: var(--clay-soft); color: var(--clay-dark); border: 1px dashed var(--clay); }
+
+/* Testing only: the "I've paid (test)" panel (config test_payments.enabled). */
+.testpay { border: 1px dashed var(--clay); background: var(--clay-soft); }
+.testpay p { font-size: .88rem; }
+
+
+/* ---- Mixed cottages: Select opens a cottage's room numbers to tick ---- */
+.assign { grid-column: 1 / -1; padding: 12px 22px 16px; background: var(--sand-2); border-top: 1px solid var(--line); }
+.assign p { font-size: .82rem; color: var(--muted); margin: 0 0 8px; }
+.assign__rooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.assign__room {
+  display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px 12px;
+  background: var(--paper); border: 1px solid color-mix(in srgb, var(--muted) 45%, var(--line));
+  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  transition: border-color var(--t), background var(--t), box-shadow var(--t);
+}
+.assign__room:hover { border-color: var(--clay); box-shadow: var(--shadow); }
+.assign__room.is-on { border-color: var(--clay); background: var(--clay-soft); }
+.assign__room.is-off { cursor: not-allowed; opacity: .55; box-shadow: none; }
+.assign__room input { accent-color: var(--clay); width: 18px; height: 18px; margin: 0; flex: none; }
+.assign__room b { display: block; font-size: .84rem; color: var(--ink); }
+.assign__room small { display: block; font-size: .74rem; color: var(--muted); }
+.assignbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap; margin-top: 8px; padding: 12px 16px; background: var(--paper);
+  border: 1px solid var(--line); border-top: 3px solid var(--clay); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.assignbar span { font-size: .86rem; color: var(--body); }
+.assignbar .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* "You booked KSR-…" — shown again after a refresh (engine.js showLastBooking). */
+.lastbooking {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin-top: 16px; padding: 10px 14px; background: var(--clay-soft); color: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--clay) 45%, var(--line)); border-radius: var(--radius); font-size: .88rem;
+}
+.lastbooking__actions { display: flex; align-items: center; gap: 8px; }
+.lastbooking__close { border: 0; background: none; font-size: 1.3rem; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px 6px; }
+
+/* Payment options that are not connected yet (test mode shows them, greyed out). */
+.paymethod .btn:disabled { cursor: not-allowed; opacity: .5; box-shadow: none; }
+
+/* Arrival time: scroll wheel (hour · minutes · AM/PM). Rows are 36px; the band marks the chosen row. */
+.wheelbox { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.wheel { position: relative; display: flex; align-items: stretch; height: 180px; padding: 0 6px;
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.wheel::before, .wheel::after { content: ""; position: absolute; left: 0; right: 0; height: 72px; z-index: 3; pointer-events: none; }
+.wheel::before { top: 0; background: linear-gradient(var(--paper), transparent); }
+.wheel::after { bottom: 0; background: linear-gradient(transparent, var(--paper)); }
+.wheel__col { width: 52px; height: 180px; overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none;
+  overscroll-behavior: contain; outline: none; }
+.wheel__col::-webkit-scrollbar { display: none; }
+.wheel__col:focus-visible { box-shadow: inset 0 0 0 2px var(--clay-soft); border-radius: 8px; }
+.wheel__pad { height: 72px; }
+.wheel__item { height: 36px; line-height: 36px; text-align: center; scroll-snap-align: center; cursor: pointer;
+  color: var(--muted); font-variant-numeric: tabular-nums; transition: color var(--t, .2s), transform var(--t, .2s); user-select: none; }
+.wheel__item.is-on { color: var(--muted); font-weight: 600; transform: scale(1.08); }
+.wheelbox.is-set .wheel__item.is-on { color: var(--ink); }
+.wheel__colon { align-self: center; font-weight: 700; color: var(--muted); z-index: 3; }
+.wheel__band { position: absolute; left: 6px; right: 6px; top: 72px; height: 36px; border-radius: 8px; z-index: 1;
+  pointer-events: none; background: var(--sand); border: 1px solid var(--line); opacity: .6; }
+.wheel__col { position: relative; z-index: 2; }
+.wheel__side { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.wheel__value { font-size: .88rem; color: var(--muted); }
+.wheelbox.is-set .wheel__value { color: var(--ink); font-weight: 600; }
+.wheel__side .btn[hidden] { display: none; }

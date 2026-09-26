@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Instagram } from "lucide-react";
+import { statusUrl } from "@/lib/booking";
 
 export default function Footer() {
   return (
@@ -52,6 +53,7 @@ export default function Footer() {
             <h4 className="text-zinc-900 font-semibold uppercase tracking-widest text-sm mb-6">Reservations</h4>
             <ul className="space-y-3 text-sm mb-6">
               <li><a href="tel:+919925238599" className="hover:text-zinc-900 transition-colors">+91 99252 38599</a></li>
+              <li><a href={statusUrl()} className="hover:text-zinc-900 transition-colors">Already booked? Check status</a></li>
               <li><a href="mailto:kutchsafaribhuj@yahoo.com" className="hover:text-zinc-900 transition-colors break-all">kutchsafaribhuj@yahoo.com</a></li>
               <li className="leading-relaxed">Near Rudramata Dam,<br/>Bhuj–Khavda Road, Bhuj,<br/>Kutch, Gujarat 370001</li>
             </ul>

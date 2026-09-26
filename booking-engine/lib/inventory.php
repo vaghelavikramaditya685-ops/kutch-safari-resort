@@ -38,18 +38,150 @@ function tax_percent_for(float $nightly_price): float {
 
 function money(float $n): float { return round($n, 2); }
 
+/** Whether this property's published tariff already includes GST (config: prices_include_tax). */
+function prices_include_tax(array $property): bool {
+    return in_array($property['code'], (array) cfg('prices_include_tax', []), true);
+}
+
+/**
+ * Split one night's tariff into [before tax, tax].
+ *
+ * Exclusive: the tariff is the taxable value, GST goes on top.
+ * Inclusive: the tariff is what the guest pays; the slab is decided on the
+ * value before tax (₹7,450 incl. 5% is ₹7,095 + ₹355, so it stays in the 5% slab).
+ */
+function tax_split(float $tariff, bool $inclusive): array {
+    if (!$inclusive) {
+        $tax = $tariff * tax_percent_for($tariff) / 100;
+        return [$tariff, $tax];
+    }
+    foreach (cfg('tax_slabs', [[PHP_INT_MAX, 0]]) as [$upto, $percent]) {
+        $net = $tariff / (1 + $percent / 100);
+        if ($net <= $upto) return [$net, $tariff - $net];
+    }
+    return [$tariff, 0.0];
+}
+
+/* ---------------------------------------------------------------------------
+ * Occupancy — guests choose Single, Double or Triple for each room.
+ * ------------------------------------------------------------------------ */
+
+function occupancy_label(int $guests): string {
+    return [1 => 'Single', 2 => 'Double', 3 => 'Triple'][$guests] ?? "$guests guests";
+}
+
+/**
+ * One entry per room: how many adults sleep in it. Accepts "2,1,3" or [2,1,3];
+ * without one, spreads $adults over the rooms (the old adults + rooms search).
+ */
+function normalise_occupancy($occupancy, int $rooms, int $adults = 2): array {
+    if (is_string($occupancy)) $occupancy = $occupancy === '' ? [] : explode(',', $occupancy);
+    $list = array_map(fn($n) => max(1, min(3, (int) $n)), is_array($occupancy) ? $occupancy : []);
+    if (count($list) !== $rooms) {
+        $list = [];
+        $left = max($rooms, $adults);
+        for ($i = $rooms; $i > 0; $i--) {
+            $n = max(1, min(3, (int) ceil($left / $i)));
+            $list[] = $n;
+            $left -= $n;
+        }
+    }
+    return $list;
+}
+
+/**
+ * Price a set of rooms of one type on one plan, each for its own occupancy.
+ *
+ *   Double = the plan's nightly rate (base_price, or the date's rate).
+ *   Single = that rate less (base_price - single_price), so date and peak
+ *            prices keep the same single discount. No single_price = Double.
+ *   Triple = Double plus the room type's extra-bed charge (extra_adult_price)
+ *            for each guest beyond base_occupancy.
+ *
+ * This is the only place room prices are worked out — the room list and the
+ * checkout both use it, so what a guest sees is what the server charges.
+ */
+function price_rooms(array $property, array $room_type, array $plan, string $check_in, string $check_out, array $occupancy): ?array {
+    $priced = price_rate_plan($plan, $check_in, $check_out);
+    if ($priced === null) return null;
+
+    $inclusive  = prices_include_tax($property);
+    $single_off = ($plan['single_price'] ?? null) !== null && $plan['single_price'] !== ''
+                ? max(0.0, (float) $plan['base_price'] - (float) $plan['single_price']) : 0.0;
+    $base_occ   = (int) $room_type['base_occupancy'];
+    $extra_bed  = (float) $room_type['extra_adult_price'];
+
+    $units = [];
+    $net = $tax = 0.0;
+    foreach (array_values($occupancy) as $i => $guests) {
+        $u_net = $u_tax = 0.0;
+        foreach ($priced['nightly'] as $double) {
+            $night = ($guests <= 1 ? max(0.0, $double - $single_off) : $double)
+                   + max(0, $guests - $base_occ) * $extra_bed;
+            [$n, $t] = tax_split($night, $inclusive);
+            $u_net += $n;
+            $u_tax += $t;
+        }
+        $units[] = ['room' => $i + 1, 'guests' => $guests, 'label' => occupancy_label($guests),
+                    'subtotal' => money($u_net), 'tax' => money($u_tax), 'total' => money($u_net + $u_tax)];
+        $net += $u_net;
+        $tax += $u_tax;
+    }
+
+    return [
+        'nightly'      => $priced['nightly'],
+        'per_night'    => $priced['avg_night'],
+        'subtotal'     => money($net),
+        'tax'          => money($tax),
+        'total'        => money($net + $tax),
+        'units'        => $units,
+        'adults'       => array_sum($occupancy),
+        'extra_adults' => array_sum(array_map(fn($g) => max(0, $g - $base_occ), $occupancy)),
+    ];
+}
+
 /* ---------------------------------------------------------------------------
  * How many rooms of a type are already committed on a date.
  * ------------------------------------------------------------------------ */
+/**
+ * While the desk changes a booking, that booking's own rooms must not count
+ * against it — moving a stay by a night should not be refused because of itself.
+ */
+function availability_ignore_booking(?int $booking_id = null, bool $set = false): ?int {
+    static $ignore = null;
+    if ($set) $ignore = $booking_id;
+    return $ignore;
+}
+
 function rooms_booked(int $room_type_id, string $date): int {
+    // A confirmed booking always holds its rooms. A pending (unpaid) one holds
+    // them only while the guest can still pay — the card window (rules.hold_minutes)
+    // or the UPI QR window, whichever is longer — or once some money has been
+    // paid, or while a UPI payment waits for the desk to confirm it. After that
+    // an unpaid booking stops blocking rooms, so abandoned checkouts free up.
+    $window = max((int) cfg('rules.hold_minutes', 20), (int) cfg('upi.hold_minutes', 45));
+    $since  = date('Y-m-d H:i:s', time() - $window * 60);
     return (int) qval(
         "SELECT COALESCE(SUM(br.rooms), 0)
            FROM booking_rooms br
            JOIN bookings b ON b.id = br.booking_id
           WHERE br.room_type_id = ?
-            AND b.status IN ('pending','confirmed')
-            AND b.check_in <= ? AND b.check_out > ?",
-        [$room_type_id, $date, $date], 0);
+            AND b.check_in <= ? AND b.check_out > ?
+            AND (b.status = 'confirmed'
+                 OR (b.status = 'pending'
+                     AND (b.amount_paid > 0 OR b.created_at > ?
+                          OR EXISTS (SELECT 1 FROM payments p
+                                      WHERE p.booking_id = b.id AND p.status = 'awaiting_confirmation'))))"
+            . (availability_ignore_booking() ? " AND b.id <> " . (int) availability_ignore_booking() : ''),
+        [$room_type_id, $date, $date, $since], 0);
+}
+
+/** An unpaid booking whose payment window has closed — it no longer holds rooms. */
+function booking_lapsed(array $b): bool {
+    if ($b['status'] !== 'pending' || (float) $b['amount_paid'] > 0) return false;
+    $window = max((int) cfg('rules.hold_minutes', 20), (int) cfg('upi.hold_minutes', 45));
+    if (strtotime($b['created_at']) > time() - $window * 60) return false;
+    return !qval("SELECT 1 FROM payments WHERE booking_id = ? AND status = 'awaiting_confirmation'", [$b['id']]);
 }
 
 /** Rooms sitting in someone else's cart right now. */
@@ -95,6 +227,20 @@ function rooms_free_for_stay(array $room_type, string $check_in, string $check_o
  * Price a rate plan across the stay.
  * Returns null when the plan is closed on any night or fails its minimum stay.
  */
+/**
+ * Prices already agreed on a booking that the desk is changing. Set only while
+ * pricing that change (quote_modification): a night the guest already had keeps
+ * the price it was booked at — even if the tariff or a special price has moved
+ * since — and so does an extra already on the booking. Only new nights, new
+ * cottages and new extras are priced at today's rates.
+ *   ['nightly' => [rate_plan_id => [date => price]], 'addons' => [addon_id => unit price]]
+ */
+function pricing_locks(?array $locks = null, bool $set = false): array {
+    static $current = [];
+    if ($set) $current = $locks ?? [];
+    return $current;
+}
+
 function price_rate_plan(array $plan, string $check_in, string $check_out): ?array {
     $dates = stay_dates($check_in, $check_out);
     $nights = count($dates);
@@ -110,7 +256,17 @@ function price_rate_plan(array $plan, string $check_in, string $check_out): ?arr
     $byDate = [];
     foreach ($rows as $r) $byDate[$r['stay_date']] = $r;
 
+    $locked = pricing_locks()['nightly'][(int) $plan['id']] ?? [];
     foreach ($dates as $d) {
+        if (isset($locked[$d])) {
+            // Already booked at this price: keep it, and a later stop-sell or
+            // minimum stay does not take away a night the guest already has.
+            $price = (float) $locked[$d];
+            $nightly[$d] = money($price);
+            $subtotal += $price;
+            $tax += $price * tax_percent_for($price) / 100;
+            continue;
+        }
         $row = $byDate[$d] ?? null;
         if ($row && (int) $row['closed'] === 1) return null;           // stop-sell
         if ($row && $nights < (int) $row['min_stay']) return null;      // min stay not met
@@ -155,35 +311,31 @@ function occupancy_extras(array $room_type, int $adults, int $children, int $nig
  * $rooms_wanted filters out categories that cannot supply that many.
  */
 function search_availability(array $property, string $check_in, string $check_out,
-                             int $adults = 2, int $children = 0, int $rooms_wanted = 1): array {
+                             int $adults = 2, int $children = 0, int $rooms_wanted = 1, ?array $occupancy = null): array {
     $nights = nights_between($check_in, $check_out);
+    $occupancy = normalise_occupancy($occupancy, $rooms_wanted, $adults);
     $results = [];
 
     $room_types = q("SELECT * FROM room_types WHERE property_id = ? AND active = 1 ORDER BY sort_order, id",
                     [$property['id']]);
 
     foreach ($room_types as $rt) {
-        // Occupancy check, spread across the rooms requested.
-        $capacity_adults   = (int) $rt['max_adults'] * $rooms_wanted;
-        $capacity_children = (int) $rt['max_children'] * $rooms_wanted;
-        if ($adults > $capacity_adults || $children > $capacity_children) continue;
+        // Guests may mix cottage types across rooms, so a type is listed if it can
+        // take at least one of the rooms: at least one free, and big enough for
+        // that room's guests. `fits` says which rooms it can take.
+        $fits = array_map(fn($g) => $g <= (int) $rt['max_adults'], $occupancy);
+        if (!in_array(true, $fits, true)) continue;
 
         $free = rooms_free_for_stay($rt, $check_in, $check_out);
-        if ($free < $rooms_wanted) continue;
-
-        $adults_per_room   = (int) ceil($adults / max(1, $rooms_wanted));
-        $children_per_room = (int) ceil($children / max(1, $rooms_wanted));
-        $extras = occupancy_extras($rt, $adults_per_room, $children_per_room, $nights);
+        if ($free < 1) continue;
 
         $plans = [];
+        $extra_adults = 0;
         foreach (q("SELECT * FROM rate_plans WHERE room_type_id = ? AND active = 1 ORDER BY sort_order, id",
                    [$rt['id']]) as $plan) {
-            $priced = price_rate_plan($plan, $check_in, $check_out);
+            $priced = price_rooms($property, $rt, $plan, $check_in, $check_out, $occupancy);
             if ($priced === null) continue;
-
-            $rooms_total = $priced['subtotal'] * $rooms_wanted + $extras['amount'] * $rooms_wanted;
-            $tax_total   = $priced['tax'] * $rooms_wanted
-                         + $extras['amount'] * $rooms_wanted * tax_percent_for($priced['avg_night']) / 100;
+            $extra_adults = $priced['extra_adults'];
 
             $plans[] = [
                 'id'          => (int) $plan['id'],
@@ -192,11 +344,13 @@ function search_availability(array $property, string $check_in, string $check_ou
                 'meal_note'   => $plan['meal_note'],
                 'refundable'  => (bool) $plan['refundable'],
                 'nightly'     => $priced['nightly'],
-                'per_night'   => $priced['avg_night'],
-                'per_night_with_tax' => money($priced['avg_night'] * (1 + tax_percent_for($priced['avg_night']) / 100)),
-                'subtotal'    => money($rooms_total),
-                'tax'         => money($tax_total),
-                'total'       => money($rooms_total + $tax_total),
+                'per_night'   => $priced['per_night'],
+                // Average for all the rooms chosen, per night, as the guest will pay it.
+                'per_night_with_tax' => money($priced['total'] / max(1, $nights)),
+                'units'       => $priced['units'],
+                'subtotal'    => $priced['subtotal'],
+                'tax'         => $priced['tax'],
+                'total'       => $priced['total'],
             ];
         }
         if (!$plans) continue;
@@ -214,10 +368,12 @@ function search_availability(array $property, string $check_in, string $check_ou
             'images'        => json_decode($rt['images'] ?: '[]', true) ?: [],
             'amenities'     => json_decode($rt['amenities'] ?: '[]', true) ?: [],
             'rooms_left'    => $free,
+            'fits'          => $fits,
+            // True when this one type can take every room in the search.
+            'fits_all'      => $free >= $rooms_wanted && !in_array(false, $fits, true),
             // Shown as a gentle nudge when stock is genuinely low — never invented.
             'low_stock'     => $free <= 3,
-            'extra_adults'  => $extras['extra_adults'],
-            'extra_charge'  => $extras['amount'],
+            'extra_adults'  => $extra_adults,
             'rate_plans'    => $plans,
         ];
     }
@@ -285,6 +441,15 @@ function purge_expired_holds(): void {
 /* ---------------------------------------------------------------------------
  * Add-ons.
  * ------------------------------------------------------------------------ */
+/**
+ * Extras that belong to a particular room and can be had once per room —
+ * the extra bed at the resort (`extra-bed`) and at the camp (`extra-bed-tent`).
+ * The guest picks which rooms get one; quantity is how many rooms were picked.
+ */
+function addon_is_per_room(array $addon): bool {
+    return strpos((string) $addon['code'], 'extra-bed') === 0;
+}
+
 function list_addons(int $property_id): array {
     return q("SELECT * FROM addons WHERE property_id = ? AND active = 1 ORDER BY sort_order, id", [$property_id]);
 }

@@ -5,21 +5,22 @@ import Footer from "../components/Footer";
 import { bookingUrl } from "@/lib/booking";
 
 /**
- * /booking and /book are old in-app routes. Forward them to the PHP engine.
+ * /booking and /book are old in-app routes, and /admin is the short address for
+ * the staff panel. Forward them to the PHP engine (`to`, default: booking page).
  * If we are already at the engine's address, the SPA fallback caught the
  * request — the engine isn't deployed here — so offer the desk instead of looping.
  */
-export default function BookingRedirect() {
+export default function BookingRedirect({ to, label = "Opening the booking engine…" }: { to?: string; label?: string }) {
   const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
-    const target = new URL(bookingUrl(), window.location.href);
+    const target = new URL(to ?? bookingUrl(), window.location.href);
     if (target.origin === window.location.origin && target.pathname.replace(/\/$/, "") === window.location.pathname.replace(/\/$/, "")) {
       setUnavailable(true);
       return;
     }
     window.location.replace(target.href);
-  }, []);
+  }, [to]);
 
   return (
     <div className="min-h-screen bg-[#f8f5e2] font-sans text-zinc-900">
@@ -39,7 +40,7 @@ export default function BookingRedirect() {
             </div>
           </>
         ) : (
-          <p className="text-zinc-600">Opening the booking engine…</p>
+          <p className="text-zinc-600">{label}</p>
         )}
       </div>
       <Footer />

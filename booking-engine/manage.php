@@ -1,6 +1,7 @@
 <?php
 /* ===========================================================================
- *  "My booking" — a guest looks their reservation up and can cancel it.
+ *  "Already booked? Check status" — a guest looks their reservation up, opens the
+ *  receipt, or calls us. Cancelling is done by the reservations desk in the admin panel.
  *  Reference plus the phone or email on the booking; no account needed.
  * ======================================================================== */
 require_once __DIR__ . '/lib/db.php';
@@ -10,7 +11,7 @@ $ref = htmlspecialchars($_GET['ref'] ?? '', ENT_QUOTES);
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>My booking</title>
+<title>Check your booking</title>
 <meta name="robots" content="noindex">
 <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/engine.css">
@@ -18,8 +19,11 @@ $ref = htmlspecialchars($_GET['ref'] ?? '', ENT_QUOTES);
 <body>
 <header class="eng-header">
   <div class="wrap">
-    <div class="eng-brand"><strong>My booking</strong></div>
-    <nav><a href="index.php">Make a new booking</a></nav>
+    <div class="eng-brand"><strong>Check your booking</strong></div>
+    <nav>
+      <a href="index.php">Make a new booking</a>
+      <a href="tel:<?= htmlspecialchars(preg_replace('/\s/', '', (string) cfg('contact.phone')), ENT_QUOTES) ?>"><?= htmlspecialchars((string) cfg('contact.phone')) ?></a>
+    </nav>
   </div>
 </header>
 
@@ -27,8 +31,9 @@ $ref = htmlspecialchars($_GET['ref'] ?? '', ENT_QUOTES);
   <div id="alert"></div>
 
   <div class="panel" id="lookupCard">
-    <h2>Find your booking</h2>
-    <p style="font-size:.88rem">Enter your reference and the mobile number or email you booked with.</p>
+    <h2>Already booked? Check status</h2>
+    <p style="font-size:.88rem">Enter your booking code (for example KSR-4XY7PQ) and the mobile number or email
+       you booked with. You can see your booking, open the receipt, or call us.</p>
     <form id="lookupForm">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="field">
@@ -53,6 +58,10 @@ const rupees = n => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFrac
 const niceDate = s => new Date(s + 'T00:00:00').toLocaleDateString('en-IN',
     { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 let current = null;
+const WHATSAPP = <?= json_encode((string) cfg('contact.whatsapp')) ?>;
+const todayISO = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+/* "Up to 20 Sep" for the first period, "From 21 Sep" for the rest (today, if it already began). */
+const cancelLabel = c => c.from ? 'From ' + niceDate(c.from > todayISO ? c.from : todayISO) : 'Up to ' + niceDate(c.to);
 
 function notice(msg, kind) {
   $('#alert').innerHTML = msg ? `<div class="notice notice--${kind || 'err'}">${msg}</div>` : '';
@@ -68,8 +77,19 @@ $('#lookupForm').addEventListener('submit', async e => {
   render(current);
 });
 
+// Opened from "Check status" on the confirmation, or after a refresh: the link
+// carries the booking's private token, so the guest does not have to type anything.
+(async () => {
+  const q = new URLSearchParams(location.search);
+  if (!q.get('ref') || !q.get('token')) return;
+  const res = await fetch('api/booking-lookup.php?' + new URLSearchParams({ ref: q.get('ref'), token: q.get('token') }))
+    .then(r => r.json()).catch(() => ({ ok: false }));
+  if (res.ok) { current = res.booking; render(current); }
+})();
+
 function render(b) {
-  const statusColour = { confirmed: 'var(--ok)', pending: 'var(--warn)', cancelled: 'var(--err)' }[b.status] || 'var(--muted)';
+  const incl = Boolean(b.prices_include_tax);
+  const statusColour = { confirmed: 'var(--ok)', pending: 'var(--warn)', cancelled: 'var(--err)', 'not paid': 'var(--err)' }[b.status] || 'var(--muted)';
   $('#lookupCard').style.display = 'none';
 
   $('#result').innerHTML = `
@@ -83,6 +103,10 @@ function render(b) {
                      letter-spacing:.1em;font-size:.72rem">${b.status}</span>
       </div>
 
+      ${b.modified_at ? `<div class="notice notice--info" style="margin:14px 0 0">Updated by the resort on
+        ${new Date(b.modified_at.replace(' ', 'T')).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' })}.
+        These are your current details.</div>` : ''}
+
       <div class="summary__dates" style="margin-top:18px">
         <div><span>Check in</span><b>${niceDate(b.check_in)}</b></div>
         <div><span>Check out</span><b>${niceDate(b.check_out)}</b></div>
@@ -90,30 +114,48 @@ function render(b) {
       </div>
 
       ${b.rooms.map(r => `<div class="sline"><span>${r.rooms} × ${r.name}<small>${r.plan}</small></span>
-        <span>${rupees(r.subtotal)}</span></div>`).join('')}
+        <span>${rupees(incl ? r.subtotal + r.tax_amount : r.subtotal)}</span></div>`).join('')}
       ${b.addons.map(a => `<div class="sline"><span>${a.name} × ${a.quantity}</span>
-        <span>${rupees(a.subtotal)}</span></div>`).join('')}
+        <span>${rupees(incl ? a.subtotal + a.tax_amount : a.subtotal)}</span></div>`).join('')}
+      ${incl ? '' : `<div class="sline"><span>GST</span><span>${rupees(b.tax_amount)}</span></div>`}
       <div class="sline sline--total"><span>Total</span><span>${rupees(b.total)}</span></div>
+      ${incl ? `<div class="sline"><span style="color:var(--muted)">Includes GST</span>
+        <span style="color:var(--muted)">${rupees(b.tax_amount)}</span></div>` : ''}
       <div class="sline"><span>Paid</span><span>${rupees(b.amount_paid)}</span></div>
-      ${b.balance > 0.5 ? `<div class="sline sline--due"><span>Balance due</span><span>${rupees(b.balance)}</span></div>` : ''}
+      ${b.due_now > 0.5 ? `<div class="sline sline--due"><span>Due now</span><span>${rupees(b.due_now)}</span></div>` : ''}
+      ${b.due_later > 0.5 ? `<div class="sline"><span>Due before arrival</span><span>${rupees(b.due_later)}</span></div>` : ''}
+      ${b.refund_due > 0.5 ? `<div class="sline sline--due"><span>Refund due to you</span><span>${rupees(b.refund_due)}</span></div>
+        <p style="font-size:.8rem;color:var(--muted);margin:4px 0 0">Your booking was changed and now costs less than you paid.
+           The resort will give this back to you.</p>` : ''}
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+        <a class="btn btn--sm" target="_blank" rel="noopener"
+           href="document.php?${new URLSearchParams({ doc: 'receipt', ref: b.ref, token: b.manage_token })}">Receipt (PDF)</a>
+        <a class="btn btn--plain btn--sm" target="_blank" rel="noopener"
+           href="document.php?${new URLSearchParams({ doc: 'terms', property: b.property_code })}">Terms (PDF)</a>
+        <a class="btn btn--plain btn--sm" href="tel:${(b.property_phone || '').replace(/\s/g, '')}">Call ${b.property_phone}</a>
+      </div>
     </div>
 
-    ${b.can_cancel ? `
+    ${b.status === 'cancelled' ? `
+      <div class="notice notice--info">This booking has been cancelled.</div>` : `
       <div class="panel" style="border-left-color:var(--muted)">
         <h3 style="font-size:1rem">Need to cancel?</h3>
+        <p style="font-size:.86rem;margin-bottom:10px">Cancellations are made by our reservations team.
+           Call or WhatsApp us with your booking code <strong>${b.ref}</strong>.</p>
+        ${b.can_cancel ? `
         <table style="width:100%;font-size:.84rem;margin-bottom:14px">
-          ${b.cancellation.map(c => `<tr>
+          ${b.cancellation.filter(c => !c.past).map(c => `<tr>
             <td style="padding:3px 0;color:var(--muted)">
-              ${c.charge_percent === 0 ? 'Up to' : 'From'} ${niceDate(c.until)}</td>
+              ${cancelLabel(c)}</td>
             <td style="padding:3px 0;text-align:right">
               ${c.charge_percent === 0 ? 'No charge' : c.charge_percent + '% of the total'}</td></tr>`).join('')}
-        </table>
-        <button class="btn btn--ghost btn--sm" id="cancelBtn">Cancel this booking</button>
-      </div>` : `
-      <div class="notice notice--info">
-        ${b.status === 'cancelled'
-          ? 'This booking has been cancelled.'
-          : 'This booking can no longer be cancelled online. Please call ' + b.property_phone + '.'}
+        </table>` : ''}
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn btn--sm" href="tel:${(b.property_phone || '').replace(/\s/g, '')}">Call ${b.property_phone}</a>
+          <a class="btn btn--plain btn--sm" target="_blank" rel="noopener"
+             href="https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hello, I would like to cancel my booking ' + b.ref + '.')}">WhatsApp us</a>
+        </div>
       </div>`}
 
     <p style="font-size:.85rem;color:var(--muted)">
@@ -121,24 +163,6 @@ function render(b) {
       <a href="tel:${(b.property_phone || '').replace(/\s/g, '')}">${b.property_phone}</a>.
     </p>`;
 
-  const btn = $('#cancelBtn');
-  if (btn) btn.addEventListener('click', cancelBooking);
-}
-
-async function cancelBooking() {
-  const why = prompt('Cancelling this booking. If you would like to tell us why, type it here:') || '';
-  if (!confirm('Cancel booking ' + current.ref + '? This cannot be undone.')) return;
-
-  const res = await fetch('api/booking-cancel.php', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ref: current.ref, manage_token: current.manage_token, reason: why }),
-  }).then(r => r.json());
-
-  if (!res.ok) { notice(res.error); return; }
-  notice('Your booking has been cancelled. ' + res.note, 'ok');
-  current.status = 'cancelled';
-  current.can_cancel = false;
-  render(current);
 }
 
 if ($('#ref').value) $('#contact').focus();

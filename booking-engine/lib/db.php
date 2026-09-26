@@ -121,3 +121,14 @@ function audit(string $action, ?string $entity = null, $entity_id = null, $detai
 }
 
 function now(): string { return date('Y-m-d H:i:s'); }
+
+/**
+ * PHP on Windows ships without a list of trusted certificates, so HTTPS calls
+ * (Razorpay, Stayflexi) fail there. Use the Windows certificate store instead.
+ * Linux hosts (cPanel) already have a certificate bundle and are left alone.
+ */
+function curl_trust_system_certs($ch): void {
+    if (PHP_OS_FAMILY === 'Windows' && defined('CURLSSLOPT_NATIVE_CA')) {
+        curl_setopt($ch, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
+    }
+}

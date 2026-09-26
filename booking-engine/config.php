@@ -58,6 +58,27 @@ $CONFIG = [
     'hold_minutes' => 45,
   ],
 
+  /* --- Test payments (TESTING ONLY) --------------------------------------
+   * Adds an "I've paid (test)" button to the payment step. It confirms the
+   * booking exactly as a real payment would — marked paid, rooms taken out of
+   * inventory, confirmation sent — but NO MONEY IS TAKEN. For testing the flow
+   * before Razorpay is connected. SET enabled TO false BEFORE GOING LIVE, or
+   * anyone can confirm a booking without paying.
+   */
+  'test_payments' => [
+    'enabled' => true,
+  ],
+
+  /* --- Terms and conditions ----------------------------------------------
+   * The terms PDF (terms.php) and every receipt are written from the settings
+   * above — check-in/out times, the cancellation ladder, payment options,
+   * GST. Add the property's own house rules here, one sentence each, e.g.
+   *   'Pets are not allowed.'
+   */
+  'terms' => [
+    'house_rules' => [],
+  ],
+
   /* --- Stayflexi ---------------------------------------------------------
    * Your channel manager, and the thing that stops a room being sold twice
    * across MakeMyTrip, Booking.com and this site.
@@ -91,6 +112,12 @@ $CONFIG = [
   ],
   'addon_tax_rate' => 5.0,
 
+  /* Properties whose published tariff already INCLUDES GST (by property code).
+   * For these the engine takes GST out of the price instead of adding it on
+   * top — the guest pays exactly the tariff. The resort's 2026–27 tariff is
+   * GST-inclusive; the camp's leaflet says "+ GST", so it is not listed. */
+  'prices_include_tax' => ['kutch-safari-resort'],
+
   /* --- What the guest may choose at checkout -----------------------------
    * Turn any of these off and it disappears from the payment step.
    */
@@ -100,7 +127,8 @@ $CONFIG = [
     'advance' => ['enabled' => true,  'label' => 'Pay 50% now',
                   'percent' => 50,
                   'note' => 'Balance due 30 days before arrival. Free cancellation up to 30 days before arrival.'],
-    'hotel'   => ['enabled' => true,  'label' => 'Pay at the property',
+    // Off: every booking is paid 50% or in full when it is made; nothing is left fully unpaid.
+    'hotel'   => ['enabled' => false, 'label' => 'Pay at the property',
                   'note' => 'We hold the room for 48 hours. Reservations will call to confirm.',
                   // Pay-at-hotel is riskier, so it is only offered outside the busy window.
                   'min_days_before_arrival' => 14],
@@ -123,6 +151,10 @@ $CONFIG = [
     'min_advance_hours' => 2,      // no same-minute bookings
     'hold_minutes'      => 20,     // inventory hold while paying by card
     'child_free_under'  => 6,
+    // SAMPLE MODE: the "Who is coming?" details are optional so the flow can be
+    // tested without typing them each time. Only what is typed is saved —
+    // nothing is filled in. SET THIS TO false BEFORE GOING LIVE.
+    'guest_details_optional' => true,
   ],
 
   /* --- Email -------------------------------------------------------------
@@ -153,7 +185,13 @@ $CONFIG = [
   /* --- Admin panel -------------------------------------------------------*/
   'admin' => [
     'session_name'   => 'kutch_admin',
-    'session_hours'  => 8,
+    // The password is asked for every time: the sign-in ends when the browser
+    // closes, only counts in the tab it was made in (a new tab or window asks
+    // again), and ends after this many minutes without using the admin panel.
+    'idle_minutes'   => 10,
+    // Bookings list: finished and cancelled bookings drop off the list after this
+    // many days (they are kept, not deleted — "Show older bookings" or a search finds them).
+    'list_clear_days' => 15,
     'login_attempts' => 6,        // per 15 minutes, per IP
   ],
 

@@ -15,6 +15,7 @@ Hero video → TrustStrip → Welcome → StatsBand → The Stay → Sister Prop
 * CTAs:
   * **Check Availability & Book** → `bookingUrl()` (PHP booking engine, full page load)
   * **Explore Kutch** → `/experiences`
+  * Under them, a text link **Already booked? Check status** → `statusUrl()` (the engine's `manage.php`)
 
 > `index.html` preloads a *different* video (`KSR_VIDEO.mp4`, 12.8 MB) that Home doesn't use. That is wasted bandwidth.
 
@@ -38,7 +39,7 @@ Each card's **Book Now** → `bookingUrl()`. The engine has no room parameter, s
 Image `kutchi-tribes-rabari-ravechi-festival.jpg`. Copy: 20 Swiss tents (6 Deluxe Air-Cool, 14 Non-AC), open 1 Dec 2026 – 31 Jan 2027.
 * **Visit White Rann Camp** → `/white-rann-camp`
 * **2026-27 Tariff** → `/white-rann-camp/tariff` (**404**). This button is also **invisible**: white text and white border on the beige background.
-* Possible improvement: a "Book a tent" button → `bookingUrl({ property: "white-rann-camp" })`.
+* A "Book a tent" button is **not** wanted yet: White Rann Camp is switched off in the booking engine (26 Sep 2026).
 
 ### 2.7 AmenitiesGrid
 Six items with a `CheckCircle2` icon: Swimming Pool, The Banni Restaurant, Travel Desk & Experiences, Free Wi-Fi, Open Garden Lawn (up to 300), Room Service.
@@ -54,4 +55,4 @@ Six cards (White Rann & Rann Utsav, Road to Heaven & Dholavira, Banni Villages, 
 ---
 
 ## 3. Imports
-`wouter` Link, `lucide-react` icons (several are unused: MapPin, Clock, Send, User, PhoneCall, Sun, Cloud, Wind), `sonner` toast, `Navbar`, `Footer`, `bookingUrl`.
+`wouter` Link, `lucide-react` icons (several are unused: MapPin, Clock, Send, User, PhoneCall, Sun, Cloud, Wind), `sonner` toast, `Navbar`, `Footer`, `bookingUrl`, `statusUrl`.

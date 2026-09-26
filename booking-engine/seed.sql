@@ -34,7 +34,7 @@ VALUES
   '+91 99252 38599', '+91 70165 84647', 'whiteranncamp@gmail.com',
   'Near Rann Utsav, Dhordo, Kutch, Gujarat',
   'https://www.whiterann.com', '#C2703A', '12:00', '10:00',
-  '2026-12-01', '2027-01-31', 1);
+  '2026-12-01', '2027-01-31', 0);   -- White Rann Camp: switched off in the engine for now (active = 0); set to 1 to sell it again
 
 -- ---------------------------------------------------------------------------
 -- Kutch Safari Resort — 20 cottages
@@ -59,15 +59,13 @@ VALUES
   '["Air conditioned","Lake view","Free Wi-Fi","Flat-screen TV","Room service","Hot & cold water","Daily housekeeping"]',
   2, 1);
 
--- Meal plans. Breakfast is included in every rate; lunch ₹500 and dinner ₹650
--- per person are added for the fuller plans, for two guests.
-INSERT INTO rate_plans (id, room_type_id, code, name, meal_note, base_price, refundable, sort_order, active) VALUES
- (1, 1, 'CP',  'Room with breakfast',            'Breakfast for two included',                      6250,  1, 1, 1),
- (2, 1, 'MAP', 'Breakfast and dinner',           'Breakfast and dinner for two included',           7550,  1, 2, 1),
- (3, 1, 'AP',  'Breakfast, lunch and dinner',     'All meals for two included',                      8550,  1, 3, 1),
- (4, 2, 'CP',  'Room with breakfast',            'Breakfast for two included',                      5536,  1, 1, 1),
- (5, 2, 'MAP', 'Breakfast and dinner',           'Breakfast and dinner for two included',           6836,  1, 2, 1),
- (6, 2, 'AP',  'Breakfast, lunch and dinner',     'All meals for two included',                      7836,  1, 3, 1);
+-- Published tariff, 1 Apr 2026 – 31 Mar 2027 (not Diwali or Christmas / New Year).
+-- One plan: room with breakfast (CPAI). GST is INCLUDED in these prices — see
+-- prices_include_tax in config.php. base_price is double occupancy; single_price
+-- is single occupancy; triple = double + the room type's extra_adult_price (₹1,500).
+INSERT INTO rate_plans (id, room_type_id, code, name, meal_note, base_price, single_price, refundable, sort_order, active) VALUES
+ (1, 1, 'CP',  'Room with breakfast',            'Breakfast included',                              7450, 6500, 1, 1, 1),
+ (4, 2, 'CP',  'Room with breakfast',            'Breakfast included',                              6500, 5500, 1, 1, 1);
 
 -- ---------------------------------------------------------------------------
 -- White Rann Camp — 20 Swiss tents, MAPAI (dinner + breakfast + hi-tea)
@@ -100,16 +98,18 @@ INSERT INTO rate_plans (id, room_type_id, code, name, meal_note, base_price, ref
 -- Add-ons sold at checkout
 -- ---------------------------------------------------------------------------
 INSERT INTO addons (property_id, code, name, description, price, price_type, tax_rate, sort_order, active) VALUES
- (1, 'airport-transfer', 'Airport or station transfer',
-  'Private car to or from Bhuj airport or railway station, one way.', 1200, 'per_booking', 5, 1, 1),
- (1, 'gala-dinner', 'Gala dinner with folk music',
-  'A buffet on the lawn, a bonfire and Kutchi folk musicians. Needs a day''s notice.', 1500, 'per_person', 5, 2, 1),
- (1, 'candlelight-dinner', 'Candlelight dinner by the lake',
-  'A private table set away from the restaurant, with a set menu of your choosing.', 2500, 'per_booking', 5, 3, 1),
+ (1, 'transfer-sedan', 'Airport transfer, one way — Sedan',
+  'Private car between Bhuj airport and the resort, one way.', 1200, 'per_booking', 5, 1, 1),
+ (1, 'transfer-ertiga', 'Airport transfer, one way — Ertiga',
+  'Private car between Bhuj airport and the resort, one way.', 1500, 'per_booking', 5, 2, 1),
+ (1, 'transfer-innova', 'Airport transfer, one way — Innova',
+  'Private car between Bhuj airport and the resort, one way.', 2100, 'per_booking', 5, 3, 1),
+ (1, 'gala-dinner', 'Gala dinner with music programme (groups)',
+  'Dinner on the lawn with a live Kutchi music programme. For groups of 10 or more; needs a day''s notice.', 1500, 'per_person', 5, 4, 1),
+ (1, 'candlelight-dinner', 'Candlelight dinner overlooking the lake',
+  'A private candlelit table overlooking the lake, with a set menu of your choosing.', 3000, 'per_person', 5, 5, 1),
  (1, 'birding-jeep', 'Birding jeep, half day',
-  'A jeep and a local guide for the wetlands at dawn.', 3000, 'per_booking', 5, 4, 1),
- (1, 'extra-bed', 'Extra bed',
-  'A third bed in the cottage, charged per night.', 1500, 'per_night', 5, 5, 1),
+  'A jeep and a local guide for the wetlands at dawn.', 3000, 'per_booking', 5, 6, 1),
 
  (2, 'rann-permit-jeep', 'White Rann permit and jeep',
   'Your Rann visit permit and a shared jeep to the salt flat for sunset.', 1500, 'per_person', 5, 1, 1),
@@ -118,9 +118,10 @@ INSERT INTO addons (property_id, code, name, description, price, price_type, tax
  (2, 'private-folk-evening', 'Private folk music evening',
   'Kutchi musicians for your group alone, around your own fire.', 6000, 'per_booking', 5, 3, 1),
  (2, 'bhuj-transfer', 'Transfer from Bhuj',
-  'Private car for the 80 km from Bhuj to the camp, one way.', 3000, 'per_booking', 5, 4, 1),
- (2, 'extra-bed-tent', 'Extra bed in the tent',
-  'A third bed, charged per night.', 1800, 'per_night', 5, 5, 1);
+  'Private car for the 80 km from Bhuj to the camp, one way.', 3000, 'per_booking', 5, 4, 1);
+
+-- Gala dinner is sold to groups only.
+UPDATE addons SET min_quantity = 10 WHERE code = 'gala-dinner';
 
 -- ---------------------------------------------------------------------------
 -- Colors of Kutch packages

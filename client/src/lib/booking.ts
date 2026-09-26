@@ -25,3 +25,13 @@ export function bookingUrl({ property = "kutch-safari-resort", checkIn, checkOut
   if (rooms) params.set("rooms", String(rooms));
   return `${BOOKING_URL}?${params}`;
 }
+
+/** "Already booked? Check status" — find a booking by code, see the receipt, call. */
+export function statusUrl(): string {
+  return `${BOOKING_URL}manage.php`;
+}
+
+/** The booking engine's staff panel. /admin on the website forwards here. */
+export function adminUrl(): string {
+  return `${BOOKING_URL}admin/`;
+}

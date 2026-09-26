@@ -55,6 +55,7 @@ function sf_request(string $method, string $path, ?array $payload = null): array
         CURLOPT_TIMEOUT        => (int) cfg('stayflexi.timeout', 12),
         CURLOPT_CONNECTTIMEOUT => 6,
     ]);
+    curl_trust_system_certs($ch);
     if ($payload !== null) {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload, JSON_UNESCAPED_UNICODE));
     }
@@ -202,6 +203,12 @@ function channel_cancel_booking(int $booking_id): array {
         ['hotelId' => $b['sf_hotel_id'], 'reason' => $b['cancel_reason'] ?: 'Guest cancelled online']);
 
     audit($ok ? 'stayflexi_cancel_ok' : 'stayflexi_cancel_failed', 'booking', $booking_id, $body);
+    // Remember a failed cancel on the booking: bin/retry-failed-sync.php sends it
+    // again every hour, so the room comes back on sale on the OTAs by itself.
+    update('bookings', $booking_id, [
+        'sf_sync_error' => $ok ? null : 'Cancel not sent: HTTP ' . $status . ' ' . json_encode($body),
+        'updated_at'    => now(),
+    ]);
     return ['ok' => $ok, 'body' => $body];
 }
 

@@ -17,16 +17,17 @@ The facts used across the site and the booking engine. When one changes, update 
 * 20 cottages: **12 Kutchi AC** (traditional bhunga, mirror-work, lake-facing balcony) and **8 Deluxe AC** (larger/uncluttered, garden and lake view).
 * In-room: AC, Wi-Fi, hot kettle, TV, in-room safe, hair dryer.
 * Facilities: pool, The Banni restaurant (Kutchi, Gujarati, Punjabi, Chinese, Continental), travel desk, garden lawn (events up to 300), room service.
-* Check-in 12:00. Check-out 10:00 in the engine seed (the old engine used 11:00, so confirm).
+* Check-in 12:00. Check-out 10:00 in the engine seed (the old engine used 11:00, so confirm). The Availability chart draws stays from these times.
+* Payment: 50% now or in full. Guests are told the 50% balance is "due 30 days before arrival". Cancellation: free 30+ days before, 75% at 21–29 days, 100% under 21. Only the resort cancels (guests call or WhatsApp).
 
-## White Rann Camp (Dhordo)
+## White Rann Camp (Dhordo) — switched off in the booking engine for now
 * 3 minutes from the White Rann entry and Rann Utsav. **Open 1 Dec 2026 – 31 Jan 2027.**
 * 20 Swiss tents: 6 Deluxe Air-Cool, 14 Non-AC. Attached bath, hot and cold water.
 * Includes dinner, breakfast, hi-tea, 2 bottles of water, campfire and folk music.
 * Peak dates: Christmas/New Year 19 Dec – 4 Jan, Uttarayan 13–15 Jan, full moon 21–23 Jan.
 
 ## Prices
-See `08-PACKAGES-AND-PRICING.md`. The engine database is the source of truth for what is charged.
+Resort 2026–27 (GST included, breakfast): Deluxe ₹5,500 single / ₹6,500 double; Kutchi ₹6,500 / ₹7,450; extra bed ₹1,500. Candlelight dinner ₹3,000 per person; gala dinner ₹1,500 per person (min 10); airport transfer one way: Sedan ₹1,200, Ertiga ₹1,500, Innova ₹2,100. Full details are in `08-PACKAGES-AND-PRICING.md`. The engine database is the source of truth for what is charged.
 
 ## Social proof (Home TrustStrip, confirm with the owner)
 Google 4.6/5 · TripAdvisor 4.5/5 · MakeMyTrip Assured.

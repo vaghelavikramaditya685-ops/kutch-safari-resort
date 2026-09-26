@@ -45,11 +45,12 @@ kutch-safari-resort/
 ├── api/contact.ts              # Vercel function (logs only)
 ├── booking-engine/             # PHP + MySQL booking engine (own README.md)
 │   ├── config.php              # every setting; overridden by config.local.php (git-ignored)
-│   ├── index.php, manage.php   # guest booking flow, "my booking"
+│   ├── index.php, manage.php   # guest booking flow, "Already booked? Check status"
+│   ├── document.php, receipt.php, terms.php   # receipt / terms PDFs (shown in the tab with PDF.js)
 │   ├── api/                    # JSON endpoints used by assets/engine.js
-│   ├── admin/                  # staff panel
-│   ├── lib/                    # db, inventory/pricing, booking, payment, channel, mail
-│   ├── bin/                    # setup + cron scripts (CLI only)
+│   ├── admin/                  # staff panel: bookings, booking, edit (change), calendar (availability), rates (special prices), enquiries, export
+│   ├── lib/                    # db, inventory/pricing, booking (+ change pricing, money), payment, channel, mail, pdf, documents
+│   ├── bin/                    # setup, cron, health checks, test-changes.php (CLI only)
 │   ├── assets/                 # engine.css, engine.js, WebP room photos
 │   ├── schema.sql, seed.sql    # database + starting data
 │   └── data/                   # SQLite file in local dev (git-ignored except .htaccess)
@@ -95,17 +96,19 @@ Local `useState` only. There is no global store. `ThemeContext` is fixed to ligh
 * `GET *` returns `index.html`.
 
 ### 4.5 Booking engine internals (summary)
-* `lib/inventory.php` handles availability and pricing: rate plans per room (CP/MAP/AP, MAPAI), date overrides in `rates`, and GST slabs worked out per night.
-* `lib/booking.php` handles quote, create and cancel, with a refund ladder from `config.php`.
-* `lib/payment.php` handles Razorpay orders, signature and webhook verification, and the UPI QR (confirmed manually in admin).
-* `lib/channel.php` is the Stayflexi adapter. It is off by default. Its endpoint paths are unconfirmed guesses.
-* Data lives in 18 tables (`schema.sql`): properties, room_types, rate_plans, rates, inventory, addons, packages, package_prices, bookings, booking_rooms, booking_addons, payments, holds, enquiries, coupons, admin_users, audit_log, settings.
+* `lib/inventory.php` handles availability and pricing: `price_rooms()` (one function for every price; Single/Double/Triple per room), special prices per night in `rates`, GST per night (inclusive for the resort via `tax_split()`), and which bookings hold rooms (`rooms_booked()`). See docs 21 and 23.
+* `lib/booking.php` handles quote, create, cancel (ladder from `config.php`), desk changes priced as a difference (`quote_modification()` → `modification_delta()`), and what is owed by payment choice (`booking_money()`). See doc 22.
+* `lib/pdf.php` + `lib/documents.php` build the receipt and terms PDFs on the spot. Nothing is stored.
+* `lib/payment.php` handles Razorpay orders, signature and webhook verification, the UPI QR (confirmed manually in admin), test payments, and payments/refunds taken at the desk. `amount_paid` = payments − refunds everywhere. See doc 26.
+* `lib/channel.php` is the Stayflexi adapter. It is off by default. Its endpoint paths are unconfirmed guesses. See doc 27.
+* Data lives in 18 tables (`schema.sql`, see doc 28): properties, room_types, rate_plans, rates, inventory, addons, packages, package_prices, bookings, booking_rooms, booking_addons, payments, holds, enquiries, coupons, admin_users, audit_log, settings.
 
 ---
 
 ## 5. Security & Performance
 * The engine's `.htaccess` blocks `config*.php`, `*.sql`, `*.sqlite`, `*.md`, `data/` and `bin/`, and forces HTTPS. It only works on Apache. Other hosts need equivalent rules.
 * Real keys go in `booking-engine/config.local.php`, which is git-ignored. Set `debug => false` in production.
+* Admin sign-in: session cookie only (ends when the browser closes), per-tab, 10-minute idle timeout, 6 login attempts per 15 minutes. `bin/` is CLI-only (`test-changes.php` refuses to run from the web).
 * CORS: the engine only answers origins listed in `allowed_origins` in `config.php`. The kutchsafaribhuj.in domains and localhost:3000 are included.
 * `/api/contact` does not validate or sanitise input.
 * Performance: `client/public/assets` is about 269 MB of unoptimised media (see `11-IMAGE-ASSET-INVENTORY.md`). The engine's own photos are already WebP (3.1 MB in total).

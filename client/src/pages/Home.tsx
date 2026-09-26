@@ -4,7 +4,7 @@ import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, User, PhoneCall, Sun, C
 import { toast } from "sonner";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { bookingUrl } from "@/lib/booking";
+import { bookingUrl, statusUrl } from "@/lib/booking";
 
 function TrustStrip() {
   return (
@@ -202,6 +202,9 @@ export default function Home() {
               Explore Kutch
             </Link>
           </div>
+          <a href={statusUrl()} className="mt-6 text-white/90 text-sm tracking-wide underline underline-offset-4 decoration-white/40 hover:decoration-white transition-colors">
+            Already booked? Check status
+          </a>
         </div>
       </section>
 

@@ -3,24 +3,25 @@
 ## 1. Booking — PHP engine
 Direct booking is handled by `booking-engine/`, not the React site.
 
-**Guest flow** (`/book/?property=…`, `assets/engine.js` → `api/*.php`):
-1. Dates, guests and rooms → `api/availability.php`. Sold-out dates suggest the next free ones.
-2. Choose room and rate plan (CP/MAP/AP or MAPAI) → `api/quote.php`.
-3. Add extras (transfers, gala dinner, extra bed…).
-4. Guest details → `api/book.php` (holds inventory).
+**Guest flow** (`/book/?property=…`, `assets/engine.js` → `api/*.php`; full detail in `25-GUEST-BOOKING-FLOW-INTERNALS.md`):
+1. Dates (pre-filled), number of rooms, **Single / Double / Triple for each room** → `api/availability.php`. Sold-out dates suggest the next free ones.
+2. Choose cottages. One room: pick a card. Several rooms: **Select** on a cottage opens its room numbers to tick; a room ticked in one cottage disappears from the others. One plan (room with breakfast) → `api/quote.php`.
+3. Extras: airport transfer (Sedan / Ertiga / Innova, one card with a counter per car), gala dinner (minimum 10), candlelight dinner, birding jeep. The extra bed is chosen by picking **Triple**.
+4. Guest details (optional in sample mode), **approximate arrival time on a scroll wheel** (nothing is sent unless the guest turns it), notes, **pay 50% or in full** → `api/book.php`.
 5. Payment:
    * Razorpay → `api/payment-create.php` → Checkout → `api/payment-verify.php`, with `api/webhook-razorpay.php` as a backup confirmation.
-   * UPI QR (drawn with qrious) → booking waits until staff click "Money received" in admin.
-   * Pay at property → held 48 h, reservations calls to confirm.
-6. Confirmation email (`lib/mail.php`, PHP `mail()` or SMTP), BCC to the office.
+   * UPI QR (drawn with qrious) → the booking waits until staff click "Money received" in admin.
+   * Test mode: **I've paid (test)** → `api/payment-test.php` (no money; turn off before launch).
+   * "Pay at the property" is switched off.
+6. Confirmation with Receipt (PDF), Check status, Call. The page remembers the last booking on the device. Confirmation email (`lib/mail.php`), BCC to the office, once mail is set up.
 
-**Manage booking:** `/book/manage.php` → `api/booking-lookup.php` / `api/booking-cancel.php` (reference + phone). The refund follows the cancellation ladder.
+**Check status:** `/book/manage.php` → `api/booking-lookup.php` (code + mobile or email, or a `?ref=&token=` link). Shows the stay, due now / due before arrival or refund due, "Updated by the resort", and Receipt, Terms, Call. **Guests cannot cancel online** (`api/booking-cancel.php` always refuses); they call or WhatsApp, and the admin cancels.
 
 **Enquiry endpoint:** `api/enquiry.php` stores enquiries in the engine's `enquiries` table, which staff see in Admin → Enquiries.
 
-**Admin** (`/book/admin/`): bookings list (with a UPI "waiting to be checked" box), booking detail, availability calendar, rates, enquiries, CSV export. Logins are created with `php bin/setup.php --admin …`. Login attempts are rate-limited.
+**Admin** (`/book/admin/`, see `24-ADMIN-PANEL-GUIDE.md`): bookings list (staying now → coming up → cancelled → finished, with a UPI "waiting to be checked" box and a "Cancel a booking" box), booking detail, **Change this booking** (priced as a difference, doc 22), Availability (tape chart and guest side panel), Special prices, enquiries, CSV export. Logins are created with `php bin/setup.php --admin USERNAME NAME PASSWORD`. Login attempts are rate-limited. Every "are you sure?" is an on-page box, not a browser pop-up.
 
-**Protections:** per-IP rate limits (stored in `audit_log`), CORS allow-list, row locking during booking (MySQL `FOR UPDATE`), Razorpay HMAC checks, an audit log of every money or inventory action, and `fail_closed` for Stayflexi.
+**Protections:** per-IP rate limits (stored in `audit_log`: availability 120/min, quote 90/min, book 12 per 5 min, lookup 15 per 5 min, payments 30 per 5 min, enquiry 8 per 10 min), CORS allow-list, row locking during booking (MySQL `FOR UPDATE`), Razorpay HMAC checks, an audit log of every money or inventory action, and `fail_closed` for Stayflexi.
 
 ## 2. Site links into the engine
 Every Book Now / Check Availability button uses `bookingUrl()` with a plain `<a>`: Navbar (desktop + mobile), Home hero, Home room cards, and Stay's `RoomTemplate`.

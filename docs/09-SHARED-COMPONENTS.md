@@ -32,12 +32,14 @@ Class component (`getDerivedStateFromError`). The fallback shows "An unexpected 
 The single place that knows where the booking engine lives.
 * `BOOKING_URL`: `import.meta.env.VITE_BOOKING_URL || "/book/"`
 * `bookingUrl({ property, checkIn, checkOut, adults, rooms })` builds `…?property=kutch-safari-resort&check_in=…`
-* `property` is `"kutch-safari-resort"` (default) or `"white-rann-camp"`.
+* `statusUrl()` → the engine's `manage.php` ("Already booked? Check status"), used in the Navbar top bar and mobile menu, the Home hero and the Footer.
+* `adminUrl()` → the engine's `admin/`, used by the `/admin` redirect.
+* `property` is `"kutch-safari-resort"` (default) or `"white-rann-camp"` (switched off in the engine for now).
 
 Always use it for booking links, with a plain `<a>` and never wouter's `<Link>`.
 
 ### 2.5 `pages/BookingRedirect.tsx` (new)
-Handles `/booking`, `/book` and `/book/*`. Does `window.location.replace(bookingUrl())`. If the target is the current path (the SPA is answering `/book/` because the engine isn't deployed there), it shows phone and WhatsApp buttons instead.
+Handles `/booking`, `/book`, `/book/*`, `/admin` and `/admin/*`. It takes `to` and `label` props (the admin routes pass `adminUrl()`), and does `window.location.replace(…)`. The routes use children render functions, because passing props through wouter's `component` gave a TypeScript error. If the target is the current path (the SPA is answering `/book/` because the engine isn't deployed there), it shows phone and WhatsApp buttons instead.
 
 ---
 

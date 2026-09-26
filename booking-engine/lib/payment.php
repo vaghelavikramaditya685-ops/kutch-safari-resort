@@ -33,6 +33,7 @@ function rzp_request(string $method, string $path, ?array $payload = null): arra
         CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
         CURLOPT_TIMEOUT        => 20,
     ]);
+    curl_trust_system_certs($ch);
     if ($payload !== null) curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
 
     $body   = curl_exec($ch);
@@ -159,12 +160,11 @@ function settle_payment(int $payment_row_id, string $payment_id, array $res): ar
     ]);
 
     $booking_id = (int) $pay['booking_id'];
-    $paid = (float) qval("SELECT COALESCE(SUM(amount),0) FROM payments
-                           WHERE booking_id = ? AND status = 'paid' AND purpose <> 'refund'", [$booking_id], 0);
+    // Payments minus any refunds, counted the same way everywhere (refresh_amount_paid).
+    $paid = refresh_amount_paid($booking_id);
     $b = get_booking($booking_id);
 
     update('bookings', $booking_id, [
-        'amount_paid' => $paid,
         'status'      => 'confirmed',
         'updated_at'  => now(),
     ]);
@@ -217,6 +217,42 @@ function razorpay_refund(int $booking_id, float $amount, string $reason = ''): a
 /* =====================================================================
  * DIRECT UPI QR
  * ================================================================== */
+
+/** Testing only (config test_payments.enabled): confirm a booking as paid with no money taken. */
+function test_payments_enabled(): bool {
+    return (bool) cfg('test_payments.enabled', false);
+}
+
+/**
+ * "I've paid (test)". Settles the booking through settle_payment() — the same
+ * path a real Razorpay payment takes — so inventory, status, the admin panel
+ * and the confirmation email all behave as they will for real. The booking's
+ * manage_token is required, so only the guest who made it can do this.
+ */
+function test_payment_settle(int $booking_id, string $manage_token): array {
+    if (!test_payments_enabled()) return ['ok' => false, 'error' => 'Test payments are switched off.'];
+
+    $b = get_booking($booking_id);
+    if (!$b || !hash_equals((string) $b['manage_token'], $manage_token)) {
+        return ['ok' => false, 'error' => 'Booking not found.'];
+    }
+    if ($b['status'] === 'cancelled') return ['ok' => false, 'error' => 'This booking was cancelled.'];
+
+    $amount = (float) $b['amount_due_now'];
+    if ($amount <= 0) return ['ok' => false, 'error' => 'Nothing is payable for this booking.'];
+
+    $row = insert('payments', [
+        'booking_id' => $booking_id,
+        'provider'   => 'test',
+        'purpose'    => 'booking',
+        'method'     => 'test',
+        'amount'     => $amount,
+        'status'     => 'created',
+        'created_at' => now(),
+    ]);
+    audit('test_payment', 'booking', $booking_id, ['amount' => $amount]);
+    return settle_payment($row, 'TEST-' . $b['ref'], ['method' => 'test', 'note' => 'Test payment — no money taken']);
+}
 
 function upi_enabled(): bool {
     return (bool) cfg('upi.enabled', false) && cfg('upi.vpa');
@@ -290,9 +326,8 @@ function upi_mark_received(int $payment_id, string $staff_name, string $bank_ref
     ]);
 
     $booking_id = (int) $pay['booking_id'];
-    $paid = (float) qval("SELECT COALESCE(SUM(amount),0) FROM payments
-                           WHERE booking_id = ? AND status = 'paid' AND purpose <> 'refund'", [$booking_id], 0);
-    update('bookings', $booking_id, ['amount_paid' => $paid, 'status' => 'confirmed', 'updated_at' => now()]);
+    $paid = refresh_amount_paid($booking_id);   // payments minus any refunds
+    update('bookings', $booking_id, ['status' => 'confirmed', 'updated_at' => now()]);
 
     audit('upi_confirmed', 'booking', $booking_id, ['payment' => $payment_id, 'bank_ref' => $bank_ref], $staff_name);
     channel_push_booking($booking_id);
@@ -317,9 +352,26 @@ function record_offline_payment(int $booking_id, float $amount, string $method, 
         'created_at'  => now(),
         'paid_at'     => now(),
     ]);
-    $paid = (float) qval("SELECT COALESCE(SUM(amount),0) FROM payments
-                           WHERE booking_id = ? AND status = 'paid' AND purpose <> 'refund'", [$booking_id], 0);
-    update('bookings', $booking_id, ['amount_paid' => $paid, 'updated_at' => now()]);
+    $paid = refresh_amount_paid($booking_id);
     audit('offline_payment', 'booking', $booking_id, ['amount' => $amount, 'method' => $method], $staff_name);
+    return ['ok' => true, 'paid' => $paid];
+}
+
+/** Money given back at the property after a change made the stay cheaper. */
+function record_offline_refund(int $booking_id, float $amount, string $method, string $staff_name, string $note = ''): array {
+    insert('payments', [
+        'booking_id'  => $booking_id,
+        'provider'    => 'offline',
+        'purpose'     => 'refund',
+        'method'      => $method,
+        'amount'      => -1 * abs($amount),
+        'status'      => 'refunded',
+        'verified_by' => $staff_name,
+        'raw_response'=> json_encode(['note' => $note]),
+        'created_at'  => now(),
+        'paid_at'     => now(),
+    ]);
+    $paid = refresh_amount_paid($booking_id);
+    audit('offline_refund', 'booking', $booking_id, ['amount' => $amount, 'method' => $method], $staff_name);
     return ['ok' => true, 'paid' => $paid];
 }

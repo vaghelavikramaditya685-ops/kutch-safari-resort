@@ -25,7 +25,7 @@ User-agent: *
 Allow: /
 Sitemap: https://kutchsafaribhuj.in/sitemap.xml
 ```
-Add `Disallow: /book/` so the booking engine isn't crawled. The engine also sends `<meta name="robots" content="noindex">`.
+Add `Disallow: /book/` so the booking engine isn't crawled. The engine also sends `<meta name="robots" content="noindex">`. The admin panel, check-status page and PDFs are for guests and staff only; none of them should be in the sitemap. The website's `/admin` route only redirects and has no content.
 
 ## `client/public/sitemap.xml`
 Lists only `/`, `/stay`, `/our-journey`, `/dining`. **Missing:** `/experiences`, `/gallery`, `/plan-your-visit`, `/packages`, `/white-rann-camp`, and the six `/destination/*` pages.

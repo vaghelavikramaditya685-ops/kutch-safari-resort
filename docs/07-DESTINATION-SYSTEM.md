@@ -36,4 +36,6 @@ A `slugify()` helper is defined in the file but never used.
 "Inquire on WhatsApp":
 `https://wa.me/919925238599?text=Hello Kutch Safari Resort, I would like to plan a visit to <title> from the resort.`
 
-Possible improvement: add a "Stay with us" button → `bookingUrl()`, and switch the page to the shared Navbar and Footer.
+Possible improvement: add a "Stay with us" button → `bookingUrl()`, and switch the page to the shared Navbar and Footer (which would also bring the "Already booked? Check status" link).
+
+_Checked 26 Sep 2026: unchanged by the booking-engine work._

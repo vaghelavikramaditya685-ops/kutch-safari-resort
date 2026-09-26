@@ -36,7 +36,9 @@ Images are referenced by absolute path strings, not imports, so Vite never remov
 * `ksr/`: 22 WebP files (cottage exterior and interior, bathroom, lake dusk, gazebo, restaurant, cuisine, gala dinner, road to heaven, Mandvi, etc.)
 * `wrc/`: 20 WebP files (tents inside and out, washrooms, camp, full moon Rann, etc.)
 
-These are the right format and size. They could also be reused on the main site (e.g. Dining).
+These are the right format and size. They could also be reused on the main site (e.g. Dining). The `wrc/` photos are kept although White Rann Camp is switched off in the engine.
+
+_Re-checked 26 Sep 2026: no images were added or removed by the booking-engine work. Receipts and terms are PDFs built on the fly (`lib/pdf.php`) with no images, so nothing is stored for them._
 
 ## Optimisation plan
 1. Delete or move the unused files (about 109 MB).

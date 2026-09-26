@@ -3,7 +3,7 @@
  *  One-time setup. Run from the command line:
  *
  *      php bin/setup.php                       create tables + starting data
- *      php bin/setup.php --admin "you@example.com" "Your Name" "password"
+ *      php bin/setup.php --admin "username-or-email" "Your Name" "password"
  *
  *  Works against MySQL (cPanel) and SQLite (local testing). The schema file is
  *  written for MySQL; when the driver is sqlite it is translated on the way in,
@@ -114,7 +114,7 @@ if (in_array('--admin', $args, true)) {
     $email = $args[$i + 1] ?? null;
     $name  = $args[$i + 2] ?? 'Owner';
     $pass  = $args[$i + 3] ?? null;
-    if (!$email || !$pass) { echo "Usage: php bin/setup.php --admin EMAIL NAME PASSWORD\n"; exit(1); }
+    if (!$email || !$pass) { echo "Usage: php bin/setup.php --admin USERNAME NAME PASSWORD (username may be an email)\n"; exit(1); }
 
     $existing = q1("SELECT id FROM admin_users WHERE email = ?", [$email]);
     $hash = password_hash($pass, PASSWORD_DEFAULT);

@@ -29,15 +29,15 @@ Note: the bathroom photo is filed under "Exterior".
 `Stay.tsx` still defines an `Accommodation` component (a sand band with two portrait photos and an "Explore" button that expands into both `RoomTemplate`s), but nothing renders it. Its copy contains a garbled character: "appliqu├®" should be "appliqué".
 
 ## 5. Rooms in the Booking Engine
-The engine's room data lives in the database (`booking-engine/seed.sql`, editable in Admin → Rates / Availability):
+Room data lives in the database (`booking-engine/seed.sql` for a fresh install). Prices for particular dates are set in Admin → **Special prices**; the normal prices are in the database. Guests choose **Single / Double / Triple for each room**, and with several rooms they can pick a different cottage for each (Select → tick room numbers).
 
-| Room type | Units | Occupancy | Rate plans (per night, 2 guests) |
+| Room type | Units | Max | Per night (resort: GST included; camp: + GST) |
 |---|---|---|---|
-| Kutchi AC Cottage | 12 | 2 base, up to 3 adults + 1 child (extra adult ₹1,500, child ₹750) | CP ₹6,250 · MAP ₹7,550 · AP ₹8,550 |
-| Deluxe AC Cottage | 8 | 2 base, up to 3 adults + 1 child (extra adult ₹1,500, child ₹750) | CP ₹5,536 · MAP ₹6,836 · AP ₹7,836 |
-| Deluxe Air-Cool Swiss Tent (WRC) | 6 | 2 base, up to 3 adults + 1 child (extra ₹1,800) | MAPAI ₹7,499 (peak ₹8,450) |
-| Non-AC Swiss Tent (WRC) | 14 | 2 base, up to 3 adults + 1 child (extra ₹1,800) | MAPAI ₹6,500 (peak ₹7,499) |
+| Kutchi AC Cottage | 12 | 3 adults | Single ₹6,500 · Double ₹7,450 · Triple ₹8,950 (breakfast) |
+| Deluxe AC Cottage | 8 | 3 adults | Single ₹5,500 · Double ₹6,500 · Triple ₹8,000 (breakfast) |
+| Deluxe Air-Cool Swiss Tent (WRC) | 6 | 3 adults | ₹7,499 (peak ₹8,450) + ₹1,800 for a third guest, MAPAI. **Switched off** |
+| Non-AC Swiss Tent (WRC) | 14 | 3 adults | ₹6,500 (peak ₹7,499) + ₹1,800 for a third guest, MAPAI. **Switched off** |
 
-> **Check with the owner:** in the engine the Deluxe cottage is cheaper than the Kutchi one, and the site describes the Kutchi cottages as "the most spacious rooms". The engine's README says the resort rates came from a tariff page for an earlier season.
+Full details are in `08-PACKAGES-AND-PRICING.md`; how the price is worked out is in `21-PRICING-LOGIC-DEEP-DIVE.md`. The engine sells cottage **types**; the desk assigns the actual cottage on arrival (`23-AVAILABILITY-AND-INVENTORY-LOGIC.md`).
 
 Engine room photos are in `booking-engine/assets/img/ksr` and `…/wrc` (WebP). They are separate from the site's `client/public/assets`.

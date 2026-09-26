@@ -43,6 +43,25 @@
 }
 
 /*
+ * MATTE & SMOOTH FINISH
+ * Every transition-* utility eases out slowly instead of Tailwind's snappy 150ms,
+ * and shadows are soft, wide and tinted with the ink colour rather than grey,
+ * so surfaces read as matte paper instead of glossy cards. Colours are unchanged.
+ */
+@theme {
+  --default-transition-duration: 350ms;
+  --default-transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+
+  --shadow-2xs: 0 1px 1px oklch(0.28 0.03 50 / 0.03);
+  --shadow-xs: 0 1px 2px oklch(0.28 0.03 50 / 0.04);
+  --shadow-sm: 0 1px 3px oklch(0.28 0.03 50 / 0.04), 0 2px 8px -2px oklch(0.28 0.03 50 / 0.04);
+  --shadow-md: 0 4px 16px -6px oklch(0.28 0.03 50 / 0.08);
+  --shadow-lg: 0 10px 30px -12px oklch(0.28 0.03 50 / 0.10);
+  --shadow-xl: 0 18px 44px -18px oklch(0.28 0.03 50 / 0.12);
+  --shadow-2xl: 0 28px 60px -24px oklch(0.28 0.03 50 / 0.16);
+}
+
+/*
  * SUNDOWN TERRACOTTA (restored v1 palette) + current v2 page structure
  * Warm ivory/sand base, deep brown-charcoal ink, deep terracotta sindoor primary,
  * saffron-gold accent. Serif display: Cormorant Garamond; body: Jost.
@@ -317,3 +336,41 @@
 }
 .link-underline:hover::after { transform: scaleX(1); }
 button:active, [role="button"]:active { transform: scale(0.97); transition: transform 0.16s var(--ease-out); }
+/* ——— Matte & smooth finish ——— */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+  /* Each route mounts a fresh page root, so this fades pages in on navigation.
+     Opacity only: a transform here would break the sticky navbar and lightbox. */
+  #root > div { animation: page-in 0.5s var(--ease-out) both; }
+}
+@keyframes page-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+::selection {
+  background: color-mix(in oklch, var(--terracotta) 22%, transparent);
+  color: var(--ink);
+}
+/* Faint paper grain over the whole page: takes the digital sheen off flat
+   fills and photos. Multiply keeps it a texture, not a tint. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.6;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='discrete' tableValues='0 0.03 0.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* Soft focus ring in the brand colour instead of the browser's glossy blue. */
+:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--terracotta) 55%, transparent);
+  outline-offset: 3px;
+}

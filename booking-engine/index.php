@@ -8,6 +8,7 @@
  * ======================================================================== */
 
 require_once __DIR__ . '/lib/db.php';
+require_once __DIR__ . '/lib/inventory.php';
 
 $code = $_GET['property'] ?? 'kutch-safari-resort';
 $property = q1("SELECT * FROM properties WHERE code = ? AND active = 1", [$code]);
@@ -28,7 +29,9 @@ if (!$in || !$out || $out <= $in) {
 }
 $adults   = max(1, (int) ($_GET['adults'] ?? 2));
 $children = max(0, (int) ($_GET['children'] ?? 0));
-$rooms    = max(1, (int) ($_GET['rooms'] ?? 1));
+$rooms    = max(1, min((int) cfg('rules.max_rooms_online', 5), (int) ($_GET['rooms'] ?? 1)));
+// Guests per room: ?occupancy=2,1,3, or spread from ?adults= for older links.
+$occupancy = normalise_occupancy($_GET['occupancy'] ?? '', $rooms, $adults);
 $e        = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
 ?><!DOCTYPE html>
 <html lang="en">
@@ -45,8 +48,9 @@ $e        = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
 </head>
 <body
   data-property="<?= $e($property['code']) ?>"
+  data-guest-optional="<?= cfg('rules.guest_details_optional') ? '1' : '0' ?>"
   data-checkin="<?= $e($in) ?>" data-checkout="<?= $e($out) ?>"
-  data-adults="<?= $adults ?>" data-children="<?= $children ?>" data-rooms="<?= $rooms ?>">
+  data-adults="<?= $adults ?>" data-children="<?= $children ?>" data-rooms="<?= $rooms ?>" data-occupancy="<?= $e(implode(',', $occupancy)) ?>">
 
 <header class="eng-header">
   <div class="wrap">
@@ -55,13 +59,14 @@ $e        = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
     </a>
     <nav>
       <a href="<?= $e($site_url) ?>">Back to website</a>
-      <a href="manage.php">My booking</a>
+      <a href="manage.php">Already booked? Check status</a>
       <a href="tel:<?= $e(preg_replace('/\s/', '', $property['phone'])) ?>"><?= $e($property['phone']) ?></a>
     </nav>
   </div>
 </header>
 
 <div class="wrap">
+  <div id="lastBooking"></div>
   <div class="steps" id="steps">
     <div class="step is-active" data-step="1"><b>1</b><span>Choose a room</span></div>
     <div class="step" data-step="2"><b>2</b><span>Add extras</span></div>
@@ -80,23 +85,20 @@ $e        = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
       <input type="date" id="f-out" name="check_out" min="<?= $today ?>" value="<?= $e($out) ?>" required>
     </div>
     <div class="field">
-      <label for="f-guests">Guests</label>
-      <select id="f-guests" name="adults">
-        <?php for ($i = 1; $i <= 6; $i++): ?>
-          <option value="<?= $i ?>" <?= $i === $adults ? 'selected' : '' ?>><?= $i ?> adult<?= $i > 1 ? 's' : '' ?></option>
-        <?php endfor; ?>
-      </select>
-    </div>
-    <div class="field">
       <label for="f-rooms">Rooms</label>
       <select id="f-rooms" name="rooms">
         <?php for ($i = 1; $i <= (int) cfg('rules.max_rooms_online', 5); $i++): ?>
-          <option value="<?= $i ?>" <?= $i === $rooms ? 'selected' : '' ?>><?= $i ?></option>
+          <option value="<?= $i ?>" <?= $i === $rooms ? 'selected' : '' ?>><?= $i ?> room<?= $i > 1 ? 's' : '' ?></option>
         <?php endfor; ?>
       </select>
     </div>
     <div class="field field--action">
       <button class="btn btn--block" type="submit">Check availability</button>
+    </div>
+    <!-- One Single / Double / Triple choice per room; engine.js draws one per room. -->
+    <div class="field field--occ">
+      <span class="field__label">Guests in each room</span>
+      <div class="occ" id="occList"></div>
     </div>
   </form>
 

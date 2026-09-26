@@ -37,6 +37,7 @@ if ($mode === 'hotel') {
     $out['methods'] = [
         'razorpay' => razorpay_enabled(),
         'upi_qr'   => upi_enabled(),
+        'test'     => test_payments_enabled(),
     ];
 }
 json_out($out);

@@ -40,3 +40,10 @@ Defined in `index.css`: `.section-tag`, `.section-title`, `.section-tagline`, `.
 
 ## 4. Booking Engine Styling (separate)
 The PHP engine has its own design in `booking-engine/assets/engine.css`, using **Marcellus + Montserrat** fonts. Each property's accent colour comes from the database (`properties.accent`: KSR `#B85C2E`, WRC `#C2703A`) and is written into `--clay`. To match the main site, either change those tokens and fonts in `engine.css` or update `properties.accent` in the database. The React site's CSS does not reach the engine.
+
+**Finish (owner's request):** same colours everywhere, but a matte, smooth finish. Soft shadows, gentle transitions, and buttons that look like buttons (filled or outlined, uppercase, with a pressed state) instead of plain text links. This applies on both the site (`index.css`) and the engine (`engine.css`, `admin.css`).
+
+**Engine components added since 25 Sep 2026** (all use the existing tokens: `--clay`, `--sand`, `--sand-2`, `--paper`, `--ink`, `--muted`, `--line`, `--ok`, `--warn`, `--err`):
+* Room picker (`.assign`), occupancy row, "last booking" banner, grouped transfer card.
+* Arrival-time **scroll wheel** (`.wheel*`): three snap-scrolling columns with a highlighted band and faded edges.
+* Admin: tape-chart calendar and side panel (`.tc*`), change-booking breakdown (`.chg*`), and the on-page **confirm box** (`.ask*`, red action for destructive steps) that replaces browser pop-ups.

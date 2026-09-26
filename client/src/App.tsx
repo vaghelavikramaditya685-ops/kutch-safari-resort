@@ -15,6 +15,7 @@ import Destination from "./pages/Destination";
 import RannUtsavPackage from "./pages/RannUtsavPackage";
 import Experiences from "./pages/Experiences";
 import BookingRedirect from "./pages/BookingRedirect";
+import { adminUrl } from "./lib/booking";
 
 
 
@@ -22,9 +23,12 @@ function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
-      <Route path={"/booking"} component={BookingRedirect} />
-      <Route path={"/book"} component={BookingRedirect} />
-      <Route path={"/book/*"} component={BookingRedirect} />
+      <Route path={"/booking"}>{() => <BookingRedirect />}</Route>
+      <Route path={"/book"}>{() => <BookingRedirect />}</Route>
+      <Route path={"/book/*"}>{() => <BookingRedirect />}</Route>
+      {/* Short address for the staff panel: /admin → the booking engine's admin. */}
+      <Route path={"/admin"}>{() => <BookingRedirect to={adminUrl()} label="Opening the admin panel…" />}</Route>
+      <Route path={"/admin/*"}>{() => <BookingRedirect to={adminUrl()} label="Opening the admin panel…" />}</Route>
       <Route path={"/stay"} component={Stay} />
       <Route path={"/experiences"} component={Experiences} />
       <Route path={"/our-journey"} component={OurJourney} />

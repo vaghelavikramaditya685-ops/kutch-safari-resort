@@ -149,7 +149,10 @@ function send_booking_confirmation(int $booking_id): bool {
 
       <p style="margin:22px 0"><a href="' . htmlspecialchars($manage) . '"
          style="background:' . htmlspecialchars($b['accent']) . ';color:#fff;padding:12px 22px;
-         text-decoration:none;font-size:13px;letter-spacing:1px;text-transform:uppercase">View or cancel booking</a></p>
+         text-decoration:none;font-size:13px;letter-spacing:1px;text-transform:uppercase">View your booking</a>
+         &nbsp; <a href="' . htmlspecialchars(rtrim((string) cfg('base_url'), '/') . '/document.php?' . http_build_query(
+             ['doc' => 'receipt', 'ref' => $b['ref'], 'token' => $b['manage_token']])) . '"
+         style="color:' . htmlspecialchars($b['accent']) . ';font-size:13px">Receipt (PDF)</a></p>
 
       <p style="color:#5c544c;font-size:13px">' . nl2br(htmlspecialchars((string) $b['property_address'])) . '<br>
          ' . htmlspecialchars((string) $b['property_phone']) . ' · '

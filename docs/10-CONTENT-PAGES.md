@@ -38,5 +38,7 @@ Own header and footer (`logo-mark.png`), WRC tariffs, Colors of Kutch tariffs an
 ## `NotFound.tsx` — catch-all
 Stock template: slate gradient, red alert icon, **blue** "Go Home" button. It doesn't use the site's Navbar, Footer or colours.
 
-## `BookingRedirect.tsx` — `/booking`, `/book`
-Not a content page. It forwards to the booking engine. See `09-SHARED-COMPONENTS.md`.
+## `BookingRedirect.tsx` — `/booking`, `/book`, `/admin`
+Not a content page. It forwards to the booking engine (or its admin panel). See `09-SHARED-COMPONENTS.md`.
+
+_Checked 26 Sep 2026: the content pages are unchanged by the booking-engine work. Every page with the shared Navbar and Footer now shows "Already booked? Check status"._

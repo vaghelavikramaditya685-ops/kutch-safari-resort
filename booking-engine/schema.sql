@@ -71,7 +71,8 @@ CREATE TABLE IF NOT EXISTS rate_plans (
   code          VARCHAR(20) NOT NULL,          -- 'CP', 'MAP', 'AP'
   name          VARCHAR(120) NOT NULL,         -- 'Room with breakfast'
   meal_note     VARCHAR(200) DEFAULT NULL,
-  base_price    DECIMAL(10,2) NOT NULL,        -- fallback when no date rate exists
+  base_price    DECIMAL(10,2) NOT NULL,        -- DOUBLE occupancy; fallback when no date rate exists
+  single_price  DECIMAL(10,2) DEFAULT NULL,    -- single occupancy; NULL = same as double
   refundable    TINYINT(1) NOT NULL DEFAULT 1,
   sort_order    INT NOT NULL DEFAULT 0,
   sf_rate_plan_id VARCHAR(60) DEFAULT NULL,
@@ -125,6 +126,7 @@ CREATE TABLE IF NOT EXISTS addons (
   -- how the price multiplies out
   price_type    VARCHAR(20) NOT NULL DEFAULT 'per_booking', -- per_booking|per_person|per_night|per_room_night
   tax_rate      DECIMAL(5,2) NOT NULL DEFAULT 5.00,
+  min_quantity  INT NOT NULL DEFAULT 1,           -- e.g. gala dinner: groups of 10 or more
   image         VARCHAR(200) DEFAULT NULL,
   sort_order    INT NOT NULL DEFAULT 0,
   active        TINYINT(1) NOT NULL DEFAULT 1,
@@ -220,7 +222,7 @@ CREATE TABLE IF NOT EXISTS booking_rooms (
   room_type_id  INT NOT NULL,
   rate_plan_id  INT NOT NULL,
   room_type_name VARCHAR(120) NOT NULL,         -- copied so history survives edits
-  rate_plan_name VARCHAR(120) NOT NULL,
+  rate_plan_name VARCHAR(255) NOT NULL,         -- includes occupancy: "… — Room 1 Double, Room 2 Single"
   rooms         INT NOT NULL DEFAULT 1,
   adults        INT NOT NULL DEFAULT 2,
   children      INT NOT NULL DEFAULT 0,

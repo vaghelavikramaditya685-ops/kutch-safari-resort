@@ -1,118 +1,250 @@
 <?php
-/* Set the nightly price for a date range, or close dates off entirely. */
+/* ===========================================================================
+ *  Special prices for chosen dates.
+ *
+ *  Every night of a stay is priced on its own (lib/inventory.php
+ *  price_rate_plan), so a special price only touches the nights it covers:
+ *  set Kutchi to ₹2,000 for the nights of 5–10 Oct, and a guest staying 1–10 Oct
+ *  pays the normal price for 1–4 Oct and ₹2,000 for 5–9 Oct.
+ *
+ *  The normal (base) price is never changed here. Guard rails stop a slip of
+ *  the keyboard (₹2 instead of ₹2,000): hard limits, a confirm tick for big
+ *  changes, and a preview before anything is saved. Bookings already made keep
+ *  the price they were booked at.
+ * ======================================================================== */
 require_once __DIR__ . '/_auth.php';
 require_once __DIR__ . '/../lib/inventory.php';
 $user = require_login();
 check_csrf();
 
-$flash = '';
-if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-    $plan_ids = array_map('intval', $_POST['rate_plan_ids'] ?? []);
-    $from = $_POST['from']; $to = $_POST['to'];
-    $price = $_POST['price'] === '' ? null : (float) $_POST['price'];
-    $closed = !empty($_POST['closed']) ? 1 : 0;
-    $min_stay = max(1, (int) ($_POST['min_stay'] ?? 1));
+const PRICE_FLOOR    = 500;    // no night is ever sold below this
+const HARD_LOW       = 0.25;   // refused below 25% of the normal price…
+const HARD_HIGH      = 4.0;    // …or above 4× it
+const CONFIRM_LOW    = 0.60;   // a tick is needed below 60%…
+const CONFIRM_HIGH   = 1.5;    // …or above 1.5×
+const MAX_RANGE_DAYS = 400;
 
-    if (!$plan_ids)            $flash = 'Choose at least one rate plan.';
-    elseif ($to < $from)       $flash = 'The end date is before the start date.';
-    elseif ($price === null && !$closed) $flash = 'Give a price, or tick "close these dates".';
-    else {
-        $n = 0;
-        foreach ($plan_ids as $pid) {
-            $plan = q1("SELECT base_price FROM rate_plans WHERE id = ?", [$pid]);
-            $d = new DateTime($from); $end = new DateTime($to);
-            while ($d <= $end) {
-                $date = $d->format('Y-m-d');
-                exec_sql("DELETE FROM rates WHERE rate_plan_id = ? AND stay_date = ?", [$pid, $date]);
-                insert('rates', [
-                    'rate_plan_id' => $pid, 'stay_date' => $date,
-                    'price' => $price ?? (float) $plan['base_price'],
-                    'min_stay' => $min_stay, 'closed' => $closed,
-                ]);
-                $d->modify('+1 day'); $n++;
-            }
-        }
-        audit('rates_updated', null, null,
-              ['plans' => $plan_ids, 'from' => $from, 'to' => $to, 'price' => $price, 'closed' => $closed], $user['name']);
-        $flash = "$n night(s) updated.";
-    }
-}
-
-$plans = q("SELECT rp.*, rt.name AS room_name, p.name AS property_name, p.id AS property_id
+$plans = q("SELECT rp.*, rt.name AS room_name, p.name AS property_name, p.id AS property_id, p.season_start, p.season_end
               FROM rate_plans rp
               JOIN room_types rt ON rt.id = rp.room_type_id
               JOIN properties p ON p.id = rt.property_id
-             WHERE rp.active = 1 ORDER BY p.id, rt.sort_order, rp.sort_order");
+             WHERE rp.active = 1 AND rt.active = 1 AND p.active = 1 ORDER BY p.id, rt.sort_order, rp.sort_order");
+$plan_by_id = array_column($plans, null, 'id');
 
-admin_head('Rates', $user);
+$today = date('Y-m-d');
+$flash = ''; $error = ''; $preview = null;
+$form = [
+    'from'  => (string) ($_POST['from'] ?? date('Y-m-d', strtotime('+1 day'))),
+    'to'    => (string) ($_POST['to'] ?? date('Y-m-d', strtotime('+1 day'))),
+    'plans' => array_map('intval', (array) ($_POST['plans'] ?? [])),
+    'price' => (string) ($_POST['price'] ?? ''),
+    'sure'  => !empty($_POST['sure']),
+];
+
+$do = $_POST['do'] ?? '';
+if ($do === 'remove') {
+    // Back to the normal price for one saved range.
+    $pid = (int) ($_POST['plan'] ?? 0);
+    $rf = max($today, (string) ($_POST['from'] ?? ''));
+    $rt = (string) ($_POST['to'] ?? '');
+    $n = exec_sql("DELETE FROM rates WHERE rate_plan_id = ? AND stay_date BETWEEN ? AND ?", [$pid, $rf, $rt]);
+    audit('special_price_removed', 'rate_plan', $pid, ['from' => $rf, 'to' => $rt, 'nights' => $n], $user['name']);
+    $flash = $n ? "Special price removed for $n night" . ($n > 1 ? 's' : '') . ' — back to the normal price.' : 'Nothing to remove.';
+    $form['plans'] = [];
+} elseif ($do === 'check' || $do === 'save') {
+    $price = $form['price'] === '' ? null : round((float) $form['price']);
+    $nights = (preg_match('/^\d{4}-\d{2}-\d{2}$/', $form['from']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $form['to']))
+        ? (int) ((strtotime($form['to']) - strtotime($form['from'])) / 86400) + 1 : 0;
+
+    if (!$form['plans'])                    $error = 'Tick at least one cottage.';
+    elseif ($nights < 1)                    $error = 'The last night is before the first night.';
+    elseif ($form['from'] < $today)         $error = 'The first night is in the past. Special prices can only be set from today on.';
+    elseif ($nights > MAX_RANGE_DAYS)       $error = 'That range is longer than ' . MAX_RANGE_DAYS . ' nights. Set it in smaller parts.';
+    elseif ($price === null || $price <= 0) $error = 'Enter the special price per night.';
+    else {
+        $rows = []; $needs_sure = false;
+        foreach ($form['plans'] as $pid) {
+            $p = $plan_by_id[$pid] ?? null;
+            if (!$p) { $error = 'One of those cottages is no longer sold.'; break; }
+            $base = (float) $p['base_price'];
+            $ratio = $base > 0 ? $price / $base : 1;
+            if ($price < PRICE_FLOOR) {
+                $error = 'No night can be sold below ' . inr(PRICE_FLOOR) . '.' . ($price < 100 ? ' Did you mean ' . inr($price * 1000) . '?' : '');
+                break;
+            }
+            if ($ratio < HARD_LOW || $ratio > HARD_HIGH) {
+                $error = sprintf('%s is %s its normal price of %s — that looks like a typing mistake, so it was not accepted.',
+                    inr($price), $ratio < 1 ? 'less than a quarter of' : 'more than four times', inr($base));
+                break;
+            }
+            if ($ratio < CONFIRM_LOW || $ratio > CONFIRM_HIGH) $needs_sure = true;
+            $rows[] = ['plan' => $p, 'base' => $base, 'ratio' => $ratio];
+        }
+        if (!$error) {
+            $preview = ['rows' => $rows, 'price' => $price, 'nights' => $nights, 'needs_sure' => $needs_sure];
+            if ($do === 'save') {
+                if ($needs_sure && !$form['sure']) {
+                    $error = 'This is a big change from the normal price. Tick "Yes, this price is right" to save it.';
+                } else {
+                    db_begin();
+                    foreach ($form['plans'] as $pid) {
+                        for ($d = $form['from']; $d <= $form['to']; $d = date('Y-m-d', strtotime($d . ' +1 day'))) {
+                            // Keep any stop-sell or minimum stay already set on that night.
+                            $old = q1("SELECT min_stay, closed FROM rates WHERE rate_plan_id = ? AND stay_date = ?", [$pid, $d]);
+                            exec_sql("DELETE FROM rates WHERE rate_plan_id = ? AND stay_date = ?", [$pid, $d]);
+                            insert('rates', ['rate_plan_id' => $pid, 'stay_date' => $d, 'price' => $price,
+                                             'min_stay' => (int) ($old['min_stay'] ?? 1), 'closed' => (int) ($old['closed'] ?? 0)]);
+                        }
+                    }
+                    db_commit();
+                    audit('special_price_set', null, null, ['plans' => $form['plans'], 'from' => $form['from'],
+                          'to' => $form['to'], 'price' => $price], $user['name']);
+                    $flash = sprintf('Special price of %s a night saved for %d night%s (%s – %s).', inr($price), $nights,
+                        $nights > 1 ? 's' : '', date('j M', strtotime($form['from'])), date('j M Y', strtotime($form['to'])));
+                    $preview = null; $form['plans'] = []; $form['price'] = ''; $form['sure'] = false;
+                }
+            }
+        }
+    }
+}
+
+/* Saved special prices, joined into date ranges: same cottage, same price, nights in a row. */
+$saved = [];
+foreach (q("SELECT r.rate_plan_id, r.stay_date, r.price, r.closed FROM rates r
+             JOIN rate_plans rp ON rp.id = r.rate_plan_id
+            WHERE r.stay_date >= ? ORDER BY r.rate_plan_id, r.stay_date", [$today]) as $r) {
+    $last = end($saved);
+    $next_day = $last ? date('Y-m-d', strtotime($last['to'] . ' +1 day')) : null;
+    if ($last && $last['plan'] === (int) $r['rate_plan_id'] && $next_day === $r['stay_date']
+        && (float) $last['price'] === (float) $r['price'] && $last['closed'] === (int) $r['closed']) {
+        $saved[array_key_last($saved)]['to'] = $r['stay_date'];
+        $saved[array_key_last($saved)]['nights']++;
+    } else {
+        $saved[] = ['plan' => (int) $r['rate_plan_id'], 'from' => $r['stay_date'], 'to' => $r['stay_date'],
+                    'price' => (float) $r['price'], 'closed' => (int) $r['closed'], 'nights' => 1];
+    }
+}
+usort($saved, fn($a, $b) => strcmp($a['from'], $b['from']) ?: $a['plan'] <=> $b['plan']);
+
+admin_head('Special prices', $user);
+$e = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
+$night_word = fn($n) => $n . ' night' . ($n > 1 ? 's' : '');
 ?>
-<?php if ($flash): ?><div class="notice notice--ok"><?= h($flash) ?></div><?php endif; ?>
+<?php if ($flash): ?><div class="notice notice--ok"><?= $e($flash) ?></div><?php endif; ?>
+<?php if ($error): ?><div class="notice notice--err"><?= $e($error) ?></div><?php endif; ?>
 
-<div style="display:grid;grid-template-columns:400px 1fr;gap:20px;align-items:start">
-  <form method="post" class="panel">
+<div class="sp">
+  <form method="post" class="panel sp__form">
     <?= csrf_field() ?>
-    <h2 style="font-size:1.2rem">Change prices</h2>
-    <p style="font-size:.85rem">Pick the plans, the dates, and the new nightly price.
-       Anything you do not set here keeps its base price.</p>
+    <h2 style="font-size:1.2rem;margin-bottom:.2em">Set a special price</h2>
+    <p style="font-size:.84rem;color:var(--muted);margin-top:0">For chosen dates only — the normal price is never changed.
+       A guest whose stay covers these nights pays the special price for those nights and the normal price for the rest.</p>
 
-    <div class="field" style="margin-bottom:14px">
-      <label>Rate plans</label>
-      <div style="max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:3px;padding:8px">
-        <?php $last = null; foreach ($plans as $p):
-          if ($last !== $p['property_name'] . $p['room_name']):
-            $last = $p['property_name'] . $p['room_name']; ?>
-            <div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:8px 0 4px">
-              <?= h($p['room_name']) ?></div>
-        <?php endif; ?>
-          <label style="display:block;font-size:.85rem;padding:2px 0">
-            <input type="checkbox" name="rate_plan_ids[]" value="<?= (int) $p['id'] ?>">
-            <?= h($p['name']) ?> <span style="color:var(--muted)">· base <?= inr($p['base_price']) ?></span>
-          </label>
-        <?php endforeach; ?>
-      </div>
+    <h3 class="sp__step"><span>1</span> Which nights</h3>
+    <div class="sp__dates">
+      <div class="field"><label for="sp-from">First night</label>
+        <input id="sp-from" type="date" name="from" min="<?= $today ?>" value="<?= $e($form['from']) ?>" required></div>
+      <div class="field"><label for="sp-to">Last night</label>
+        <input id="sp-to" type="date" name="to" min="<?= $today ?>" value="<?= $e($form['to']) ?>" required></div>
+    </div>
+    <p class="sp__hint" id="sp-hint"></p>
+
+    <h3 class="sp__step"><span>2</span> Which cottages</h3>
+    <div class="sp__plans">
+      <?php $last = null; foreach ($plans as $p): if ($last !== $p['property_name']): $last = $p['property_name']; ?>
+        <div class="sp__prop"><?= $e($p['property_name']) ?></div>
+      <?php endif; ?>
+        <label class="sp__plan <?= in_array((int) $p['id'], $form['plans'], true) ? 'is-on' : '' ?>">
+          <input type="checkbox" name="plans[]" value="<?= (int) $p['id'] ?>" <?= in_array((int) $p['id'], $form['plans'], true) ? 'checked' : '' ?>>
+          <span><b><?= $e($p['room_name']) ?></b><small><?= $e($p['name']) ?> · normal <?= inr($p['base_price']) ?> a night</small></span>
+        </label>
+      <?php endforeach; ?>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div class="field"><label>From</label><input type="date" name="from" value="<?= date('Y-m-d') ?>" required></div>
-      <div class="field"><label>To</label><input type="date" name="to" value="<?= date('Y-m-d') ?>" required></div>
+    <h3 class="sp__step"><span>3</span> Special price per night</h3>
+    <div class="field">
+      <label for="sp-price">Price for 2 guests (₹)</label>
+      <input id="sp-price" name="price" type="number" step="1" min="<?= PRICE_FLOOR ?>" value="<?= $e($form['price']) ?>" placeholder="e.g. 6000" required>
+      <span class="hint">Single and triple follow automatically: single keeps its discount, triple adds the extra bed.</span>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
-      <div class="field"><label>Nightly price (₹)</label><input name="price" type="number" step="1" placeholder="e.g. 8450"></div>
-      <div class="field"><label>Minimum stay</label><input name="min_stay" type="number" value="1" min="1"></div>
+
+    <?php if ($preview): ?>
+    <div class="sp__preview">
+      <h3 style="font-size:.95rem;margin:0 0 8px">Check before saving</h3>
+      <p style="font-size:.84rem;margin:0 0 8px"><?= $night_word($preview['nights']) ?>:
+        <?= date('D j M', strtotime($form['from'])) ?> to <?= date('D j M Y', strtotime($form['to'])) ?>
+        <span style="color:var(--muted)">(check-out <?= date('j M', strtotime($form['to'] . ' +1 day')) ?>)</span></p>
+      <?php foreach ($preview['rows'] as $row): $pct = round(($row['ratio'] - 1) * 100); ?>
+        <div class="sline"><span><?= $e($row['plan']['room_name']) ?><small><?= $e($row['plan']['name']) ?></small></span>
+          <span><s style="color:var(--muted)"><?= inr($row['base']) ?></s> → <b><?= inr($preview['price']) ?></b>
+            <small class="<?= $pct < 0 ? 'sp__down' : 'sp__up' ?>"><?= $pct > 0 ? '+' : '' ?><?= $pct ?>%</small></span></div>
+      <?php endforeach; ?>
+      <?php if ($preview['needs_sure']): ?>
+        <label class="sp__sure"><input type="checkbox" name="sure" value="1" <?= $form['sure'] ? 'checked' : '' ?>>
+          Yes, this price is right — it is a big change from the normal price.</label>
+      <?php endif; ?>
     </div>
-    <label style="display:block;margin-top:12px;font-size:.86rem">
-      <input type="checkbox" name="closed" value="1"> Close these dates (stop selling)
-    </label>
-    <button class="btn btn--block" type="submit" style="margin-top:16px">Apply</button>
+    <?php endif; ?>
+
+    <div class="sp__buttons">
+      <button class="btn btn--plain" type="submit" name="do" value="check">Check</button>
+      <?php if ($preview): ?><button class="btn" type="submit" name="do" value="save">Save special price</button><?php endif; ?>
+    </div>
   </form>
 
   <div>
-    <h2 style="font-size:1.2rem">Prices already set</h2>
-    <p style="font-size:.85rem;color:var(--muted)">Only nights that differ from the base price are listed.</p>
+    <h2 style="font-size:1.2rem;margin-bottom:.2em">Special prices already set</h2>
+    <p style="font-size:.84rem;color:var(--muted);margin-top:0">From today on. Every other night is at the normal price.
+       Remove one to go back to the normal price; bookings already made keep the price they were booked at.</p>
     <table class="grid">
-      <thead><tr><th>Room &amp; plan</th><th>Date</th><th>Price</th><th>Min stay</th><th>Status</th></tr></thead>
+      <thead><tr><th>Cottage</th><th>Nights</th><th>Price a night</th><th></th></tr></thead>
       <tbody>
-      <?php
-      $rows = q("SELECT r.*, rp.name AS plan_name, rt.name AS room_name
-                   FROM rates r
-                   JOIN rate_plans rp ON rp.id = r.rate_plan_id
-                   JOIN room_types rt ON rt.id = rp.room_type_id
-                  WHERE r.stay_date >= ? ORDER BY r.stay_date, rt.sort_order LIMIT 300", [date('Y-m-d')]);
-      if (!$rows): ?>
-        <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:26px">
-          Nothing set — every night is at its base price.</td></tr>
-      <?php endif;
-      foreach ($rows as $r): ?>
+      <?php if (!$saved): ?>
+        <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:26px">None — every night is at the normal price.</td></tr>
+      <?php endif; ?>
+      <?php foreach ($saved as $s): $p = $plan_by_id[$s['plan']] ?? null; if (!$p) continue; ?>
         <tr>
-          <td><?= h($r['room_name']) ?><br><small style="color:var(--muted)"><?= h($r['plan_name']) ?></small></td>
-          <td><?= date('D j M Y', strtotime($r['stay_date'])) ?></td>
-          <td><?= inr($r['price']) ?></td>
-          <td><?= (int) $r['min_stay'] ?></td>
-          <td><?= (int) $r['closed'] ? '<span class="tag tag--cancelled">closed</span>' : '<span class="tag tag--confirmed">open</span>' ?></td>
+          <td><?= $e($p['room_name']) ?><br><small style="color:var(--muted)"><?= $e($p['property_name']) ?></small></td>
+          <td><?= date('D j M', strtotime($s['from'])) ?><?= $s['nights'] > 1 ? ' – ' . date('D j M Y', strtotime($s['to'])) : date(' Y', strtotime($s['from'])) ?>
+            <br><small style="color:var(--muted)"><?= $night_word($s['nights']) ?></small></td>
+          <td><?php if ($s['closed']): ?><span class="tag tag--cancelled">not on sale</span>
+              <?php else: ?><b><?= inr($s['price']) ?></b><br><small style="color:var(--muted)">normal <?= inr($p['base_price']) ?></small><?php endif; ?></td>
+          <td>
+            <form method="post" data-confirm="Go back to the normal price for these nights?" data-ok="Yes, remove it">
+              <?= csrf_field() ?>
+              <input type="hidden" name="do" value="remove">
+              <input type="hidden" name="plan" value="<?= (int) $s['plan'] ?>">
+              <input type="hidden" name="from" value="<?= $e($s['from']) ?>">
+              <input type="hidden" name="to" value="<?= $e($s['to']) ?>">
+              <button class="btn btn--plain btn--sm" type="submit">Remove</button>
+            </form>
+          </td>
         </tr>
       <?php endforeach; ?>
       </tbody>
     </table>
   </div>
 </div>
+
+<script>
+// "6 nights · check-out Sun 11 Oct" under the dates, and ticked cottages highlighted.
+(function () {
+  var f = document.getElementById('sp-from'), t = document.getElementById('sp-to'), h = document.getElementById('sp-hint');
+  function show() {
+    if (!f.value || !t.value) { h.textContent = ''; return; }
+    var a = new Date(f.value + 'T00:00:00'), b = new Date(t.value + 'T00:00:00');
+    var n = Math.round((b - a) / 86400000) + 1;
+    if (n < 1) { h.textContent = 'The last night is before the first night.'; return; }
+    var out = new Date(b); out.setDate(out.getDate() + 1);
+    h.textContent = n + ' night' + (n > 1 ? 's' : '') + ' · a guest staying all of them checks out on '
+      + out.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+  f.addEventListener('change', function () { if (t.value < f.value) t.value = f.value; t.min = f.value; show(); });
+  t.addEventListener('change', show);
+  show();
+  document.querySelectorAll('.sp__plan input').forEach(function (cb) {
+    cb.addEventListener('change', function () { cb.closest('.sp__plan').classList.toggle('is-on', cb.checked); });
+  });
+})();
+</script>
 <?php admin_foot(); ?>
