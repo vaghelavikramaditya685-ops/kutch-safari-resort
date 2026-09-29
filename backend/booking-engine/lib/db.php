@@ -93,6 +93,35 @@ function for_update(): string {
     return cfg('db.driver') === 'sqlite' ? '' : ' FOR UPDATE';
 }
 
+/* ---------------------------------------------------------------------------
+ * Input checks shared by the guest pages, the enquiry form and the admin.
+ * The limits match the database columns (MySQL refuses longer values).
+ * ------------------------------------------------------------------------ */
+const LIMITS = [
+    'name' => 120, 'email' => 160, 'city' => 80, 'guest_note' => 2000, 'enquiry_message' => 3000,
+    'staff_note' => 2000, 'payment_note' => 300, 'cancel_reason' => 250, 'interest' => 150,
+];
+
+/** Too long for its field? (counts characters, not bytes). */
+function too_long($value, string $field): bool {
+    return mb_strlen(trim((string) $value)) > LIMITS[$field];
+}
+
+/** A phone number: 7–15 digits, spaces, dashes, brackets and a leading + allowed. */
+function valid_phone(string $phone): bool {
+    return (bool) preg_match('/^\+?\d{7,15}$/', preg_replace('/[\s\-().]/', '', $phone));
+}
+
+/** An arrival time as the booking page's scroll wheel writes it ("4:30 PM"), or nothing. */
+function valid_arrival_time(string $t): bool {
+    return $t === '' || (bool) preg_match('/^(1[0-2]|[1-9]):[0-5]\d (AM|PM)$/', $t);
+}
+
+/** A real calendar date written YYYY-MM-DD (not "2026-13-45"). */
+function valid_date(string $d): bool {
+    return (bool) preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $d, $m) && checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
+}
+
 /** Read a row from the settings table. */
 function setting(string $name, $default = null) {
     static $cache = null;

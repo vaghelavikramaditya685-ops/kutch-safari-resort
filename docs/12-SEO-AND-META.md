@@ -5,7 +5,7 @@
 <html lang="en">
 <link rel="icon" type="image/jpeg" href="/assets/images/logo-mark.png" />   <!-- 4.5 MB PNG, wrong MIME type -->
 <link rel="preload" as="video" href="/assets/images/new/KSR_VIDEO.mp4" type="video/mp4" />  <!-- 12.8 MB, not used by any page -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />  <!-- maximum-scale blocks zoom (accessibility) -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />  <!-- pinch zoom allowed since 29 Sep 2026 -->
 <title>Kutch Safari Resort | Bhunga Cottages by the Lake, Bhuj</title>
 <meta name="description" content="Kutch Safari Resort — traditional Kutchi bhunga cottages on a hilltop above Rudramata Dam lake, near Bhuj. …" />
 ```
@@ -31,9 +31,9 @@ Add `Disallow: /book/` so the booking engine isn't crawled. The engine also send
 Lists only `/`, `/stay`, `/our-journey`, `/dining`. **Missing:** `/experiences`, `/gallery`, `/plan-your-visit`, `/packages`, `/white-rann-camp`, and the six `/destination/*` pages.
 
 ## Gaps
-1. Every route has the same title and description (client-side SPA). Add per-route `<title>`/meta, e.g. `react-helmet-async`, or pre-render.
+1. ~~Same title on every route~~ Fixed 29 Sep 2026: `usePageTitle()` in `App.tsx` gives every page (and each destination) its own title. Descriptions are still shared (would need pre-rendering).
 2. No `<link rel="canonical">`.
 3. No JSON-LD. A `Resort`/`LodgingBusiness` schema with address, phone, geo and `priceRange` would help.
 4. Destination pages are the best SEO content but aren't in the sitemap.
 5. Image alt text is weak (e.g. Gallery uses "Gallery" for all 26 images).
-6. The 4.5 MB favicon and unused video preload hurt Core Web Vitals.
+6. ~~4.5 MB favicon and unused video preload~~ Fixed 29 Sep 2026: 9 KB `favicon.ico` + `apple-touch-icon.png`; the preload was removed. The sitemap now lists all 15 public pages and `robots.txt` disallows `/book/` and `/admin`.

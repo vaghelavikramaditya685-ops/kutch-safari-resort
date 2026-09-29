@@ -7,7 +7,32 @@
   </url>
   <url>
     <loc>https://kutchsafaribhuj.in/stay</loc>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://kutchsafaribhuj.in/white-rann-camp</loc>
+    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://kutchsafaribhuj.in/experiences</loc>
     <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://kutchsafaribhuj.in/packages</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://kutchsafaribhuj.in/plan-your-visit</loc>
+    <priority>0.7</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://kutchsafaribhuj.in/dining</loc>
+    <priority>0.7</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
@@ -16,8 +41,38 @@
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://kutchsafaribhuj.in/dining</loc>
-    <priority>0.7</priority>
+    <loc>https://kutchsafaribhuj.in/gallery</loc>
+    <priority>0.6</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://kutchsafaribhuj.in/destination/the-great-white-rann</loc>
+    <priority>0.6</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://kutchsafaribhuj.in/destination/road-to-heaven</loc>
+    <priority>0.6</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://kutchsafaribhuj.in/destination/dholavira</loc>
+    <priority>0.6</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://kutchsafaribhuj.in/destination/kala-dungar</loc>
+    <priority>0.6</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://kutchsafaribhuj.in/destination/mandvi-beach-palace</loc>
+    <priority>0.6</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
+    <loc>https://kutchsafaribhuj.in/destination/artisan-villages</loc>
+    <priority>0.6</priority>
     <changefreq>monthly</changefreq>
   </url>
 </urlset>

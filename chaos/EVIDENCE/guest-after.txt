@@ -1,0 +1,64 @@
+V1 | check_in | not-a-date |  | refused | Please choose your dates. | 
+V2 | check_in | 2026-13-45 |  | refused | Please choose your dates. | 
+V3 | check_in (past) | 1800-01-01 |  | refused | Those dates are in the past. | 
+V4 | check_in (far future) | 3000-01-01 |  | refused | We take bookings up to two years ahead. For later dates, please call us. | 
+V5 | stay length | 2027-01-17 |  | refused | For stays longer than 21 nights, please send us an enquiry. | 
+V6 | rooms | -3 |  | ACCEPTED |  | rooms_wanted=1 occ=[{"room":1,"guests":2,"label":"Double"}] results=2
+V7 | rooms | abc |  | ACCEPTED |  | rooms_wanted=1 occ=[{"room":1,"guests":2,"label":"Double"}] results=2
+V8 | rooms | 999 |  | ACCEPTED |  | rooms_wanted=5 occ=[{"room":1,"guests":1,"label":"Single"},{"room":2,"guests":1,"label":"Single"},{"room":3,"guests":1,"label":"Single"},{"room":4,"guests":1,"label":"Single"},{"room":5,"guests":1,"label":"Single"}] results=2
+V9 | occupancy | 0 |  | ACCEPTED |  | rooms_wanted=1 occ=[{"room":1,"guests":1,"label":"Single"}] results=2
+V10 | occupancy | 9 |  | ACCEPTED |  | rooms_wanted=1 occ=[{"room":1,"guests":3,"label":"Triple"}] results=2
+V11 | occupancy | abc,😀 |  | ACCEPTED |  | rooms_wanted=1 occ=[{"room":1,"guests":2,"label":"Double"}] results=2
+V12 | property | <script>alert(1)</script> |  | refused | Unknown property. | 
+V13 | property (switched off) | white-rann-camp |  | refused | Unknown property. | 
+Q1 | rooms[].room_type_id | abc | 200 | refused | That room is no longer offered. | 
+Q2 | rate plan of another cottage | Kutchi + Deluxe plan | 200 | refused | That room is no longer offered. | 
+Q3 | room from other property | WRC tent | 200 | refused | That room is no longer offered. | 
+Q4 | rooms[].rooms | -3 | 200 | ACCEPTED |  | total 14900
+Q5 | rooms[].rooms | 1000 | 200 | refused | Only 12 Kutchi AC Cottage left for those dates. | 
+Q6 | occupancy | [-2] | 200 | ACCEPTED |  | total 13000
+Q7 | occupancy | [7] | 200 | ACCEPTED |  | total 17900
+Q8 | occupancy | ["abc"] | 200 | ACCEPTED |  | total 13000
+Q9 | addons[].quantity | -5 | 200 | refused | Choose how many of "Airport transfer, one way — Innova" you would like (1 or more). | 
+Q10 | addons[].quantity | 0 | 200 | refused | Choose how many of "Airport transfer, one way — Innova" you would like (1 or more). | 
+Q11 | addons[].quantity | 1000000 | 200 | refused | For more than 50 of "Airport transfer, one way — Innova" please call us and we will arrang | 
+Q12 | addons[].quantity | abc | 200 | refused | Choose how many of "Airport transfer, one way — Innova" you would like (1 or more). | 
+Q13 | addons[].addon_id | 99999 | 200 | refused | One of the extras you chose is no longer offered. Please choose again. | 
+Q14 | addon from other property | WRC addon | 200 | refused | One of the extras you chose is no longer offered. Please choose again. | 
+Q15 | gala dinner qty (min 10) | 9 | 200 | refused | Gala dinner with music programme (groups) is for groups of 10 or more. | 
+Q16 | payment_mode | free | 200 | ACCEPTED |  | total 14900
+Q17 | payment_mode (switched off) | hotel | 200 | ACCEPTED |  | total 14900
+Q18 | coupon | ' OR 1=1 -- | 200 | ACCEPTED |  | total 14900
+Q19 | dates reversed | 2026-11-20 → 2026-11-18 | 200 | refused | Check-out must be after check-in. | 
+Q20 | check_in | not-a-date | 200 | refused | Please choose your dates. | 
+Q21 | rooms | not a list | 200 | refused | Please choose a room. | 
+Q22 | 6 rooms online (max 5) | 6 | 200 | refused | For more than 5 rooms please send an enquiry and we will arrange it for you. | 
+Q23 | body | broken JSON | 400 | refused | We could not read that request. Please reload the page and try again. | 
+G1 | guest name | AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA…(5000 chars) | 200 | refused | Please keep the name under 120 characters. | 
+G2 | guest name | <script>alert(1)</script> | 200 | ACCEPTED |  | SAVED: guest_name=<script>alert(1)</script> guest_phone=9000000202 
+G3 | guest name | Émile 😀 राम | 200 | ACCEPTED |  | SAVED: guest_name=Émile 😀 राम guest_phone=9000000203 
+G4 | phone | abc | 200 | refused | That mobile number does not look right. Use digits only, for example 98250 12345 or +91 98 | 
+G5 | phone | 12 | 200 | refused | That mobile number does not look right. Use digits only, for example 98250 12345 or +91 98 | 
+G6 | phone | 999999999999999999999999999999…(60 chars) | 200 | refused | That mobile number does not look right. Use digits only, for example 98250 12345 or +91 98 | 
+G7 | email | no-at-sign | 200 | refused | That email address does not look right. | 
+G8 | email | a@b | 200 | refused | That email address does not look right. | 
+G9 | arrival_time | 25:99 PM | 200 | refused | Choose the arrival time on the clock, or leave it blank. | 
+G10 | arrival_time | xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…(3000 chars) | 200 | refused | Choose the arrival time on the clock, or leave it blank. | 
+G11 | special_requests | note note note note note note …(200000 chars) | 200 | refused | Please keep your note under 2,000 characters. | 
+G12 | city | CCCCCCCCCCCCCCCCCCCCCCCCCCCCCC…(1000 chars) | 200 | refused | Please keep the city under 80 characters. | 
+G13 | guest | a string, not an object | 429 | refused | Too many attempts. Please wait a minute and try again. | 
+L1 | ref | ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ…(500 chars) | 404 | refused | We could not find a booking with those details. | 
+L2 | ref + contact | (empty) | 404 | refused | We could not find a booking with those details. | 
+P1 | booking_id | abc | 200 | refused | Booking not found. | 
+P2 | booking_id | -1 | 200 | refused | Booking not found. | 
+P3 | method | bitcoin | 400 | refused | Booking not found. | 
+E1 | name | (empty) | 400 | refused | Please give your name and phone number. | 
+E2 | phone | abc | 400 | refused | That phone number does not look right. Use digits only, for example 98250 12345. | 
+E3 | email | no-at | 400 | refused | That email address does not look right. | 
+E4 | guests | -3 | 400 | refused | Please give the number of guests as a number (1 or more). | 
+E5 | guests | lots | 400 | refused | Please give the number of guests as a number (1 or more). | 
+E6 | check_in | not-a-date | 400 | refused | Please choose real dates (or leave them blank). | 
+E7 | check_in/out reversed | 2026-11-20 → 2026-11-18 | 400 | refused | The departure date must be after the arrival date. | 
+E8 | message | mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm…(100000 chars) | 400 | refused | Please keep your message under 3,000 characters. | 
+E9 | property | nowhere | 429 | refused | Too many attempts. Please wait a minute and try again. | 
+E10 | website (bot trap) | filled | 429 | refused | Too many attempts. Please wait a minute and try again. | 

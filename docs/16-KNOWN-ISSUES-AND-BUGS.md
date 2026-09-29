@@ -24,7 +24,7 @@ The PHP engine needs a PHP + MySQL host. Until then, every Book Now button on Ve
 * The cancellation ladder (free 30+ days, 75% at 21–29, 100% under 21) and pay-at-property rules need confirming.
 
 ### 4. Asset weight (~269 MB)
-4.5 MB favicon, 12.8 MB unused video preload, 10–17 MB photos, 109 MB of unused files. See `11-IMAGE-ASSET-INVENTORY.md`.
+10–17 MB photos, 109 MB of unused files. See `11-IMAGE-ASSET-INVENTORY.md`. (The 4.5 MB favicon and the 12.8 MB unused video preload were fixed on 29 Sep 2026.)
 
 ### 50% plan: when is the balance due?
 Guests are told "Balance due 30 days before arrival" (`payment_modes.advance.note`), and the admin, check-status page and receipt say "Due before arrival". Nothing reminds the guest or collects it automatically: the desk collects it. If it should be at check-in instead, change the note and the labels together (doc 22 §3).
@@ -66,7 +66,7 @@ The "Change rooms on sale" grid was removed from Availability at the owner's req
 15. `ErrorBoundary` shows stack traces to visitors.
 16. The heading colour rule in `index.css` overrides parent text colours (see `04-DESIGN-SYSTEM.md`).
 17. Sitemap lists only 4 of about 16 public URLs.
-18. The viewport has `maximum-scale=1`, which blocks pinch zoom.
+18. ~~Pinch zoom blocked~~ fixed 29 Sep 2026.
 19. The booking engine looks different (Marcellus/Montserrat, its own palette) from the site.
 20. ~~Root clutter~~ Resolved 29 Sep 2026: the one-off `*.py` edit scripts and `old_rooms.tsx` moved to `scripts/legacy/` (unused; delete once confirmed).
 21. Much of the current work is uncommitted (git has 4 commits; nothing pushed since 25 Sep 2026 by the owner's choice).
@@ -86,4 +86,5 @@ The "Change rooms on sale" grid was removed from Availability at the owner's req
 * **`/book/admin` without a slash broke the admin page:** it now redirects and fills in the address.
 * **Arrival time** was a free-text box: now a scroll wheel (hour, minutes, AM/PM).
 * **Availability side panel** didn't show which car was booked or where the guest is in the stay: it now does, from either view.
-* **Test bookings** in the real database: removed (0 bookings).
+* **Test bookings** in the real database: removed on 26 Sep. On 29 Sep six marked **demo** bookings were added at the owner's request (see doc 28 §3).
+* **29 Sep 2026 (see `../heal/`, `../button_audit/`, `../chaos/` reports):** console error from nested links on destination/camp pages; favicon 404s; 5 broken links (`/white-rann-camp/tariff`, `/#explore` ×2, `/#rann-utsav`, FAQ jump); invisible Home tariff button; Home experience cards not linked; booking page too wide on phones; accessibility (menu/Instagram names, gallery alt text, two `h1`s); same title on every page; sitemap; stack trace shown to visitors; `check-system.php` wrote to the real database and tested the switched-off camp; cash at the desk didn't confirm a pending booking; payment start needed only a booking number; CSV ignored the search; unused status filters; 33 kinds of nonsense input accepted (incl. MySQL crash risks from over-long text); CSV formula injection.

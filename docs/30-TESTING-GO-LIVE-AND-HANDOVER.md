@@ -17,7 +17,8 @@ _Written 26 Sep 2026. How to check the engine safely, what to switch before real
   * payments − refunds.
 
   It exits 1 if anything fails. It needs the SQLite setup, so it runs on a development PC, not the live server.
-* **`php bin/check-system.php`**, **`check-razorpay.php`**, **`check-stayflexi.php`**: health checks (config, database, keys, connections).
+* **`php bin/check-system.php`**, **`check-razorpay.php`**, **`check-stayflexi.php`**: health checks (config, database, keys, connections). Since 29 Sep 2026 `check-system.php` tests the property that is on sale and runs its create/look-up/cancel test on a **temporary copy** of the SQLite database (on MySQL it skips that test unless `--write-test` is given).
+* The flow and nonsense-input scripts used on 29 Sep 2026 are kept in `../chaos/EVIDENCE/`. They drive a throwaway engine copy on another port; see `../chaos/REPORT.md`.
 * **Screens:** use the browser with test payments on. To look at an admin screen with made-up data, render it against a throwaway copy, never the real file, and delete the copy after.
 * **Test bookings made by hand** in the real database are real rows. Delete them afterwards (Admin can cancel; full deletion is by request, as was done on 26 Sep 2026).
 
@@ -37,7 +38,8 @@ pnpm dev          # website on :3000, /book/ proxied to the engine
 - [ ] `debug => false`
 - [ ] Live Razorpay keys in the server's `config.local.php`, **after regenerating the live Key Secret** (it was shared in chat). Add the webhook `<base_url>/api/webhook-razorpay.php` with its secret
 - [ ] UPI id (`upi.vpa`) if QR payments are wanted
-- [ ] Strong admin password: `php bin/setup.php --admin manvir "Manvir" "<long password>"` (the local one is `1234`)
+- [ ] Strong admin password: `php bin/setup.php --admin manvir "Manvir" "<long password>"` (the local one is `1234`). The sign-in page sends SHA-256 of username and password; `setup.php --admin` stores bcrypt(SHA-256), so always set passwords with it
+- [ ] Remove the six demo bookings (guest names starting "Demo", emails @example.com) — or start the live database fresh
 - [ ] MySQL database from `schema.sql` + `seed.sql` (full setup **once**; never again on live, doc 28 §4). **`config.php` now defaults to SQLite**, so the live `config.local.php` must say `'db' => ['driver' => 'mysql', …]`
 - [ ] `base_url` and `allowed_origins` for the real domain; `properties.website_url` → the live site ("Back to website"). `seed.sql` now sets it to `http://localhost:3000`, so change it in the live database after setup
 - [ ] Mail: SMTP settings and `from_email` on a domain you own (currently `@kutchsafariresort.com`)

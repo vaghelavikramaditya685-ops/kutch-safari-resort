@@ -69,6 +69,8 @@ export default function Navbar() {
             <button 
               className="lg:hidden text-zinc-900 p-2" 
               onClick={() => setOpen(!open)}
+              aria-label={open ? "Close menu" : "Open menu"}
+              aria-expanded={open}
             >
               {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>

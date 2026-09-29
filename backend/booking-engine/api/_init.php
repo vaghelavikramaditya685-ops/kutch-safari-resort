@@ -42,6 +42,12 @@ function input(): array {
     if ($data !== null) return $data;
     $raw = file_get_contents('php://input');
     $decoded = json_decode($raw ?: '', true);
+    // Something that claims to be JSON but is not: say so, instead of a confusing
+    // "unknown property" further down.
+    if ($raw !== '' && $raw !== false && $decoded === null && str_contains((string) ($_SERVER['CONTENT_TYPE'] ?? ''), 'json')) {
+        $data = [];
+        json_fail('We could not read that request. Please reload the page and try again.');
+    }
     $data = is_array($decoded) ? $decoded : array_merge($_GET, $_POST);
     return $data;
 }

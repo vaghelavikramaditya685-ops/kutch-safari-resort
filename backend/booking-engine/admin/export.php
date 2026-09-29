@@ -8,10 +8,21 @@ if (!empty($_GET['status']))   { $where[] = 'b.status = ?';      $params[] = $_G
 if (!empty($_GET['property'])) { $where[] = 'b.property_id = ?'; $params[] = (int) $_GET['property']; }
 if (!empty($_GET['from']))     { $where[] = 'b.check_out >= ?';  $params[] = $_GET['from']; }
 if (!empty($_GET['to']))       { $where[] = 'b.check_in <= ?';   $params[] = $_GET['to']; }
+if (($search = trim($_GET['q'] ?? '')) !== '') {   // same search as the bookings list
+    $where[] = '(b.ref LIKE ? OR b.guest_name LIKE ? OR b.guest_phone LIKE ? OR b.guest_email LIKE ?)';
+    array_push($params, "%$search%", "%$search%", "%$search%", "%$search%");
+}
 
 $rows = q('SELECT b.*, p.name AS property_name FROM bookings b
              JOIN properties p ON p.id = b.property_id
             WHERE ' . implode(' AND ', $where) . ' ORDER BY b.check_in', $params);
+
+// Text typed by guests could start with = + - @, which Excel would run as a formula
+// when the file is opened. A leading apostrophe makes it plain text.
+function csv_safe($v) {
+    $v = (string) $v;
+    return $v !== '' && strpbrk($v[0], "=+-@	") !== false ? "'" . $v : $v;
+}
 
 header('Content-Type: text/csv; charset=utf-8');
 header('Content-Disposition: attachment; filename="bookings-' . date('Y-m-d') . '.csv"');
@@ -24,7 +35,7 @@ foreach ($rows as $b) {
     $desc = implode('; ', array_map(fn($r) => $r['rooms'] . '× ' . $r['room_type_name'], $rooms));
     fputcsv($out, [
         $b['ref'], $b['property_name'], $b['status'], $b['check_in'], $b['check_out'], $b['nights'],
-        $b['guest_name'], $b['guest_phone'], $b['guest_email'], $b['guest_city'],
+        csv_safe($b['guest_name']), csv_safe($b['guest_phone']), csv_safe($b['guest_email']), csv_safe($b['guest_city']),
         $b['adults'], $b['children'], $desc,
         $b['total'], $b['amount_paid'], round((float) $b['total'] - (float) $b['amount_paid'], 2),
         $b['payment_mode'], $b['created_at'],

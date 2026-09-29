@@ -6,6 +6,8 @@ _Written 26 Sep 2026. Every screen in `backend/booking-engine/admin/`, what it d
 * Address: `/book/admin/`. Typing **`/book/admin`** (no slash) or the website's **`/admin`** also works. The address fills itself in to `/book/admin/login.php`.
   > Why the redirect exists: without the trailing slash the panel's relative links pointed one folder too high (`/book/login.php`), so the page broke. `admin/_auth.php` now redirects `…/admin` → `…/admin/` first.
 * Sign in with a **username** (not case-sensitive). The local test login is `manvir` / `1234`. **Change it before going live** (doc 30).
+* **The username and password never leave the browser as typed text** (29 Sep 2026, owner's request): the sign-in page sends SHA-256 of the username (trimmed, lower-case) and of the password. The server matches the username hash and checks the password hash against `admin_users.password_hash`, which stores **bcrypt(SHA-256(password))**. `bin/setup.php --admin` writes passwords this way. A sign-in without the hashes is refused. SHA-256 is a one-way hash, not encryption; HTTPS protects the connection on the live site.
+* Refusals on admin pages (wrong amount, missing choice, too-long note) show in a **red** box; successes in green.
 * The panel **always asks for the password**:
   * the sign-in ends when the browser closes (session cookie, no lifetime);
   * it counts only in the tab it was made in. A new tab or window asks again, via a per-tab `sessionStorage` mark (`ksr_admin_tab`) set after sign-in (`login.php` → `index.php?signed_in=1`);

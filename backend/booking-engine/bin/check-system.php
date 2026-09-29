@@ -8,9 +8,25 @@
  *  guest lookup, cancellation, overbooking refusal — then reports on payments,
  *  the channel manager, and what still stands between you and real guests.
  *
- *  It creates one throwaway booking and cancels it again, so it is safe to run
- *  whenever you want. Nothing is charged.
+ *  The booking test (create, look up, cancel) never touches real data:
+ *    - on SQLite it runs on a temporary copy of the database, deleted after;
+ *    - on MySQL it is skipped unless you pass --write-test (only for a fresh
+ *      install with no real bookings yet). Nothing is ever charged.
  * ======================================================================== */
+
+if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
+require_once __DIR__ . '/../lib/db.php';
+
+// Point the whole check at a throwaway copy before anything opens the database.
+$scratch = null;
+if (cfg('db.driver') === 'sqlite' && is_file((string) cfg('db.sqlite_path'))) {
+    $scratch = tempnam(sys_get_temp_dir(), 'ksr-check-');
+    copy((string) cfg('db.sqlite_path'), $scratch);
+    $GLOBALS['CONFIG']['db']['sqlite_path'] = $scratch;
+    register_shutdown_function(function () use ($scratch) { @unlink($scratch); });
+}
+$GLOBALS['CONFIG']['mail']['smtp']['enabled'] = false;   // no emails from a check
+$write_test = $scratch !== null || in_array('--write-test', $argv ?? [], true);
 
 require_once __DIR__ . '/../lib/booking.php';
 require_once __DIR__ . '/../lib/payment.php';
@@ -28,57 +44,71 @@ function head(string $t): void { echo "\n$t\n" . str_repeat('-', 72) . "\n"; }
 
 head('BOOKING ENGINE');
 
-$camp = q1("SELECT * FROM properties WHERE code = ?", ['white-rann-camp']);
-$avail = search_availability($camp, '2026-12-28', '2026-12-30', 2, 0, 1);
-count($avail)
-    ? line('OK', 'Availability search', count($avail) . ' room types offered')
-    : line('FAIL', 'Availability search', 'returned nothing');
-
-$quote = quote_cart([
-    'property' => 'white-rann-camp', 'check_in' => '2026-12-28', 'check_out' => '2026-12-30',
-    'adults' => 2, 'rooms' => [['room_type_id' => 4, 'rate_plan_id' => 8, 'rooms' => 1]],
-    'addons' => [['addon_id' => 6, 'quantity' => 2]], 'payment_mode' => 'advance',
-]);
-$quote['ok']
-    ? line('OK', 'Quoting, tax and add-ons', 'total ' . $quote['total'] . ', due now ' . $quote['amount_due_now'])
-    : line('FAIL', 'Quoting', $quote['error']);
-
-// GST slabs: below and above the 7,500 line should be taxed differently.
-$plans = $avail ? array_merge(...array_map(fn($r) => $r['rate_plans'], $avail)) : [];
-$rates = array_unique(array_map(fn($p) => round($p['tax'] / max(0.01, $p['subtotal']) * 100), $plans));
-count($rates) > 1
-    ? line('OK', 'GST slabs applied per night', implode('% and ', $rates) . '%')
-    : line('WARN', 'GST slabs', 'only one rate seen — check the tariffs straddle 7,500');
-
-$made = create_booking([
-    'property' => 'white-rann-camp', 'check_in' => '2027-01-05', 'check_out' => '2027-01-07',
-    'adults' => 2, 'rooms' => [['room_type_id' => 3, 'rate_plan_id' => 7, 'rooms' => 1]],
-    'payment_mode' => 'hotel',
-], ['name' => 'System Check', 'phone' => '9000000001', 'email' => 'check@example.com']);
-
-if ($made['ok']) {
-    line('OK', 'Creating a booking', $made['ref']);
-    line(find_booking($made['ref'], '9000000001') ? 'OK' : 'FAIL', 'Guest lookup by reference + phone');
-    $cancelled = cancel_booking((int) $made['booking_id'], 'automated system check', 'check');
-    $cancelled['ok']
-        ? line('OK', 'Cancellation and refund rules', $cancelled['charge_percent'] . '% charge applied')
-        : line('FAIL', 'Cancellation', $cancelled['error']);
+// Test the first property that is on sale, with its own rooms, plans and extras.
+$prop  = q1("SELECT * FROM properties WHERE active = 1 ORDER BY id LIMIT 1");
+$rt    = $prop ? q1("SELECT * FROM room_types WHERE property_id = ? AND active = 1 ORDER BY sort_order, id LIMIT 1", [$prop['id']]) : null;
+$plan  = $rt ? q1("SELECT * FROM rate_plans WHERE room_type_id = ? AND active = 1 ORDER BY sort_order, id LIMIT 1", [$rt['id']]) : null;
+$addon = $prop ? q1("SELECT * FROM addons WHERE property_id = ? AND active = 1 AND price_type IN ('per_booking','per_night') ORDER BY id LIMIT 1", [$prop['id']]) : null;
+if (!$prop || !$rt || !$plan) {
+    line('FAIL', 'A property with rooms on sale', 'none found');
 } else {
-    line('FAIL', 'Creating a booking', $made['error']);
+    // Dates in the property's season (or two months ahead), two nights.
+    $in  = !empty($prop['season_start']) && $prop['season_start'] > date('Y-m-d') ? $prop['season_start'] : date('Y-m-d', strtotime('+60 days'));
+    $out = date('Y-m-d', strtotime("$in +2 days"));
+    line('OK', 'Checking', $prop['name'] . ', ' . $rt['name'] . ", $in to $out");
+
+    $avail = search_availability($prop, $in, $out, 2, 0, 1);
+    count($avail)
+        ? line('OK', 'Availability search', count($avail) . ' room types offered')
+        : line('FAIL', 'Availability search', 'returned nothing');
+
+    $cart = ['property' => $prop['code'], 'check_in' => $in, 'check_out' => $out, 'occupancy' => [2],
+             'rooms' => [['room_type_id' => (int) $rt['id'], 'rate_plan_id' => (int) $plan['id'], 'rooms' => 1]],
+             'addons' => $addon ? [['addon_id' => (int) $addon['id'], 'quantity' => 1]] : [], 'payment_mode' => 'advance'];
+    $quote = quote_cart($cart);
+    $quote['ok']
+        ? line('OK', 'Quoting, tax and add-ons', 'total ' . $quote['total'] . ', due now ' . $quote['amount_due_now'])
+        : line('FAIL', 'Quoting', $quote['error']);
+
+    // GST slabs: a price above the 7,500 line must be taxed differently from one below it.
+    $low = tax_split(5000, prices_include_tax($prop)); $high = tax_split(9000, prices_include_tax($prop));
+    round($low[1] / $low[0] * 100) !== round($high[1] / $high[0] * 100)
+        ? line('OK', 'GST slabs applied per night', round($low[1] / $low[0] * 100) . '% and ' . round($high[1] / $high[0] * 100) . '%')
+        : line('WARN', 'GST slabs', 'the same rate either side of 7,500');
+
+    if ($write_test) {
+        $made = create_booking(['payment_mode' => 'full'] + $cart, ['name' => 'System Check', 'phone' => '9000000001', 'email' => 'check@example.com']);
+        if ($made['ok']) {
+            line('OK', 'Creating a booking', $made['ref'] . ($scratch ? ' (temporary copy)' : ''));
+            line(find_booking($made['ref'], '9000000001') ? 'OK' : 'FAIL', 'Guest lookup by reference + phone');
+            $cancelled = cancel_booking((int) $made['booking_id'], 'automated system check', 'check');
+            $cancelled['ok']
+                ? line('OK', 'Cancellation and refund rules', $cancelled['charge_percent'] . '% charge applied')
+                : line('FAIL', 'Cancellation', $cancelled['error']);
+        } else {
+            line('FAIL', 'Creating a booking', $made['error']);
+        }
+    } else {
+        line('WARN', 'Booking test skipped', 'MySQL: run with --write-test only before real bookings exist');
+    }
+
+    $over = quote_cart(['rooms' => [['room_type_id' => (int) $rt['id'], 'rate_plan_id' => (int) $plan['id'], 'rooms' => (int) $rt['total_rooms'] + 1]],
+                        'occupancy' => array_fill(0, (int) $rt['total_rooms'] + 1, 2), 'staff_edit' => true] + $cart);
+    !$over['ok'] && stripos((string) $over['error'], 'property') === false
+        ? line('OK', 'Overbooking refused', substr((string) $over['error'], 0, 34))
+        : line('FAIL', 'Overbooking NOT refused', $over['ok'] ? 'this would oversell rooms' : $over['error']);
 }
 
-$over = quote_cart([
-    'property' => 'white-rann-camp', 'check_in' => '2026-12-28', 'check_out' => '2026-12-30',
-    'adults' => 2, 'rooms' => [['room_type_id' => 3, 'rate_plan_id' => 7, 'rooms' => 99]],
-    'payment_mode' => 'full',
-]);
-!$over['ok']
-    ? line('OK', 'Overbooking refused', substr($over['error'], 0, 34))
-    : line('FAIL', 'Overbooking NOT refused', 'this would oversell rooms');
-
-validate_dates($camp, '2027-03-10', '2027-03-12')
-    ? line('OK', 'Season limits enforced', 'camp closed outside Dec-Jan')
-    : line('FAIL', 'Season limits', 'out-of-season dates were accepted');
+// Season limits, if any property on sale is seasonal.
+$seasonal = q1("SELECT * FROM properties WHERE active = 1 AND season_start IS NOT NULL AND season_start <> '' LIMIT 1");
+if ($seasonal) {
+    $outside = date('Y-m-d', strtotime($seasonal['season_end'] . ' +30 days'));
+    validate_dates($seasonal, $outside, date('Y-m-d', strtotime("$outside +2 days")))
+        ? line('OK', 'Season limits enforced', $seasonal['name'])
+        : line('FAIL', 'Season limits', 'out-of-season dates were accepted');
+} else {
+    line('OK', 'Season limits', 'no seasonal property on sale');
+}
 
 head('PAYMENTS');
 
@@ -133,7 +163,7 @@ str_contains((string) cfg('base_url'), 'trycloudflare')
     : line('OK', 'Stable address', (string) cfg('base_url'));
 qval("SELECT id FROM admin_users LIMIT 1") ? line('OK', 'Staff login exists') : line('FAIL', 'No staff login');
 
-$live = (int) qval("SELECT COUNT(*) FROM bookings WHERE status IN ('pending','confirmed')", [], 0);
+$live = (int) qval("SELECT COUNT(*) FROM bookings WHERE status IN ('pending','confirmed') AND guest_name <> 'System Check'", [], 0);
 line('OK', 'Bookings currently in the system', (string) $live);
 
 echo "\n" . str_repeat('=', 72) . "\n";

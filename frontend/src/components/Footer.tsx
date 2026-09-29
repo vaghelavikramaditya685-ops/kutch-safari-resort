@@ -10,9 +10,9 @@ export default function Footer() {
           
           <div className="flex flex-col items-start gap-4">
             <Link href="/" className="flex flex-col items-start gap-1 mb-2">
-              <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
+              <p className="font-display text-2xl font-bold tracking-tight text-zinc-900">
                 KUTCH SAFARI
-              </h1>
+              </p>
               <p className="text-[0.65rem] uppercase tracking-[0.3em] font-medium text-zinc-600">
                 Resort
               </p>
@@ -21,7 +21,7 @@ export default function Footer() {
               A lake-view resort on the outskirts of Bhuj, on the road to the White Rann of Kutch. Twenty cottages, a multi-cuisine restaurant and three decades of hosting.
             </p>
             <div className="flex gap-4 mt-2">
-              <a href="https://www.instagram.com/kutchsafariresort/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-zinc-200 flex items-center justify-center hover:bg-zinc-900 hover:text-white transition-colors">
+              <a href="https://www.instagram.com/kutchsafariresort/" target="_blank" rel="noopener noreferrer" aria-label="Kutch Safari Resort on Instagram" className="w-10 h-10 rounded-full border border-zinc-200 flex items-center justify-center hover:bg-zinc-900 hover:text-white transition-colors">
                 <Instagram className="w-4 h-4" />
               </a>
             </div>

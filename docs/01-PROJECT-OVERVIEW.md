@@ -71,7 +71,7 @@ Without PHP installed, `pnpm dev` still runs the site. Book Now buttons then hav
 ## 5. Current state (summary)
 Working: all 12 routes, destination guides, the booking engine locally (search → rooms → extras → details → pay, check status, receipts, admin), and the typecheck and production build.
 
-The booking database on this PC has **no bookings** (test bookings removed 26 Sep 2026). Sample mode and test payments are still **on**. See the go-live checklist in `30-TESTING-GO-LIVE-AND-HANDOVER.md`.
+The booking database on this PC has **7 bookings**: the owner's own KSR-GJKQYG and six **demo** bookings added at the owner's request on 29 Sep 2026 (guest names start "Demo", emails end @example.com) to explore the site. Sample mode and test payments are still **on**. See the go-live checklist in `30-TESTING-GO-LIVE-AND-HANDOVER.md`.
 
 **Where to read what:**
 | Docs | Topic |
@@ -88,10 +88,12 @@ The booking database on this PC has **no bookings** (test bookings removed 26 Se
 | 29 | Lessons learned: what broke and why |
 | 30 | Testing, go-live checklist, handover |
 
+Also: `../context/` (20 short summary files that point back here) and the 29 Sep 2026 reports in `../restructure/`, `../heal/`, `../button_audit/`, `../chaos/`.
+
 Outstanding, detailed in `16-KNOWN-ISSUES-AND-BUGS.md`:
 1. The Home contact form is still a mock (`setTimeout`).
 2. `/white-rann-camp/tariff` is linked but has no route. The `/#explore`, `/#rann-utsav` and `/#contact` anchors point to sections that don't exist.
 3. Placeholder content: Our Journey (lorem ipsum), Dining and Our Journey placeholder boxes, FAQ, `[WRC LOGO]`.
-4. About 269 MB of unoptimised assets, including a 4.5 MB favicon.
+4. About 269 MB of unoptimised assets (the 4.5 MB favicon was replaced by a 9 KB `favicon.ico` on 29 Sep 2026).
 5. The booking engine is not yet deployed. Its rates, GST, the 50% balance date and cancellation terms need the owner's sign-off.
 6. Stayflexi is not connected, and Razorpay is on test keys only.

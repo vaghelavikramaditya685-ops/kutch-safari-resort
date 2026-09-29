@@ -173,7 +173,7 @@ admin_head('Bookings', $user);
   <div class="field"><label>Status</label>
     <select name="status">
       <option value="">All</option>
-      <?php foreach (['pending','confirmed','cancelled','completed','no_show'] as $s): ?>
+      <?php foreach (['pending','confirmed','cancelled'] as $s): ?>
         <option value="<?= $s ?>" <?= $status === $s ? 'selected' : '' ?>><?= ucfirst(str_replace('_',' ',$s)) ?></option>
       <?php endforeach; ?>
     </select></div>

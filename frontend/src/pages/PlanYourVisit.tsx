@@ -4,7 +4,11 @@ import Footer from "../components/Footer";
 
 export default function PlanYourVisit() {
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // /plan-your-visit#faq (Footer "FAQs") opens the page at that section.
+    const target = window.location.hash ? document.getElementById(window.location.hash.slice(1)) : null;
+    // Jump straight there (the site uses smooth scrolling, which would animate the whole page).
+    if (target) target.scrollIntoView({ behavior: "instant" });
+    else window.scrollTo(0, 0);
   }, []);
 
   return (
@@ -35,7 +39,7 @@ export default function PlanYourVisit() {
               <li className="flex justify-between"><span>White Rann, Dhordo</span> <span>80 km</span></li>
             </ul>
          </div>
-         <div id="faq">
+         <div id="faq" className="scroll-mt-28">
             <h2 className="text-2xl font-display font-bold mb-6">FAQs</h2>
             <p className="text-zinc-600">Frequently asked questions will be populated here.</p>
          </div>

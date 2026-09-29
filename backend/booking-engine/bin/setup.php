@@ -117,7 +117,8 @@ if (in_array('--admin', $args, true)) {
     if (!$email || !$pass) { echo "Usage: php bin/setup.php --admin USERNAME NAME PASSWORD (username may be an email)\n"; exit(1); }
 
     $existing = q1("SELECT id FROM admin_users WHERE email = ?", [$email]);
-    $hash = password_hash($pass, PASSWORD_DEFAULT);
+    // The sign-in page sends SHA-256 of the password, so store bcrypt of that (admin/login.php).
+    $hash = password_hash(hash('sha256', $pass), PASSWORD_DEFAULT);
     if ($existing) {
         update('admin_users', (int) $existing['id'], ['password_hash' => $hash, 'name' => $name, 'active' => 1]);
         echo "Updated the password for $email\n";
@@ -171,7 +172,7 @@ if (!qval("SELECT id FROM admin_users LIMIT 1")) {
     $pass = bin2hex(random_bytes(4));
     insert('admin_users', [
         'email' => 'admin@kutchsafariresort.com', 'name' => 'Reservations',
-        'password_hash' => password_hash($pass, PASSWORD_DEFAULT),
+        'password_hash' => password_hash(hash('sha256', $pass), PASSWORD_DEFAULT),   // see admin/login.php
         'role' => 'owner', 'active' => 1, 'created_at' => now(),
     ]);
     echo "\n  Admin login created\n";

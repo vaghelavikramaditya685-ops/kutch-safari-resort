@@ -47,6 +47,20 @@ _Written 26 Sep 2026. Problems hit while building and fixing this project, why t
 * **A button with the `hidden` attribute still showed:** `.btn { display: inline-flex }` beats the browser's `[hidden]` rule. Add an explicit `[hidden] { display: none }` for such buttons (see the arrival wheel's Clear).
 * Headings ignore a parent's text colour (`index.css` base rule). Put the colour on the heading (doc 04 §3).
 
+## Found on 29 Sep 2026 (self-healing, button pipeline, chaos monkey)
+| Problem | Cause | Fix |
+|---|---|---|
+| Favicon 404 on every engine page, even after adding an icon | this browser ignores data-URI SVG icons and asks for `/favicon.ico` anyway | a real `/favicon.ico` at the website root (where the engine's `/book/` pages get it in production) + `assets/icon.svg` |
+| Old `engine.js` kept by browsers after an update | no version on script/style URLs | `?v=<filemtime>` on engine.js/engine.css/admin.css |
+| Section jumps "didn't work" in a test browser | smooth scrolling never animates in a pane that isn't painting | jumps use `behavior: "instant"` (better for visitors too) |
+| Booking page 389 px wide on a 375 px phone | a `white-space: nowrap` header button | header buttons wrap below 960 px |
+| 1,000,000 cars → ₹2.1 billion quote; 0 or −5 cars → 1 car | "forgiving" code: `max(1, (int) $qty)`, no upper limit | refuse 0/negative/words; cap at `rules.max_extra_quantity` (50) |
+| 200,000-character notes saved | SQLite has no length limits; MySQL would crash | `LIMITS` + `too_long()` everywhere, `maxlength` on fields |
+| `check-system.php` put a booking in the real DB and tested a switched-off property | written before the rules | runs on a temporary copy; uses the property on sale |
+| A guest-detail error sent the guest back to step 1, losing their typing | error path always went to the rooms step | `field: "guest"` keeps them on the details step with their input |
+| Admin errors looked like successes | one green message box for everything | red for refusals |
+| Test sessions "failed" mid-run | the 10-minute idle sign-out (working as designed) | sign in again in long scripts |
+
 ## Process rules the owner set
 * **Don't push to GitHub** unless asked. The one push was on 25 Sep 2026; everything since is uncommitted.
 * **No synthetic data** in the real database. Test on throwaway copies (doc 28 §3, doc 30).

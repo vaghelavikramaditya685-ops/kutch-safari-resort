@@ -7,31 +7,39 @@ $user = require_login();
 check_csrf();
 
 $id = (int) ($_GET['id'] ?? 0);
-$flash = '';
+$flash = ''; $flash_bad = false;   // $flash_bad: show the message as an error, not a success
+$methods = ['cash', 'card', 'bank transfer', 'upi'];
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    $refuse = function (string $msg) use (&$flash, &$flash_bad) { $flash = $msg; $flash_bad = true; };
     switch ($_POST['action'] ?? '') {
         case 'record_payment':
             $cur = get_booking($id);
             $due = $cur ? round((float) $cur['total'] - (float) $cur['amount_paid'], 2) : 0;
             $amt = round((float) ($_POST['amount'] ?? 0), 2);
-            if (!$cur || $cur['status'] === 'cancelled') { $flash = 'This booking is cancelled — no payment can be recorded.'; break; }
-            if ($due <= 0.5)  { $flash = 'This booking is already fully paid.'; break; }
-            if ($amt <= 0 || $amt > $due + 0.5) { $flash = 'Enter an amount up to the balance due (' . inr($due) . ').'; break; }
-            record_offline_payment($id, $amt, $_POST['method'], $user['name'], $_POST['note'] ?? '');
+            if (!$cur || $cur['status'] === 'cancelled') { $refuse('This booking is cancelled — no payment can be recorded.'); break; }
+            if ($due <= 0.5)  { $refuse('This booking is already fully paid.'); break; }
+            if ($amt <= 0 || $amt > $due + 0.5) { $refuse('Enter an amount up to the balance due (' . inr($due) . ').'); break; }
+            if (!in_array($_POST['method'] ?? '', $methods, true)) { $refuse('Choose how it was paid from the list.'); break; }
+            if (too_long($_POST['note'] ?? '', 'payment_note')) { $refuse('Please keep the note under ' . LIMITS['payment_note'] . ' characters.'); break; }
+            record_offline_payment($id, $amt, $_POST['method'], $user['name'], trim((string) ($_POST['note'] ?? '')));
             $flash = 'Payment of ' . inr($amt) . ' recorded.'; break;
         case 'record_refund':
             $cur = get_booking($id);
             $owed = $cur ? round((float) $cur['amount_paid'] - (float) $cur['total'], 2) : 0;
             $amt = round((float) ($_POST['amount'] ?? 0), 2);
-            if (!$cur || $cur['status'] === 'cancelled') { $flash = 'Refunds on a cancelled booking follow the cancellation.'; break; }
-            if ($owed <= 0.5) { $flash = 'Nothing is owed back to the guest.'; break; }
-            if ($amt <= 0 || $amt > $owed + 0.5) { $flash = 'Enter an amount up to what is owed back (' . inr($owed) . ').'; break; }
-            record_offline_refund($id, $amt, $_POST['method'], $user['name'], $_POST['note'] ?? '');
+            if (!$cur || $cur['status'] === 'cancelled') { $refuse('Refunds on a cancelled booking follow the cancellation.'); break; }
+            if ($owed <= 0.5) { $refuse('Nothing is owed back to the guest.'); break; }
+            if ($amt <= 0 || $amt > $owed + 0.5) { $refuse('Enter an amount up to what is owed back (' . inr($owed) . ').'); break; }
+            if (!in_array($_POST['method'] ?? '', $methods, true)) { $refuse('Choose how it was given back from the list.'); break; }
+            if (too_long($_POST['note'] ?? '', 'payment_note')) { $refuse('Please keep the note under ' . LIMITS['payment_note'] . ' characters.'); break; }
+            record_offline_refund($id, $amt, $_POST['method'], $user['name'], trim((string) ($_POST['note'] ?? '')));
             $flash = 'Refund of ' . inr($amt) . ' recorded.'; break;
         case 'cancel':
-            $r = cancel_booking($id, $_POST['reason'] ?? '', $user['name']);
+            if (too_long($_POST['reason'] ?? '', 'cancel_reason')) { $refuse('Please keep the reason under ' . LIMITS['cancel_reason'] . ' characters.'); break; }
+            $r = cancel_booking($id, trim((string) ($_POST['reason'] ?? '')), $user['name']);
             $flash = $r['ok'] ? 'Cancelled. ' . $r['note'] : $r['error'];
+            $flash_bad = !$r['ok'];
             // Money taken by card goes back automatically; anything else is refunded by the desk.
             if ($r['ok'] && $r['refund_due'] > 0 && razorpay_enabled()) {
                 $rf = razorpay_refund($id, (float) $r['refund_due'], 'Cancelled by ' . $user['name']);
@@ -39,7 +47,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             }
             break;
         case 'note':
-            update('bookings', $id, ['special_requests' => $_POST['special_requests'], 'updated_at' => now()]);
+            if (too_long($_POST['special_requests'] ?? '', 'staff_note')) { $refuse('Please keep the note under ' . number_format(LIMITS['staff_note']) . ' characters.'); break; }
+            update('bookings', $id, ['special_requests' => trim((string) ($_POST['special_requests'] ?? '')), 'updated_at' => now()]);
             $flash = 'Note saved.'; break;
     }
 }
@@ -52,7 +61,7 @@ $money = booking_money($b);
 admin_head($b['ref'], $user);
 ?>
 <p><a href="index.php">&larr; All bookings</a></p>
-<?php if ($flash): ?><div class="notice notice--ok"><?= h($flash) ?></div><?php endif; ?>
+<?php if ($flash): ?><div class="notice <?= $flash_bad ? 'notice--err' : 'notice--ok' ?>"><?= h($flash) ?></div><?php endif; ?>
 <?php if (!empty($_GET['changed']) && !$flash): $d = round((float) $b['total'] - (float) $b['amount_paid'], 2);
   $last = json_decode((string) (q1("SELECT detail FROM audit_log WHERE action = 'booking_modified' AND entity_id = ? ORDER BY id DESC LIMIT 1", [(string) $b['id']])['detail'] ?? ''), true);
   $ch = $last['changes'] ?? null; ?>
@@ -212,7 +221,7 @@ $status_word = ['confirmed' => 'Confirmed', 'pending' => booking_lapsed($b) ? 'N
           <input name="amount" type="number" step="0.01" min="1" max="<?= round(-$balance, 2) ?>" value="<?= round(-$balance, 2) ?>" required></div>
         <div class="field"><label>Method</label>
           <select name="method"><option>cash</option><option>bank transfer</option><option>upi</option><option>card</option></select></div>
-        <div class="field"><label>Note</label><input name="note" placeholder="Given back at reception"></div>
+        <div class="field"><label>Note</label><input name="note" maxlength="300" placeholder="Given back at reception"></div>
         <button class="btn btn--sm" type="submit">Record refund</button>
       </form>
       <?php elseif ($balance <= 0.5): ?>
@@ -227,7 +236,7 @@ $status_word = ['confirmed' => 'Confirmed', 'pending' => booking_lapsed($b) ? 'N
           <input name="amount" type="number" step="0.01" min="1" max="<?= round($balance, 2) ?>" value="<?= round($balance, 2) ?>" required></div>
         <div class="field"><label>Method</label>
           <select name="method"><option>cash</option><option>card</option><option>bank transfer</option><option>upi</option></select></div>
-        <div class="field"><label>Note</label><input name="note" placeholder="Taken at reception"></div>
+        <div class="field"><label>Note</label><input name="note" maxlength="300" placeholder="Taken at reception"></div>
         <button class="btn btn--sm" type="submit">Record</button>
       </form>
       <?php endif; ?>
@@ -238,7 +247,7 @@ $status_word = ['confirmed' => 'Confirmed', 'pending' => booking_lapsed($b) ? 'N
       <form method="post">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="note">
-        <div class="field"><textarea name="special_requests" rows="3"><?= h($b['special_requests']) ?></textarea></div>
+        <div class="field"><textarea name="special_requests" rows="3" maxlength="2000"><?= h($b['special_requests']) ?></textarea></div>
         <button class="btn btn--plain btn--sm" type="submit" style="margin-top:10px">Save note</button>
       </form>
     </div>
@@ -270,7 +279,7 @@ $status_word = ['confirmed' => 'Confirmed', 'pending' => booking_lapsed($b) ? 'N
           Charge if cancelled today: <strong><?= h(rtrim(rtrim(number_format($sched[0]['charge_percent'], 2), '0'), '.')) ?>%</strong>
           (<?= inr($sched[0]['charge_amount']) ?>). Paid so far: <?= inr($b['amount_paid']) ?>.</p><?php endif; ?>
         <?= csrf_field() ?><input type="hidden" name="action" value="cancel">
-        <div class="field"><label>Reason</label><input name="reason" placeholder="Guest called"></div>
+        <div class="field"><label>Reason</label><input name="reason" maxlength="250" placeholder="Guest called"></div>
         <button class="btn btn--sm btn--block" style="margin-top:8px;background:var(--err);border-color:var(--err)"
                 type="submit">Cancel booking</button>
       </form>

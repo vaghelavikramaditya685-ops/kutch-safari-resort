@@ -354,6 +354,19 @@ function record_offline_payment(int $booking_id, float $amount, string $method, 
     ]);
     $paid = refresh_amount_paid($booking_id);
     audit('offline_payment', 'booking', $booking_id, ['amount' => $amount, 'method' => $method], $staff_name);
+
+    // A booking still waiting for payment is confirmed once what it needs now is paid
+    // (all of it, or the 50% advance) — the same as an online payment: status,
+    // Stayflexi and the confirmation email.
+    $b = get_booking($booking_id);
+    if ($b && $b['status'] === 'pending' && booking_money($b)['due_now'] <= 0.5) {
+        update('bookings', $booking_id, ['status' => 'confirmed', 'updated_at' => now()]);
+        audit('payment_settled', 'booking', $booking_id, ['payment' => 'offline', 'paid' => $paid], $staff_name);
+        channel_push_booking($booking_id);
+        require_once __DIR__ . '/mail.php';
+        send_booking_confirmation($booking_id);
+        return ['ok' => true, 'paid' => $paid, 'confirmed' => true];
+    }
     return ['ok' => true, 'paid' => $paid];
 }
 

@@ -150,11 +150,9 @@ export default function Destination() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 px-4">
         <h1 className="font-display text-4xl text-foreground">Destination not found</h1>
-        <Link href="/#explore">
-          <a className="bg-[var(--terracotta)] text-white px-8 py-3 uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition-opacity">
+        <Link href="/experiences" className="bg-[var(--terracotta)] text-white px-8 py-3 uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition-opacity">
             Back to Beyond Bhuj
-          </a>
-        </Link>
+          </Link>
       </div>
     );
   }
@@ -164,21 +162,17 @@ export default function Destination() {
       {/* Fixed Navbar */}
       <header className="fixed inset-x-0 top-0 z-50 bg-background/95 backdrop-blur-md shadow-[0_1px_0_0_oklch(0.88_0.03_75/0.8)] py-3">
         <div className="w-full px-6 md:px-10 flex items-center justify-between">
-          <Link href="/">
-            <a className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
               <img src="/assets/images/logo-mark.png" alt="Kutch Safari Resort" className="h-10 w-10 object-contain" />
               <div className="leading-tight">
                 <span className="font-display text-sm font-bold tracking-wide text-foreground block">KUTCH SAFARI</span>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/60">Resort &middot; Bhuj</span>
               </div>
-            </a>
-          </Link>
-          <Link href="/#explore">
-            <a className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors">
+            </Link>
+          <Link href="/experiences" className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors">
               <ArrowLeft className="h-4 w-4" />
               Back to Beyond Bhuj
-            </a>
-          </Link>
+            </Link>
         </div>
       </header>
 

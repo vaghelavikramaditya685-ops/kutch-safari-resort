@@ -627,15 +627,15 @@
         Only what you enter is saved.</div>` : ''}
       <div class="panel">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-          <div class="field"><label for="g-name">Full name${GUEST_OPTIONAL ? ' (optional)' : ''}</label><input id="g-name" ${GUEST_OPTIONAL ? '' : 'required'}></div>
-          <div class="field"><label for="g-phone">Mobile number${GUEST_OPTIONAL ? ' (optional)' : ''}</label><input id="g-phone" type="tel" ${GUEST_OPTIONAL ? '' : 'required'}></div>
+          <div class="field"><label for="g-name">Full name${GUEST_OPTIONAL ? ' (optional)' : ''}</label><input id="g-name" maxlength="120" autocomplete="name" ${GUEST_OPTIONAL ? '' : 'required'}></div>
+          <div class="field"><label for="g-phone">Mobile number${GUEST_OPTIONAL ? ' (optional)' : ''}</label><input id="g-phone" type="tel" maxlength="20" inputmode="tel" autocomplete="tel" placeholder="98250 12345" ${GUEST_OPTIONAL ? '' : 'required'}></div>
           <div class="field" style="grid-column:1/-1"><label for="g-email">Email</label>
-            <input id="g-email" type="email"><span class="hint">Your confirmation is sent here.</span></div>
-          <div class="field"><label for="g-city">City</label><input id="g-city"></div>
+            <input id="g-email" type="email" maxlength="160" autocomplete="email"><span class="hint">Your confirmation is sent here.</span></div>
+          <div class="field"><label for="g-city">City</label><input id="g-city" maxlength="80" autocomplete="address-level2"></div>
           <div class="field"><label id="g-arrival-label">Approximate arrival time</label>
             ${arrivalWheel()}</div>
           <div class="field" style="grid-column:1/-1"><label for="g-notes">Anything we should know</label>
-            <textarea id="g-notes" placeholder="Dietary preferences, a celebration, an early check-in."></textarea></div>
+            <textarea id="g-notes" maxlength="2000" placeholder="Dietary preferences, a celebration, an early check-in."></textarea></div>
         </div>
       </div>
 
@@ -686,12 +686,27 @@
       special_requests: $('#g-notes').value.trim(),
     };
     if (!GUEST_OPTIONAL && (!guest.name || !guest.phone)) { alertBox('Please give your name and mobile number.'); return; }
+    // The same checks as the server (lib/booking.php), so a mistake is caught here
+    // without leaving this step.
+    if (guest.phone && !/^\+?\d{7,15}$/.test(guest.phone.replace(/[\s\-().]/g, ''))) {
+      alertBox('That mobile number does not look right. Use digits only, for example 98250 12345 or +91 98250 12345.'); $('#g-phone').focus(); return;
+    }
+    if (guest.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guest.email)) {
+      alertBox('That email address does not look right.'); $('#g-email').focus(); return;
+    }
 
     alertBox('');
     loading('Holding your room…');
 
     const res = await api('book.php', Object.assign({}, cart, { guest }));
     if (res._network) { renderFailure(res, () => createBooking()); return; }
+    if (!res.ok && res.field === 'guest') {
+      // Something in the details: back to this step with everything they typed.
+      await goToDetails();
+      $('#g-name').value = guest.name; $('#g-phone').value = guest.phone; $('#g-email').value = guest.email;
+      $('#g-city').value = guest.city; $('#g-notes').value = guest.special_requests;
+      alertBox(res.error); return;
+    }
     if (!res.ok) { alertBox(res.error); setStep(1); renderRooms(); return; }
 
     booking = res;
@@ -768,7 +783,7 @@
   }
 
   async function payWithRazorpay() {
-    const order = await api('payment-create.php', { booking_id: booking.booking_id, method: 'razorpay' });
+    const order = await api('payment-create.php', { booking_id: booking.booking_id, manage_token: booking.manage_token, method: 'razorpay' });
     if (order._network) { alertBox('We could not start the payment — please check your connection and try again.'); return; }
     if (!order.ok) { alertBox(order.error); return; }
 
@@ -797,7 +812,7 @@
   }
 
   async function payWithUpi() {
-    const upi = await api('payment-create.php', { booking_id: booking.booking_id, method: 'upi_qr' });
+    const upi = await api('payment-create.php', { booking_id: booking.booking_id, manage_token: booking.manage_token, method: 'upi_qr' });
     if (upi._network) { alertBox('We could not generate the QR code — please check your connection and try again.'); return; }
     if (!upi.ok) { alertBox(upi.error); return; }
 

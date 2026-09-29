@@ -2,6 +2,16 @@
 
 ## Change log
 
+### 29 Sep 2026: folder cleanup, self-healing, button pipeline, chaos monkey, SHA-256 sign-in, demo data, context files
+* **Folders:** `client/` → `frontend/`, `booking-engine/` → `backend/booking-engine/`, `server/` → `backend/server/`, old `*.py` scripts → `scripts/legacy/`, notes → `docs/notes/` (`../restructure/REPORT.md`).
+* **Self-healing** (`../heal/REPORT.md`): 3 problems, 0 errors/warnings left — unused 12.8 MB video preload (console warning), nested links on destination/camp pages (console error), `/favicon.ico` 404 (real 9 KB favicon + engine icon).
+* **Earlier check's 5 findings fixed:** cash at the desk confirms a pending booking; payment start needs the private code and an unpaid booking; `check-system.php` uses a temporary copy and the property on sale; CSV follows the search box; unused status filters removed. Engine script/styles are versioned so browsers pick up updates.
+* **Button pipeline** (`../button_audit/REPORT.md`): 5 broken links + 6 dead Home cards fixed, invisible tariff button, booking page too wide on phones, accessibility (names, alt text, one `h1`, zoom), per-page titles, full sitemap, robots, stack trace hidden from visitors.
+* **Chaos monkey** (`../chaos/REPORT.md`): 107 nonsense values, 33 wrongly accepted → 0. Shared checks in `lib/db.php` (lengths, phone, arrival time, real dates), extras 1–50, bookings up to 2 years ahead, enquiry and admin form checks, red error messages, CSV formula protection, clearer messages; the booking page checks phone/email itself and keeps the guest's typing on a refusal.
+* **Admin sign-in with SHA-256** (owner's request): the page sends SHA-256 of username and password; stored hash is bcrypt(SHA-256). The `manvir` login was re-saved in this format (same password).
+* **Demo data:** six marked demo bookings added at the owner's request (doc 28 §3).
+* **`context/`:** 20 short context files for new developers and AI agents, pointing back to these docs.
+
 ### 26 Sep 2026 (later): Availability by cottage only, tidier side panel, local defaults
 * **Availability is by cottage only.** The "By guest" / "By cottage" buttons and the by-guest layout were removed. Clicking a booking bar opens the side panel (it no longer leaves the page; Ctrl/Cmd-click still opens the booking page).
 * **Side panel tidied:** no car emoji anywhere; "ETA: 4:30 PM" instead of "arriving about…"; rooms as bullet points ("Kutchi AC Cottage Room 1 · Double · 2 guests"); car transfers listed once under **Transfers** by full name ("Airport transfer, one way — Sedan × 2"), not repeated under Extras.

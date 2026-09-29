@@ -39,11 +39,12 @@ $e        = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Book your stay — <?= $e($property['name']) ?></title>
+<link rel="icon" type="image/svg+xml" href="assets/icon.svg">
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/engine.css">
+<link rel="stylesheet" href="assets/engine.css?v=<?= filemtime(__DIR__ . '/assets/engine.css') ?>">
 <style>body{ --clay: <?= $e($property['accent']) ?>; }</style>
 </head>
 <body
@@ -138,6 +139,6 @@ $e        = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
 <?php if (cfg('razorpay.enabled')): ?>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <?php endif; ?>
-<script src="assets/engine.js"></script>
+<script src="assets/engine.js?v=<?= filemtime(__DIR__ . '/assets/engine.js') ?>"></script>
 </body>
 </html>

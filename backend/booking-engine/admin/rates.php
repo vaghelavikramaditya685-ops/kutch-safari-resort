@@ -57,6 +57,7 @@ if ($do === 'remove') {
         ? (int) ((strtotime($form['to']) - strtotime($form['from'])) / 86400) + 1 : 0;
 
     if (!$form['plans'])                    $error = 'Tick at least one cottage.';
+    elseif (!valid_date($form['from']) || !valid_date($form['to'])) $error = 'Choose the first and the last night.';
     elseif ($nights < 1)                    $error = 'The last night is before the first night.';
     elseif ($form['from'] < $today)         $error = 'The first night is in the past. Special prices can only be set from today on.';
     elseif ($nights > MAX_RANGE_DAYS)       $error = 'That range is longer than ' . MAX_RANGE_DAYS . ' nights. Set it in smaller parts.';

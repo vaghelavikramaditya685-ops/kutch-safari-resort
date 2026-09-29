@@ -67,9 +67,10 @@ function admin_head(string $title, ?array $user = null): void {
     echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>' . h($title) . ' · Reservations</title><meta name="robots" content="noindex">
+      <link rel="icon" type="image/svg+xml" href="../assets/icon.svg">
       <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-      <link rel="stylesheet" href="../assets/engine.css">
-      <link rel="stylesheet" href="admin.css">';
+      <link rel="stylesheet" href="../assets/engine.css?v=' . filemtime(__DIR__ . '/../assets/engine.css') . '">
+      <link rel="stylesheet" href="admin.css?v=' . filemtime(__DIR__ . '/admin.css') . '">';
     if ($user) {
         // A sign-in only counts in the tab it was made in: a new tab or window has
         // no mark in sessionStorage, so it is signed out and asked for the password.

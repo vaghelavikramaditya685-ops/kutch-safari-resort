@@ -313,7 +313,8 @@ body::after {
 @media (max-width: 960px) {
   .eng-header .wrap { flex-wrap: wrap; padding-block: 10px; gap: 10px; }
   .eng-header nav { width: 100%; gap: 8px; font-size: .68rem; flex-wrap: wrap; }
-  .eng-header nav a { flex: 1 1 0; min-width: 0; padding: 8px 10px; }
+  /* On a phone a long label ("Already booked? Check status") wraps instead of spilling past the screen edge. */
+  .eng-header nav a { flex: 1 1 0; min-width: 0; padding: 8px 10px; white-space: normal; text-align: center; line-height: 1.25; }
   /* Three buttons don't fit across a phone: the call button takes its own row. */
   .eng-header nav a[href^="tel:"] { flex-basis: 100%; }
 }

@@ -4,7 +4,11 @@ import { ArrowLeft, CheckCircle2, Tent, Car, Utensils, Ticket, MapPin, Calendar 
 
 export default function RannUtsavPackage() {
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // /white-rann-camp/tariff (Footer, Home) opens this page at the tariff table.
+    const target = window.location.pathname.endsWith("/tariff") ? document.getElementById("tariff") : null;
+    // Jump straight there (the site uses smooth scrolling, which would animate the whole page).
+    if (target) target.scrollIntoView({ behavior: "instant" });
+    else window.scrollTo(0, 0);
   }, []);
 
   return (
@@ -12,21 +16,17 @@ export default function RannUtsavPackage() {
       {/* Fixed Navbar */}
       <header className="fixed inset-x-0 top-0 z-50 bg-background/95 backdrop-blur-md shadow-[0_1px_0_0_oklch(0.88_0.03_75/0.8)] py-3">
         <div className="w-full px-6 md:px-10 flex items-center justify-between">
-          <Link href="/">
-            <a className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
               <img src="/assets/images/logo-mark.png" alt="Kutch Safari Resort" className="h-10 w-10 object-contain" />
               <div className="leading-tight">
                 <span className="font-display text-sm font-bold tracking-wide text-foreground block">KUTCH SAFARI</span>
                 <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/60">Resort &middot; Bhuj</span>
               </div>
-            </a>
-          </Link>
-          <Link href="/#rann-utsav">
-            <a className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors">
+            </Link>
+          <Link href="/" className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors">
               <ArrowLeft className="h-4 w-4" />
               Back
-            </a>
-          </Link>
+            </Link>
         </div>
       </header>
 
@@ -67,7 +67,7 @@ export default function RannUtsavPackage() {
               </ul>
             </div>
 
-            <div className="bg-white p-8 border border-border/50 rounded shadow-sm flex flex-col justify-center">
+            <div id="tariff" className="bg-white p-8 border border-border/50 rounded shadow-sm flex flex-col justify-center scroll-mt-28">
               <h3 className="font-display text-xl font-semibold mb-4 border-b pb-2">Tariff (1st Dec 2026 - 31st Jan 2027)</h3>
               
               <div className="space-y-6">

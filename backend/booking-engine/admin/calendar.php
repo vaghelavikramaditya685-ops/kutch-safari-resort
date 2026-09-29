@@ -23,9 +23,13 @@ check_csrf();
 
 $flash = '';
 
-$property_id = (int) ($_GET['property'] ?? 1);
+// Anything odd in the address falls back to the first property on sale, 14 days, from yesterday.
+$property_id = (int) ($_GET['property'] ?? 0);
+if (!q1("SELECT id FROM properties WHERE id = ? AND active = 1", [$property_id])) {
+    $property_id = (int) (q1("SELECT id FROM properties WHERE active = 1 ORDER BY id LIMIT 1")['id'] ?? 1);
+}
 $days  = in_array((int) ($_GET['days'] ?? 14), [7, 14, 30], true) ? (int) ($_GET['days'] ?? 14) : 14;
-$start = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['start'] ?? '')) ? $_GET['start'] : date('Y-m-d', strtotime('-1 day'));
+$start = valid_date((string) ($_GET['start'] ?? '')) ? $_GET['start'] : date('Y-m-d', strtotime('-1 day'));
 $end   = date('Y-m-d', strtotime("$start +$days days"));    // first day NOT shown
 
 $property   = q1("SELECT * FROM properties WHERE id = ?", [$property_id]);

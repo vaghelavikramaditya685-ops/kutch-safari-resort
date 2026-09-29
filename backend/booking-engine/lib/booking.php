@@ -35,6 +35,9 @@ function make_ref(string $property_code): string {
  * ]
  * ------------------------------------------------------------------------ */
 function quote_cart(array $cart): array {
+    // Anything that is not a list is treated as nothing chosen (never a PHP warning).
+    $cart['rooms']  = is_array($cart['rooms'] ?? null) ? $cart['rooms'] : [];
+    $cart['addons'] = is_array($cart['addons'] ?? null) ? $cart['addons'] : [];
     $property = q1("SELECT * FROM properties WHERE code = ? AND active = 1", [$cart['property'] ?? '']);
     if (!$property) return ['ok' => false, 'error' => 'Unknown property.'];
 
@@ -123,8 +126,17 @@ function quote_cart(array $cart): array {
     $addon_tax = 0.0;
     foreach (($cart['addons'] ?? []) as $a) {
         $addon = q1("SELECT * FROM addons WHERE id = ? AND property_id = ? AND active = 1",
-                    [(int) $a['addon_id'], $property['id']]);
-        if (!$addon) continue;
+                    [(int) ($a['addon_id'] ?? 0), $property['id']]);
+        if (!$addon) return ['ok' => false, 'error' => 'One of the extras you chose is no longer offered. Please choose again.'];
+        // A quantity must be a whole number from 1 up; 0, negatives and words are refused,
+        // never quietly turned into 1.
+        $raw_qty = $a['quantity'] ?? 1;
+        if (!is_numeric($raw_qty) || (float) $raw_qty != (int) $raw_qty || (int) $raw_qty < 1) {
+            return ['ok' => false, 'error' => 'Choose how many of "' . $addon['name'] . '" you would like (1 or more).'];
+        }
+        if ((int) $raw_qty > (int) cfg('rules.max_extra_quantity', 50)) {
+            return ['ok' => false, 'error' => 'For more than ' . cfg('rules.max_extra_quantity', 50) . ' of "' . $addon['name'] . '" please call us and we will arrange it.'];
+        }
         // An extra already on a booking being changed keeps the price it was booked at.
         $locked_unit = pricing_locks()['addons'][(int) $addon['id']] ?? null;
         if ($locked_unit !== null) $addon['price'] = $locked_unit;
@@ -288,11 +300,14 @@ function cancellation_label(array $row, string $fmt = 'D, j M Y'): string {
 }
 
 function validate_dates(array $property, string $check_in, string $check_out): ?string {
-    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $check_in) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $check_out)) {
+    if (!valid_date($check_in) || !valid_date($check_out)) {
         return 'Please choose your dates.';
     }
     if ($check_out <= $check_in) return 'Check-out must be after check-in.';
     if ($check_in < date('Y-m-d')) return 'Those dates are in the past.';
+    if ($check_in > date('Y-m-d', strtotime('+' . (int) cfg('rules.max_days_ahead', 730) . ' days'))) {
+        return 'We take bookings up to two years ahead. For later dates, please call us.';
+    }
 
     $nights = nights_between($check_in, $check_out);
     if ($nights > (int) cfg('rules.max_nights', 21)) {
@@ -308,11 +323,14 @@ function validate_dates(array $property, string $check_in, string $check_out): ?
 
 /** Dates the desk may set when changing a booking: in order and in season, past check-in allowed. */
 function validate_dates_staff(array $property, string $check_in, string $check_out): ?string {
-    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $check_in) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $check_out)) {
+    if (!valid_date($check_in) || !valid_date($check_out)) {
         return 'Choose both dates.';
     }
     if ($check_out <= $check_in) return 'Check-out must be after check-in.';
     if ($check_out < date('Y-m-d')) return 'That stay is already over.';
+    if ($check_in > date('Y-m-d', strtotime('+' . (int) cfg('rules.max_days_ahead', 730) . ' days'))) {
+        return 'That is more than two years ahead — check the year.';
+    }
     if (!property_open_between($property, $check_in, $check_out)) {
         return sprintf('%s is open from %s to %s.', $property['name'],
             date('j M Y', strtotime($property['season_start'])), date('j M Y', strtotime($property['season_end'])));
@@ -712,8 +730,19 @@ function create_booking(array $cart, array $guest): array {
             if (empty(trim($guest[$f] ?? ''))) return ['ok' => false, 'error' => 'Please give your ' . $f . '.'];
         }
     }
-    if (!empty($guest['email']) && !filter_var($guest['email'], FILTER_VALIDATE_EMAIL)) {
-        return ['ok' => false, 'error' => 'That email address does not look right.'];
+    // Details that are given must make sense ('field' => 'guest' keeps the guest on the details step).
+    $bad = fn(string $msg) => ['ok' => false, 'error' => $msg, 'field' => 'guest'];
+    if (!empty($guest['email']) && (!filter_var($guest['email'], FILTER_VALIDATE_EMAIL) || too_long($guest['email'], 'email'))) {
+        return $bad('That email address does not look right.');
+    }
+    if (too_long($guest['name'] ?? '', 'name')) return $bad('Please keep the name under ' . LIMITS['name'] . ' characters.');
+    if (trim((string) ($guest['phone'] ?? '')) !== '' && !valid_phone((string) $guest['phone'])) {
+        return $bad('That mobile number does not look right. Use digits only, for example 98250 12345 or +91 98250 12345.');
+    }
+    if (!valid_arrival_time(trim((string) ($guest['arrival_time'] ?? '')))) return $bad('Choose the arrival time on the clock, or leave it blank.');
+    if (too_long($guest['city'] ?? '', 'city')) return $bad('Please keep the city under ' . LIMITS['city'] . ' characters.');
+    if (too_long($guest['special_requests'] ?? '', 'guest_note')) {
+        return $bad('Please keep your note under ' . number_format(LIMITS['guest_note']) . ' characters.');
     }
 
     $property = q1("SELECT * FROM properties WHERE code = ?", [$cart['property']]);
@@ -755,9 +784,9 @@ function create_booking(array $cart, array $guest): array {
             'nights'          => $quote['nights'],
             'adults'          => $quote['adults'],
             'children'        => $quote['children'],
-            'guest_name'      => trim($guest['name']),
+            'guest_name'      => trim((string) ($guest['name'] ?? '')),
             'guest_email'     => trim($guest['email'] ?? '') ?: null,
-            'guest_phone'     => trim($guest['phone']),
+            'guest_phone'     => trim((string) ($guest['phone'] ?? '')),
             'guest_city'      => trim($guest['city'] ?? '') ?: null,
             'guest_country'   => trim($guest['country'] ?? 'India'),
             'special_requests'=> trim($guest['special_requests'] ?? '') ?: null,

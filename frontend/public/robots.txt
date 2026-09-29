@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+# The booking engine and its staff panel are not for search results.
+Disallow: /book/
+Disallow: /admin
 
 Sitemap: https://kutchsafaribhuj.in/sitemap.xml

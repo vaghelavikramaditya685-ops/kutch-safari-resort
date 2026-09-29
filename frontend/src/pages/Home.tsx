@@ -191,9 +191,9 @@ export default function Home() {
           <p className="uppercase tracking-[0.3em] text-sm md:text-base font-semibold mb-6 animate-fade-in text-white/90">
             Bhuj · Rann of Kutch
           </p>
-          <h2 className="font-display text-5xl md:text-7xl font-bold mb-8 max-w-4xl leading-tight text-white">
+          <h1 className="font-display text-5xl md:text-7xl font-bold mb-8 max-w-4xl leading-tight text-white">
             Where the Lake Meets the Desert
-          </h2>
+          </h1>
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
             <a href={bookingUrl()} className="bg-[var(--terracotta)] text-white px-8 py-4 uppercase tracking-widest text-sm font-semibold hover:bg-[#b04838] transition-colors rounded-sm shadow-md">
               Check Availability & Book
@@ -323,7 +323,7 @@ export default function Home() {
                 <Link href="/white-rann-camp" className="bg-[var(--terracotta)] text-white px-8 py-3 uppercase tracking-widest text-sm font-semibold text-center hover:bg-[#b04838] transition-colors rounded-sm">
                   Visit White Rann Camp
                 </Link>
-                <Link href="/white-rann-camp/tariff" className="border border-white/30 text-white px-8 py-3 uppercase tracking-widest text-sm font-semibold text-center hover:bg-white hover:text-black transition-colors rounded-sm">
+                <Link href="/white-rann-camp/tariff" className="border border-[var(--terracotta)] text-[var(--terracotta)] px-8 py-3 uppercase tracking-widest text-sm font-semibold text-center hover:bg-[var(--terracotta)] hover:text-white transition-colors rounded-sm">
                   2026-27 Tariff
                 </Link>
               </div>
@@ -345,14 +345,15 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              { title: "White Rann & Rann Utsav", desc: "The salt desert at Dhordo, at its best on a full moon night.", img: "/assets/images/new/authentic-sunrise-bhungas.jpg" },
-              { title: "Road to Heaven & Dholavira", desc: "A causeway straight across the salt to a 4,500-year-old Harappan city.", img: "/assets/images/new/kutch-destination-road_2.jpg" },
-              { title: "Banni Villages", desc: "Embroidery, leatherwork, and bell-making in the hamlets.", img: "/assets/images/new/kutchi-tribes-rabari-ravechi-festival.jpg" },
-              { title: "Kala Dungar & Birding", desc: "The Black Hill, the highest point in Kutch — and flamingos below.", img: "/assets/images/new/kala-dungar-scenic.jpg" },
-              { title: "Mandvi Beach", desc: "A shipbuilding town, a palace on the sand, and the Arabian Sea.", img: "/assets/images/new/kutch-destination-mandvi-beach.jpg" },
-              { title: "Bhuj & Bhujodi", desc: "Aina Mahal, Prag Mahal, and the weavers' village just outside town.", img: "/assets/images/new/kutch-handicrafts-block-demo.jpg" }
+              { title: "White Rann & Rann Utsav", desc: "The salt desert at Dhordo, at its best on a full moon night.", img: "/assets/images/new/authentic-sunrise-bhungas.jpg", slug: "the-great-white-rann" },
+              { title: "Road to Heaven & Dholavira", desc: "A causeway straight across the salt to a 4,500-year-old Harappan city.", img: "/assets/images/new/kutch-destination-road_2.jpg", slug: "road-to-heaven" },
+              { title: "Banni Villages", desc: "Embroidery, leatherwork, and bell-making in the hamlets.", img: "/assets/images/new/kutchi-tribes-rabari-ravechi-festival.jpg", slug: "artisan-villages" },
+              { title: "Kala Dungar & Birding", desc: "The Black Hill, the highest point in Kutch — and flamingos below.", img: "/assets/images/new/kala-dungar-scenic.jpg", slug: "kala-dungar" },
+              { title: "Mandvi Beach", desc: "A shipbuilding town, a palace on the sand, and the Arabian Sea.", img: "/assets/images/new/kutch-destination-mandvi-beach.jpg", slug: "mandvi-beach-palace" },
+              { title: "Bhuj & Bhujodi", desc: "Aina Mahal, Prag Mahal, and the weavers' village just outside town.", img: "/assets/images/new/kutch-handicrafts-block-demo.jpg", slug: "artisan-villages" }
             ].map((exp, i) => (
-              <div key={i} className="group cursor-pointer">
+              // Same destination guides as the Experiences page.
+              <Link key={i} href={`/destination/${exp.slug}`} className="group cursor-pointer block">
                 <div className="relative h-64 overflow-hidden rounded-sm mb-4">
                   <img src={exp.img} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={exp.title} />
                 </div>
@@ -361,7 +362,7 @@ export default function Home() {
                 <span className="text-[var(--terracotta)] uppercase tracking-widest text-xs font-bold flex items-center gap-1">
                   Discover <ArrowRight className="w-3 h-3" />
                 </span>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

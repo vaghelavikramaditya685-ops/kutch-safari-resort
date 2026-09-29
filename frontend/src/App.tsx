@@ -1,7 +1,8 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
+import { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import OurJourney from "./pages/OurJourney";
@@ -19,7 +20,41 @@ import { adminUrl } from "./lib/booking";
 
 
 
+const SITE = "Kutch Safari Resort";
+const TITLES: Record<string, string> = {
+  "/": "Kutch Safari Resort | Bhunga Cottages by the Lake, Bhuj",
+  "/stay": `The Stay: Kutchi & Deluxe AC Cottages | ${SITE}`,
+  "/experiences": `Experiences in Kutch | ${SITE}`,
+  "/our-journey": `Our Journey | ${SITE}`,
+  "/dining": `Dining at The Banni | ${SITE}`,
+  "/gallery": `Gallery | ${SITE}`,
+  "/plan-your-visit": `Plan Your Visit | ${SITE}`,
+  "/packages": `Colors of Kutch Packages | ${SITE}`,
+  "/rann-utsav-package": `White Rann Camp & Rann Utsav | ${SITE}`,
+  "/white-rann-camp": `White Rann Camp & Rann Utsav | ${SITE}`,
+  "/white-rann-camp/tariff": `White Rann Camp Tariff 2026–27 | ${SITE}`,
+  "/booking": `Book your stay | ${SITE}`,
+  "/book": `Book your stay | ${SITE}`,
+  "/admin": `Reservations | ${SITE}`,
+};
+const DESTINATIONS: Record<string, string> = {
+  dholavira: "Dholavira", "road-to-heaven": "Road to Heaven", "the-great-white-rann": "The Great White Rann",
+  "mandvi-beach-palace": "Mandvi Beach & Palace", "artisan-villages": "Artisan Villages", "kala-dungar": "Kala Dungar",
+};
+
+/** Every page gets its own browser-tab title (for search results and bookmarks). */
+function usePageTitle() {
+  const [location] = useLocation();
+  useEffect(() => {
+    const slug = location.startsWith("/destination/") ? location.slice("/destination/".length) : "";
+    document.title = TITLES[location]
+      ?? (DESTINATIONS[slug] ? `${DESTINATIONS[slug]} | ${SITE}`
+      : location.startsWith("/book/") || location.startsWith("/admin/") ? SITE : `Page not found | ${SITE}`);
+  }, [location]);
+}
+
 function Router() {
+  usePageTitle();
   return (
     <Switch>
       <Route path={"/"} component={Home} />
@@ -40,6 +75,7 @@ function Router() {
       <Route path={"/destination/:slug"} component={Destination} />
       <Route path={"/rann-utsav-package"} component={RannUtsavPackage} />
       <Route path={"/white-rann-camp"} component={RannUtsavPackage} />
+      <Route path={"/white-rann-camp/tariff"} component={RannUtsavPackage} />
       
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

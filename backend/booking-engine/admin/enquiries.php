@@ -4,12 +4,19 @@ require_once __DIR__ . '/_auth.php';
 $user = require_login();
 check_csrf();
 
-$flash = '';
+$flash = ''; $flash_bad = false;
+$statuses = ['new', 'contacted', 'converted', 'closed'];
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-    $id = (int) $_POST['id'];
-    update('enquiries', $id, ['status' => $_POST['status'], 'staff_note' => $_POST['staff_note'] ?? null]);
-    audit('enquiry_updated', 'enquiry', $id, ['status' => $_POST['status']], $user['name']);
-    $flash = 'Enquiry updated.';
+    $id = (int) ($_POST['id'] ?? 0);
+    $new_status = (string) ($_POST['status'] ?? '');
+    if (!q1("SELECT id FROM enquiries WHERE id = ?", [$id])) { $flash = 'That enquiry was not found.'; $flash_bad = true; }
+    elseif (!in_array($new_status, $statuses, true)) { $flash = 'Choose a status from the list.'; $flash_bad = true; }
+    elseif (too_long($_POST['staff_note'] ?? '', 'staff_note')) { $flash = 'Please keep the note under ' . number_format(LIMITS['staff_note']) . ' characters.'; $flash_bad = true; }
+    else {
+        update('enquiries', $id, ['status' => $new_status, 'staff_note' => trim((string) ($_POST['staff_note'] ?? '')) ?: null]);
+        audit('enquiry_updated', 'enquiry', $id, ['status' => $new_status], $user['name']);
+        $flash = 'Enquiry updated.';
+    }
 }
 
 $status = $_GET['status'] ?? '';
@@ -19,7 +26,7 @@ $rows = $status
 
 admin_head('Enquiries', $user);
 ?>
-<?php if ($flash): ?><div class="notice notice--ok"><?= h($flash) ?></div><?php endif; ?>
+<?php if ($flash): ?><div class="notice <?= $flash_bad ? 'notice--err' : 'notice--ok' ?>"><?= h($flash) ?></div><?php endif; ?>
 <form class="filters" method="get">
   <div class="field"><label>Status</label>
     <select name="status" onchange="this.form.submit()">
@@ -57,7 +64,7 @@ admin_head('Enquiries', $user);
               <option value="<?= $s ?>" <?= $e['status'] === $s ? 'selected' : '' ?>><?= ucfirst($s) ?></option>
             <?php endforeach; ?>
           </select>
-          <input name="staff_note" value="<?= h($e['staff_note']) ?>" placeholder="Note"
+          <input name="staff_note" value="<?= h($e['staff_note']) ?>" placeholder="Note"  maxlength="2000"
                  style="margin-top:5px;padding:5px;border:1px solid var(--line);border-radius:3px;width:100%">
           <button class="btn btn--plain btn--sm btn--block" style="margin-top:5px" type="submit">Save</button>
         </form>
