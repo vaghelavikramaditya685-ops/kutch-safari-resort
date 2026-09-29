@@ -5,6 +5,11 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+// The project root: one level up from the bundle (dist/index.js), two levels up
+// from the source file (backend/server/index.ts).
+const projectRoot = path.basename(__dirname) === "dist"
+  ? path.resolve(__dirname, "..")
+  : path.resolve(__dirname, "..", "..");
 
 async function startServer() {
   const app = express();
@@ -14,7 +19,7 @@ async function startServer() {
   const staticPath =
     process.env.NODE_ENV === "production"
       ? path.resolve(__dirname, "public")
-      : path.resolve(__dirname, "..", "dist", "public");
+      : path.resolve(projectRoot, "dist", "public");
 
   app.use(express.static(staticPath));
   app.use(express.json());
@@ -23,7 +28,7 @@ async function startServer() {
   app.post("/api/contact", async (req, res) => {
     try {
       const fs = await import("fs/promises");
-      const dataDir = path.resolve(__dirname, "..", "data");
+      const dataDir = path.resolve(projectRoot, "data");
       const filePath = path.join(dataDir, "enquiries.json");
       
       // Ensure data directory exists

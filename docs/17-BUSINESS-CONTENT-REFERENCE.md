@@ -1,6 +1,6 @@
 # Business Content Reference
 
-The facts used across the site and the booking engine. When one changes, update both. Places to check: `client/src/pages/*`, `Navbar.tsx`, `Footer.tsx`, `booking-engine/seed.sql` (or the admin panel), and `booking-engine/config.php`.
+The facts used across the site and the booking engine. When one changes, update both. Places to check: `frontend/src/pages/*`, `Navbar.tsx`, `Footer.tsx`, `backend/booking-engine/seed.sql` (or the admin panel), and `backend/booking-engine/config.php`.
 
 ## Identity
 * **Kutch Safari Resort**, Near Rudramata Dam, Bhuj–Khavda Road, Bhuj, Kutch, Gujarat 370001. About 15 km from Bhuj.

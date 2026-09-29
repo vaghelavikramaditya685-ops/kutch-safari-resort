@@ -29,7 +29,7 @@ Note: the bathroom photo is filed under "Exterior".
 `Stay.tsx` still defines an `Accommodation` component (a sand band with two portrait photos and an "Explore" button that expands into both `RoomTemplate`s), but nothing renders it. Its copy contains a garbled character: "appliqu├®" should be "appliqué".
 
 ## 5. Rooms in the Booking Engine
-Room data lives in the database (`booking-engine/seed.sql` for a fresh install). Prices for particular dates are set in Admin → **Special prices**; the normal prices are in the database. Guests choose **Single / Double / Triple for each room**, and with several rooms they can pick a different cottage for each (Select → tick room numbers).
+Room data lives in the database (`backend/booking-engine/seed.sql` for a fresh install). Prices for particular dates are set in Admin → **Special prices**; the normal prices are in the database. Guests choose **Single / Double / Triple for each room**, and with several rooms they can pick a different cottage for each (Select → tick room numbers).
 
 | Room type | Units | Max | Per night (resort: GST included; camp: + GST) |
 |---|---|---|---|
@@ -40,4 +40,4 @@ Room data lives in the database (`booking-engine/seed.sql` for a fresh install).
 
 Full details are in `08-PACKAGES-AND-PRICING.md`; how the price is worked out is in `21-PRICING-LOGIC-DEEP-DIVE.md`. The engine sells cottage **types**; the desk assigns the actual cottage on arrival (`23-AVAILABILITY-AND-INVENTORY-LOGIC.md`).
 
-Engine room photos are in `booking-engine/assets/img/ksr` and `…/wrc` (WebP). They are separate from the site's `client/public/assets`.
+Engine room photos are in `backend/booking-engine/assets/img/ksr` and `…/wrc` (WebP). They are separate from the site's `frontend/public/assets`.

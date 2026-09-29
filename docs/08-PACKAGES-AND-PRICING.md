@@ -3,8 +3,8 @@
 ## 1. Where prices live now
 | Source | What | Who edits it |
 |---|---|---|
-| **Booking engine database** (`booking-engine/seed.sql` for a fresh install; Admin → **Special prices** for dates) | **What guests are actually charged**: room rate plans, special (date) prices, add-ons, packages | Staff (special prices); developer (normal prices, extras) |
-| `booking-engine/config.php` | GST slabs, payment modes, deposit %, cancellation ladder, booking limits | Developer |
+| **Booking engine database** (`backend/booking-engine/seed.sql` for a fresh install; Admin → **Special prices** for dates) | **What guests are actually charged**: room rate plans, special (date) prices, add-ons, packages | Staff (special prices); developer (normal prices, extras) |
+| `backend/booking-engine/config.php` | GST slabs, payment modes, deposit %, cancellation ladder, booking limits | Developer |
 | `RannUtsavPackage.tsx`, `Packages.tsx` | Prices **displayed** on the marketing site (hard-coded text) | Developer |
 
 > Nothing links the displayed prices to the charged ones. When rates change, update the page text as well as the engine.

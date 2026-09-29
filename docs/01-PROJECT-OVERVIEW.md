@@ -1,6 +1,6 @@
 # Project Overview: Kutch Safari Resort Website
 
-_Last updated: 26 Sep 2026. The PHP booking engine in `booking-engine/` now handles booking, desk changes priced as a difference, 50%/full payment tracking and the admin panel. Docs 21–30 explain the logic and the lessons learned._
+_Last updated: 26 Sep 2026. The PHP booking engine in `backend/booking-engine/` now handles booking, desk changes priced as a difference, 50%/full payment tracking and the admin panel. Docs 21–30 explain the logic and the lessons learned._
 
 ## 1. Business Context
 Kutch Safari Resort is a family-run resort near Bhuj, Gujarat, operating for over 35 years. Founder: Mike Vaghela.
@@ -27,12 +27,12 @@ Domestic and international travellers heading to the White Rann, Rann Utsav gues
 
 | Part | Stack | Purpose |
 |---|---|---|
-| Marketing site (`client/`) | React 19, Vite 7, Tailwind 4, TypeScript, wouter | All public pages |
-| Server (`server/index.ts`) | Express 4 | Serves the built site and `POST /api/contact` |
+| Marketing site (`frontend/`) | React 19, Vite 7, Tailwind 4, TypeScript, wouter | All public pages |
+| Server (`backend/server/index.ts`) | Express 4 | Serves the built site and `POST /api/contact` |
 | Serverless contact (`api/contact.ts`) | Vercel function | Logs enquiries only (does not store them) |
-| **Booking engine (`booking-engine/`)** | **PHP 8 + MySQL (SQLite locally)** | **Search → room → extras → pay; admin panel; Razorpay + UPI QR; Stayflexi bridge** |
+| **Booking engine (`backend/booking-engine/`)** | **PHP 8 + MySQL (SQLite locally)** | **Search → room → extras → pay; admin panel; Razorpay + UPI QR; Stayflexi bridge** |
 
-The booking engine is a **separate application**. The React site holds no booking code. Every "Book Now" button links to the engine at `/book/` (see `client/src/lib/booking.ts`). Details are in `02-ARCHITECTURE.md` and `booking-engine/README.md`.
+The booking engine is a **separate application**. The React site holds no booking code. Every "Book Now" button links to the engine at `/book/` (see `frontend/src/lib/booking.ts`). Details are in `02-ARCHITECTURE.md` and `backend/booking-engine/README.md`.
 
 ### 2.1 Front-end libraries
 * Icons: lucide-react

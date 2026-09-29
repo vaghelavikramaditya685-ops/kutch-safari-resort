@@ -24,7 +24,7 @@ pnpm dev          # http://localhost:3000
 ## Layout
 
 ```
-client/
+frontend/
   index.html
   public/assets/      static images and video served at /assets/...
   src/
@@ -32,9 +32,12 @@ client/
     components/ui/    shadcn components in use (button, card, sonner, tooltip)
     contexts/         ThemeContext
     lib/booking.ts    links into the booking engine
-api/contact.ts        Vercel serverless contact handler
-server/index.ts       Express static server + POST /api/contact
-booking-engine/       PHP + MySQL booking engine, served at /book/
+backend/
+  booking-engine/     PHP + MySQL booking engine, served at /book/
+  server/index.ts     Express static server + POST /api/contact
+api/contact.ts        Vercel serverless contact handler (stays at the root: Vercel needs /api there)
+docs/                 30 project docs; docs/notes/ holds ideas.md and todo.md
+scripts/legacy/       old one-off edit scripts, kept for history only (unused)
 ```
 
 Routes: `/`, `/stay`, `/experiences`, `/our-journey`, `/dining`, `/gallery`,
@@ -43,10 +46,10 @@ Routes: `/`, `/stay`, `/experiences`, `/our-journey`, `/dining`, `/gallery`,
 
 ## Booking engine
 
-`booking-engine/` is a standalone **PHP 8 + MySQL** app (its own README has the
+`backend/booking-engine/` is a standalone **PHP 8 + MySQL** app (its own README has the
 full cPanel setup, Razorpay, UPI QR and Stayflexi notes). The React site does not
 contain booking code — every Book Now button links to it via
-`bookingUrl()` in `client/src/lib/booking.ts`:
+`bookingUrl()` in `frontend/src/lib/booking.ts`:
 
 ```
 /book/?property=kutch-safari-resort&check_in=YYYY-MM-DD&check_out=…&adults=2&rooms=1
@@ -56,27 +59,27 @@ contain booking code — every Book Now button links to it via
 `/book` routes forward there.
 
 **Run it locally** (needs PHP 8 with `pdo_sqlite` enabled; no MySQL needed —
-`booking-engine/config.local.php` switches it to SQLite):
+`backend/booking-engine/config.local.php` switches it to SQLite):
 
 ```bash
-pnpm setup:book   # once: creates booking-engine/data/booking.sqlite
+pnpm setup:book   # once: creates backend/booking-engine/data/booking.sqlite
 pnpm dev:book     # PHP on :8080
 pnpm dev          # site on :3000, proxies /book/ to :8080
 ```
 
 Admin panel: `/book/admin/`. Create a login with
-`php booking-engine/bin/setup.php --admin "email" "Name" "password"`.
+`php backend/booking-engine/bin/setup.php --admin "email" "Name" "password"`.
 
-**Production.** Vercel cannot run PHP. Upload `booking-engine/` to a PHP host
+**Production.** Vercel cannot run PHP. Upload `backend/booking-engine/` to a PHP host
 (cPanel `public_html/book`) and either serve the site from the same domain, or
 build the site with `VITE_BOOKING_URL=https://that-host/book/`. Real keys go in
 `config.local.php` on the server, never in git. Add the site's domain to
-`allowed_origins` in `booking-engine/config.php`.
+`allowed_origins` in `backend/booking-engine/config.php`.
 
 ## Notes
 
-- Images are referenced by absolute path (`/assets/...`) from `client/public`,
+- Images are referenced by absolute path (`/assets/...`) from `frontend/public`,
   not imported, so unused files are not tree-shaken — check references before
   adding or removing media.
-- `client/public/assets` is ~215 MB of unoptimized originals; compressing and
+- `frontend/public/assets` is ~215 MB of unoptimized originals; compressing and
   converting to WebP/AVIF is the single biggest available win for page weight.

@@ -1,7 +1,7 @@
 # Forms and Interactions
 
 ## 1. Booking — PHP engine
-Direct booking is handled by `booking-engine/`, not the React site.
+Direct booking is handled by `backend/booking-engine/`, not the React site.
 
 **Guest flow** (`/book/?property=…`, `assets/engine.js` → `api/*.php`; full detail in `25-GUEST-BOOKING-FLOW-INTERNALS.md`):
 1. Dates (pre-filled), number of rooms, **Single / Double / Triple for each room** → `api/availability.php`. Sold-out dates suggest the next free ones.

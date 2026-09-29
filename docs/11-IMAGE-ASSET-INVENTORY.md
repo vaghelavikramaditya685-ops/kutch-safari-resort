@@ -5,12 +5,12 @@ _Measured 25 Sep 2026._
 ## Summary
 | Location | Size | Notes |
 |---|---|---|
-| `client/public/assets/` | **~269 MB** | Unoptimised originals, served as-is at `/assets/...` |
-| `booking-engine/assets/img/` | 3.1 MB | Already WebP, used only by the booking engine |
+| `frontend/public/assets/` | **~269 MB** | Unoptimised originals, served as-is at `/assets/...` |
+| `backend/booking-engine/assets/img/` | 3.1 MB | Already WebP, used only by the booking engine |
 
-Images are referenced by absolute path strings, not imports, so Vite never removes unused files. Before deleting anything, grep for the path in `client/src` and `client/index.html`.
+Images are referenced by absolute path strings, not imports, so Vite never removes unused files. Before deleting anything, grep for the path in `frontend/src` and `frontend/index.html`.
 
-## Largest files (`client/public`)
+## Largest files (`frontend/public`)
 | Size | File | Used by |
 |---|---|---|
 | 71.1 MB | `images/new/guest-feedback-video-guest-feedback-mr-parekh.mov` | **Unused** |
@@ -32,7 +32,7 @@ Images are referenced by absolute path strings, not imports, so Vite never remov
 ## Unused files (not referenced anywhere)
 `campfire-night.png` (4.9 MB), `hero-kutch-safari.png` (4.5 MB), `lake-sunrise-reference.png` (5.6 MB), `sketch-camel.png` (4.1 MB), `sketch-wild-ass.png` (5.2 MB), `guest-feedback…mov` (71.1 MB), `new/guests-*.jpg` (4 files, ~13 MB, duplicates of gallery photos), `new/kutch-ac-cottage-kutchi-cottage-interior.jpg`. Together that is about **109 MB** that can be deleted or moved out of `public/`.
 
-## Booking engine photos (`booking-engine/assets/img`)
+## Booking engine photos (`backend/booking-engine/assets/img`)
 * `ksr/`: 22 WebP files (cottage exterior and interior, bathroom, lake dusk, gazebo, restaurant, cuisine, gala dinner, road to heaven, Mandvi, etc.)
 * `wrc/`: 20 WebP files (tents inside and out, washrooms, camp, full moon Rann, etc.)
 

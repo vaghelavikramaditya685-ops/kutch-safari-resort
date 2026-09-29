@@ -22,7 +22,7 @@ wouter `<Switch>`: the first match wins.
 | `/404`, anything else | `NotFound.tsx` | Stock template styling |
 
 ### 1.1 Booking engine URLs
-The engine is not a React route. It is linked with `bookingUrl()` from `client/src/lib/booking.ts`:
+The engine is not a React route. It is linked with `bookingUrl()` from `frontend/src/lib/booking.ts`:
 
 ```ts
 bookingUrl()                                          // /book/?property=kutch-safari-resort

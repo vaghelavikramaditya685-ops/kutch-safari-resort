@@ -3,9 +3,9 @@
 _Written 26 Sep 2026. How to check the engine safely, what to switch before real guests, and where everything is._
 
 ## 1. Testing without touching real data
-**Rule:** nothing is tested on `booking-engine/data/booking.sqlite`. It holds only real data (doc 28 §3).
+**Rule:** nothing is tested on `backend/booking-engine/data/booking.sqlite`. It holds only real data (doc 28 §3).
 
-* **`php bin/test-changes.php`** (from `booking-engine/`) runs 17 checks. It copies the database to the system temp folder, books test stays **in the copy**, and deletes the copy at the end. It checks:
+* **`php bin/test-changes.php`** (from `backend/booking-engine/`) runs 17 checks. It copies the database to the system temp folder, books test stays **in the copy**, and deletes the copy at the end. It checks:
   * adding or removing extras, rooms and nights;
   * moving dates;
   * Double ↔ Triple / Single;
@@ -58,21 +58,21 @@ pnpm dev          # website on :3000, /book/ proxied to the engine
 
 ## 4. Handing the project over
 * No pen-drive copy was made on 26 Sep 2026 (the owner said not to). The project lives in `C:\Users\ADMIN\Downloads\kutch-safari-resort`.
-* **When copying it anywhere, leave out the Razorpay keys.** Blank the key values in `booking-engine/config.local.php` in the copy (Razorpay then stays off until keys are added), or leave that file out and let the receiver create their own.
+* **When copying it anywhere, leave out the Razorpay keys.** Blank the key values in `backend/booking-engine/config.local.php` in the copy (Razorpay then stays off until keys are added), or leave that file out and let the receiver create their own.
 * `.git` holds history up to the one push on 25 Sep 2026; later work is uncommitted.
 
 ## 5. Where things are
 | What | Where |
 |---|---|
-| All settings | `booking-engine/config.php` (+ `config.local.php` for secrets and local overrides) |
+| All settings | `backend/booking-engine/config.php` (+ `config.local.php` for secrets and local overrides) |
 | Prices, rooms, extras | Database (`seed.sql` for a fresh install); Admin → Special prices for dates |
 | Price logic | `lib/inventory.php` (`price_rooms`), `lib/booking.php` (`quote_cart`) — doc 21 |
 | Changing bookings, money | `lib/booking.php` (`quote_modification`, `modification_delta`, `booking_money`) — doc 22 |
 | Availability | `lib/inventory.php`, `admin/calendar.php` — doc 23 |
-| Admin screens | `booking-engine/admin/` — doc 24 |
+| Admin screens | `backend/booking-engine/admin/` — doc 24 |
 | Guest flow | `assets/engine.js`, `index.php`, `manage.php` — doc 25 |
 | Payments | `lib/payment.php` — doc 26 |
 | Stayflexi | `lib/channel.php`, `bin/` — doc 27 |
 | Database rules | `schema.sql` — doc 28 |
 | What went wrong before | doc 29 |
-| Website ↔ engine links | `client/src/lib/booking.ts`, `pages/BookingRedirect.tsx` — docs 03, 09 |
+| Website ↔ engine links | `frontend/src/lib/booking.ts`, `pages/BookingRedirect.tsx` — docs 03, 09 |

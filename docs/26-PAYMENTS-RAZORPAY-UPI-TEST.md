@@ -13,7 +13,7 @@ _Written 26 Sep 2026. Code: `lib/payment.php`, `api/payment-*.php`, `api/webhook
 4. `api/webhook-razorpay.php` (`payment.captured`, `payment.failed`, `refund.processed`) is the backup if the browser closes. `settle_payment()` is **idempotent**: the browser and the webhook often both arrive, and the second is ignored.
 5. `settle_payment()`: marks the payment paid, recounts `amount_paid` = payments − refunds (`refresh_amount_paid()`), sets the booking `confirmed`, pushes it to Stayflexi (doc 27), and sends the confirmation email.
 
-**Keys** live only in `booking-engine/config.local.php` (git-ignored). This PC uses the **test** keys. Test and live key pairs were checked against Razorpay on 26 Sep 2026. The live Key Secret was shared over WhatsApp and chat, so **regenerate it before launch**. Any copy handed to someone else must leave the keys out (doc 30 §4).
+**Keys** live only in `backend/booking-engine/config.local.php` (git-ignored). This PC uses the **test** keys. Test and live key pairs were checked against Razorpay on 26 Sep 2026. The live Key Secret was shared over WhatsApp and chat, so **regenerate it before launch**. Any copy handed to someone else must leave the keys out (doc 30 §4).
 
 **Windows HTTPS fix:** PHP on Windows had no certificate bundle, so every call to Razorpay failed with "HTTP 0". `curl_trust_system_certs()` (`lib/db.php`) tells cURL to use the Windows certificate store (`CURLSSLOPT_NATIVE_CA`). It is used by Razorpay and Stayflexi calls. Linux hosts don't need it.
 

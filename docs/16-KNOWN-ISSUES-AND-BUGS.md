@@ -4,11 +4,11 @@ _Re-checked against the code on 26 Sep 2026. Resolved items are at the bottom. B
 
 ## Critical
 ### 0. Sample mode is ON: turn it off before going live
-`booking-engine/config.php` → `rules.guest_details_optional => true` makes the "Who is coming?" details optional for testing. Blank fields are saved blank; nothing is filled in. **Set it to `false` before launch**, or real guests can book without a name or phone number.
+`backend/booking-engine/config.php` → `rules.guest_details_optional => true` makes the "Who is coming?" details optional for testing. Blank fields are saved blank; nothing is filled in. **Set it to `false` before launch**, or real guests can book without a name or phone number.
 
 **Test payments are ON:** `config.php` → `test_payments.enabled => true` shows an "I've paid (test)" button that confirms a booking with **no money taken** (payments recorded as provider `test`). **Set it to `false` before launch**, or anyone can book for free.
 
-**Razorpay:** test and live keys are in `booking-engine/config.local.php` (git-ignored), both checked against Razorpay on 26 Sep 2026. This PC uses the **test** keys (no real money). For launch, the live server's `config.local.php` uses `$razorpay_live` plus a webhook secret. The live secret was shared over WhatsApp and chat, so **regenerate it in the Razorpay dashboard before launch**. PHP on Windows uses the Windows certificate store for HTTPS (`curl_trust_system_certs()` in `lib/db.php`).
+**Razorpay:** test and live keys are in `backend/booking-engine/config.local.php` (git-ignored), both checked against Razorpay on 26 Sep 2026. This PC uses the **test** keys (no real money). For launch, the live server's `config.local.php` uses `$razorpay_live` plus a webhook secret. The live secret was shared over WhatsApp and chat, so **regenerate it in the Razorpay dashboard before launch**. PHP on Windows uses the Windows certificate store for HTTPS (`curl_trust_system_certs()` in `lib/db.php`).
 
 **Also before launch:** the local admin login is username `manvir` with the test password `1234`. Set a long password on the live server with `php bin/setup.php --admin manvir "Manvir" "<long password>"`. The admin panel controls bookings, refunds and prices.
 
@@ -68,7 +68,7 @@ The "Change rooms on sale" grid was removed from Availability at the owner's req
 17. Sitemap lists only 4 of about 16 public URLs.
 18. The viewport has `maximum-scale=1`, which blocks pinch zoom.
 19. The booking engine looks different (Marcellus/Montserrat, its own palette) from the site.
-20. Root clutter: about 35 one-off `*.py` edit scripts and `old_rooms.tsx`.
+20. ~~Root clutter~~ Resolved 29 Sep 2026: the one-off `*.py` edit scripts and `old_rooms.tsx` moved to `scripts/legacy/` (unused; delete once confirmed).
 21. Much of the current work is uncommitted (git has 4 commits; nothing pushed since 25 Sep 2026 by the owner's choice).
 22. `audit_log` also stores one row per rate-limited request (`rl_%`), so it keeps growing. Old `rl_%` rows can be deleted safely.
 23. No email to the owner on a new booking (bots declined for now; email offered, not decided).

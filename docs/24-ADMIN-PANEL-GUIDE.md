@@ -1,6 +1,6 @@
 # Admin Panel Guide
 
-_Written 26 Sep 2026. Every screen in `booking-engine/admin/`, what it does, and the rules behind it._
+_Written 26 Sep 2026. Every screen in `backend/booking-engine/admin/`, what it does, and the rules behind it._
 
 ## 1. Getting in
 * Address: `/book/admin/`. Typing **`/book/admin`** (no slash) or the website's **`/admin`** also works. The address fills itself in to `/book/admin/login.php`.

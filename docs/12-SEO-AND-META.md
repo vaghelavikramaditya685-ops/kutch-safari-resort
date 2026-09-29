@@ -1,6 +1,6 @@
 # SEO and Meta Configuration
 
-## `client/index.html`
+## `frontend/index.html`
 ```html
 <html lang="en">
 <link rel="icon" type="image/jpeg" href="/assets/images/logo-mark.png" />   <!-- 4.5 MB PNG, wrong MIME type -->
@@ -19,7 +19,7 @@
 ### Fonts
 Google Fonts preconnect, then Cormorant Garamond (500/600/700 + italics) and Jost (400/500/600 + italic).
 
-## `client/public/robots.txt`
+## `frontend/public/robots.txt`
 ```
 User-agent: *
 Allow: /
@@ -27,7 +27,7 @@ Sitemap: https://kutchsafaribhuj.in/sitemap.xml
 ```
 Add `Disallow: /book/` so the booking engine isn't crawled. The engine also sends `<meta name="robots" content="noindex">`. The admin panel, check-status page and PDFs are for guests and staff only; none of them should be in the sitemap. The website's `/admin` route only redirects and has no content.
 
-## `client/public/sitemap.xml`
+## `frontend/public/sitemap.xml`
 Lists only `/`, `/stay`, `/our-journey`, `/dining`. **Missing:** `/experiences`, `/gallery`, `/plan-your-visit`, `/packages`, `/white-rann-camp`, and the six `/destination/*` pages.
 
 ## Gaps

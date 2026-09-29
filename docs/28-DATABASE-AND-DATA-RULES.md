@@ -1,6 +1,6 @@
 # Database and Data Rules
 
-_Written 26 Sep 2026. Schema: `booking-engine/schema.sql` (18 tables). Starting data: `seed.sql`. MySQL in production, SQLite on this PC (`booking-engine/data/booking.sqlite`, chosen in `config.local.php`)._
+_Written 26 Sep 2026. Schema: `backend/booking-engine/schema.sql` (18 tables). Starting data: `seed.sql`. MySQL in production, SQLite on this PC (`backend/booking-engine/data/booking.sqlite`, chosen in `config.local.php`)._
 
 ## 1. Tables
 | Table | Holds |

@@ -3,7 +3,7 @@
 _Written 26 Sep 2026. This is how a price is actually worked out in code, and why it is done that way. For the tariff itself see `08-PACKAGES-AND-PRICING.md`; for changing an existing booking see `22-BOOKING-CHANGES-AND-MONEY.md`._
 
 ## 1. One pricing function for everything
-Every room price the guest ever sees comes from **`price_rooms()`** in `booking-engine/lib/inventory.php`. The room list (`search_availability()`), the checkout summary (`quote_cart()` in `lib/booking.php`), the booking that is saved (`create_booking()`), and a desk change (`quote_modification()`) all go through it.
+Every room price the guest ever sees comes from **`price_rooms()`** in `backend/booking-engine/lib/inventory.php`. The room list (`search_availability()`), the checkout summary (`quote_cart()` in `lib/booking.php`), the booking that is saved (`create_booking()`), and a desk change (`quote_modification()`) all go through it.
 
 > Why: earlier the room list and checkout priced rooms separately and disagreed (one divided adults by the number of lines, so 4 adults in 2 rooms were charged as 4 per room). One function means one answer.
 

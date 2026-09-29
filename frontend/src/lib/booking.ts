@@ -1,5 +1,5 @@
 /**
- * Links into the PHP booking engine (booking-engine/).
+ * Links into the PHP booking engine (backend/booking-engine/).
  *
  * The engine is a separate app. In dev, Vite proxies /book/ to `pnpm dev:book`.
  * In production it is served from /book/ on a PHP host; if it lives elsewhere

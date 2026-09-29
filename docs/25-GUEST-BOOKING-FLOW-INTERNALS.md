@@ -1,9 +1,9 @@
 # Guest Booking Flow — Internals
 
-_Written 26 Sep 2026. What happens on the guest's side, step by step, and the less obvious behaviour. Code: `booking-engine/index.php` (page shell), `assets/engine.js` (all behaviour, ~1,000 lines), `assets/engine.css`, `api/*.php`._
+_Written 26 Sep 2026. What happens on the guest's side, step by step, and the less obvious behaviour. Code: `backend/booking-engine/index.php` (page shell), `assets/engine.js` (all behaviour, ~1,000 lines), `assets/engine.css`, `api/*.php`._
 
 ## 1. Getting there
-Every Book Now on the React site is a plain `<a href={bookingUrl()}>` to `/book/?property=kutch-safari-resort` (`client/src/lib/booking.ts`). It is never a wouter `<Link>`, because the engine is a different app and needs a full page load. `/booking`, `/book`, `/book/*`, `/admin` and `/admin/*` on the React site go through `BookingRedirect.tsx`.
+Every Book Now on the React site is a plain `<a href={bookingUrl()}>` to `/book/?property=kutch-safari-resort` (`frontend/src/lib/booking.ts`). It is never a wouter `<Link>`, because the engine is a different app and needs a full page load. `/booking`, `/book`, `/book/*`, `/admin` and `/admin/*` on the React site go through `BookingRedirect.tsx`.
 
 ## 2. Steps
 | Step | What the guest does | Code |

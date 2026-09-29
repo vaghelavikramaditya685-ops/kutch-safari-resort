@@ -12,7 +12,7 @@ All of these use the shared Navbar and Footer, the beige background, a centred h
 ## `Dining.tsx` — `/dining`
 * "Dining at The Banni". "A Taste of Kutch": multi-cuisine (Kutchi, Gujarati, Punjabi, Chinese, Continental), recommends the Kutchi thali and the gala dinner (a day's notice).
 * Images: `restaurant-kutch-safari-ab-vision-11.jpg` (**16.7 MB**) + **"Food Image Placeholder" box**.
-* The booking engine has food photos (`booking-engine/assets/img/ksr/cuisine-plate.webp`, `buffet-service.webp`, `gala-dinner.webp`, `restaurant-table.webp`) that could fill this.
+* The booking engine has food photos (`backend/booking-engine/assets/img/ksr/cuisine-plate.webp`, `buffet-service.webp`, `gala-dinner.webp`, `restaurant-table.webp`) that could fill this.
 
 ## `Experiences.tsx` — `/experiences`
 Six cards linking to `/destination/:slug`. See `07-DESTINATION-SYSTEM.md`.

@@ -3,7 +3,7 @@
 ## 1. Visual Identity — "Sundown Terracotta"
 Earthy and warm, drawing on Kutch mud architecture (bhungas) and craft. The owner asked for the beige from the logo to run across the whole site.
 
-### 1.1 Tokens (`client/src/index.css`, `:root`)
+### 1.1 Tokens (`frontend/src/index.css`, `:root`)
 
 | Token | Value | Usage |
 |---|---|---|
@@ -39,7 +39,7 @@ Defined in `index.css`: `.section-tag`, `.section-title`, `.section-tagline`, `.
 ---
 
 ## 4. Booking Engine Styling (separate)
-The PHP engine has its own design in `booking-engine/assets/engine.css`, using **Marcellus + Montserrat** fonts. Each property's accent colour comes from the database (`properties.accent`: KSR `#B85C2E`, WRC `#C2703A`) and is written into `--clay`. To match the main site, either change those tokens and fonts in `engine.css` or update `properties.accent` in the database. The React site's CSS does not reach the engine.
+The PHP engine has its own design in `backend/booking-engine/assets/engine.css`, using **Marcellus + Montserrat** fonts. Each property's accent colour comes from the database (`properties.accent`: KSR `#B85C2E`, WRC `#C2703A`) and is written into `--clay`. To match the main site, either change those tokens and fonts in `engine.css` or update `properties.accent` in the database. The React site's CSS does not reach the engine.
 
 **Finish (owner's request):** same colours everywhere, but a matte, smooth finish. Soft shadows, gentle transitions, and buttons that look like buttons (filled or outlined, uppercase, with a pressed state) instead of plain text links. This applies on both the site (`index.css`) and the engine (`engine.css`, `admin.css`).
 

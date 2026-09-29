@@ -1,7 +1,7 @@
 # Styling Deep Dive
 
 ## 1. Tailwind CSS v4
-Loaded with `@tailwindcss/vite`. There is no `tailwind.config.js`. `client/src/index.css` starts with:
+Loaded with `@tailwindcss/vite`. There is no `tailwind.config.js`. `frontend/src/index.css` starts with:
 
 ```css
 @import "tailwindcss";
@@ -43,7 +43,7 @@ The heading rule means a parent's text colour never reaches headings. Put the co
 The Navbar logo (`logo-main.jpg`, white background) uses the Tailwind class `mix-blend-darken`. On the beige background the white drops out. This only works on backgrounds darker than white.
 
 ## 5. Booking engine CSS
-`booking-engine/assets/engine.css` (about 450 lines) is completely separate: plain CSS with its own tokens at the top, Marcellus + Montserrat fonts, and `--clay` set per property from the database. Edit it to bring the engine in line with this design system. `booking-engine/admin/admin.css` adds the admin screens on top of it.
+`backend/booking-engine/assets/engine.css` (about 450 lines) is completely separate: plain CSS with its own tokens at the top, Marcellus + Montserrat fonts, and `--clay` set per property from the database. Edit it to bring the engine in line with this design system. `backend/booking-engine/admin/admin.css` adds the admin screens on top of it.
 
 Engine CSS details worth knowing:
 * **Scroll wheel** (`.wheel`, `.wheel__col`, `.wheel__item`, `.wheel__band`): rows are 36 px, columns 180 px tall (5 rows) with 72 px padding top and bottom so the first and last values can reach the middle. `scroll-snap-type: y mandatory` does the snapping; the JS reads `scrollTop / 36`. `overscroll-behavior: contain` stops the page scrolling with it.
