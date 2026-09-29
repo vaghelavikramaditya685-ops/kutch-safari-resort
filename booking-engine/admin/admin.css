@@ -283,3 +283,9 @@ body.admin { background: var(--sand-2); font-size: 14px; }
 .tc-drawer__state--out { background: var(--warn); color: #fff; }
 .tc-drawer__state--gone { color: var(--muted); }
 .tc-drawer__mode { font-size: .8rem; color: var(--muted); margin: 6px 0 0; }
+
+/* Availability side panel: rooms, transfers and extras as clean bullet lists. */
+.tc-drawer__list { margin: 4px 0 12px; padding-left: 18px; list-style: disc; }
+.tc-drawer__list li { margin: 3px 0; font-size: .88rem; }
+.tc-drawer__list li.none { list-style: none; margin-left: -18px; color: var(--muted); }
+.tc-drawer__transfers li:not(.none) { font-weight: 600; color: var(--ink); }

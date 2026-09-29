@@ -52,7 +52,7 @@ Full steps are in `booking-engine/README.md`. In short:
 7. Make sure the site's domain is in `allowed_origins` (`config.php`). The kutchsafaribhuj.in domains and the Vercel preview are already listed.
 8. Health check: `php bin/check-system.php`, `bin/check-razorpay.php`, `bin/check-stayflexi.php`.
 
-**Seed data to adjust for this domain:** `properties.website_url` is `https://www.kutchsafariresort.com` (KSR) and `https://www.whiterann.com` (WRC). This is the engine's "Back to website" link. Change it to `https://kutchsafaribhuj.in` if that's the live site. Mail settings in `config.php` also assume `@kutchsafariresort.com`.
+**Seed data to adjust for this domain:** `properties.website_url` is `http://localhost:3000` (KSR, set for local testing) and `https://www.whiterann.com` (WRC). **`config.php` defaults to SQLite**; the live `config.local.php` must set `'driver' => 'mysql'`. This is the engine's "Back to website" link. Change it to `https://kutchsafaribhuj.in` if that's the live site. Mail settings in `config.php` also assume `@kutchsafariresort.com`.
 
 ---
 

@@ -11,8 +11,9 @@
  *  cottages — so each room type's bookings are laid out here into as many rows
  *  as it has cottages, never overlapping. More bookings than cottages shows as
  *  an extra red "overbooked" row. Hover a bar for the details, click to open it;
- *  hover a day for everything that happens on it. Click a guest (either view)
- *  for a side panel: check-in/out, rooms, which car, extras, money.
+ *  hover a day for everything that happens on it. Click a booking for a side
+ *  panel: check-in/out and ETA, rooms, transfers, extras, money.
+ *  One view only: by cottage (the "by guest" view was removed on request).
  * ======================================================================== */
 require_once __DIR__ . '/_auth.php';
 require_once __DIR__ . '/../lib/inventory.php';
@@ -23,7 +24,6 @@ check_csrf();
 $flash = '';
 
 $property_id = (int) ($_GET['property'] ?? 1);
-$view  = ($_GET['view'] ?? 'guest') === 'cottage' ? 'cottage' : 'guest';   // one row per guest (default) or per cottage
 $days  = in_array((int) ($_GET['days'] ?? 14), [7, 14, 30], true) ? (int) ($_GET['days'] ?? 14) : 14;
 $start = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['start'] ?? '')) ? $_GET['start'] : date('Y-m-d', strtotime('-1 day'));
 $end   = date('Y-m-d', strtotime("$start +$days days"));    // first day NOT shown
@@ -98,7 +98,7 @@ foreach ($room_types as $rt) {
     ];
 }
 
-/* ---- One row per guest (booking) for the default view ---------------------- */
+/* ---- Everything about each booking, for the side panel ------------------ */
 $guests = [];
 foreach ($units as $type_units) {
     foreach ($type_units as $u) {
@@ -106,8 +106,7 @@ foreach ($units as $type_units) {
         if (!$g) {
             $g = ['id' => $u['id'], 'ref' => $u['ref'], 'guest' => $u['guest'], 'phone' => $u['phone'], 'status' => $u['status'],
                   'start' => $u['start'], 'end' => $u['end'], 'ci' => $u['ci'], 'co' => $u['co'], 'nights' => $u['nights'],
-                  'total' => $u['total'], 'paid' => $u['paid'], 'rooms' => [], 'guests' => 0, 'addons' => [], 'pickup' => false,
-                  'cars' => []] + $u['money'];
+                  'total' => $u['total'], 'paid' => $u['paid'], 'rooms' => [], 'guests' => 0, 'addons' => [], 'transfers' => []] + $u['money'];
         }
         $g['rooms'][] = ['cottage' => $u['cottage'], 'room' => $u['room'], 'guests' => $u['guests']];
         $g['guests'] += $u['guests'];
@@ -122,20 +121,17 @@ if ($guests) {
     }
     foreach (q("SELECT ba.booking_id, ba.addon_name, ba.quantity, a.code FROM booking_addons ba LEFT JOIN addons a ON a.id = ba.addon_id
                 WHERE ba.booking_id IN ($ph) ORDER BY ba.id", $ids) as $a) {
-        $guests[(int) $a['booking_id']]['addons'][] = $a['addon_name'] . ' × ' . (int) $a['quantity'];
-        if (str_starts_with((string) $a['code'], 'transfer') || str_contains(strtolower((string) $a['addon_name']), 'transfer')) {
-            $guests[(int) $a['booking_id']]['pickup'] = true;
-            // "Airport transfer, one way — Innova" → Innova
-            $car = trim((string) (explode(' — ', preg_replace('/ — Room .*/', '', (string) $a['addon_name']), 2)[1] ?? $a['addon_name']));
-            $guests[(int) $a['booking_id']]['cars'][] = ['car' => $car, 'qty' => (int) $a['quantity']];
-        }
+        // Car transfers are listed once, under Transfers, with their full name
+        // ("Airport transfer, one way — Sedan × 2"); everything else under Extras.
+        $line = $a['addon_name'] . ' × ' . (int) $a['quantity'];
+        $is_transfer = str_starts_with((string) $a['code'], 'transfer') || str_contains(strtolower((string) $a['addon_name']), 'transfer');
+        $guests[(int) $a['booking_id']][$is_transfer ? 'transfers' : 'addons'][] = $line;
     }
 }
 $guests = array_values($guests);
 usort($guests, fn($a, $b) => [$a['start'], strtolower($a['guest'])] <=> [$b['start'], strtolower($b['guest'])]);
 
 $data = [
-    'view'    => $view,
     'guestRows' => $guests,
     'dates'   => $dates,
     'start'   => strtotime("$start 00:00") * 1000,
@@ -146,17 +142,13 @@ $data = [
     'groups'  => $groups,
 ];
 
-$nav = fn($s, $dd = null, $vv = null) => '?' . http_build_query(['property' => $property_id, 'start' => $s, 'days' => $dd ?? $days, 'view' => $vv ?? $view]);
+$nav = fn($s, $dd = null) => '?' . http_build_query(['property' => $property_id, 'start' => $s, 'days' => $dd ?? $days]);
 admin_head('Availability', $user);
 ?>
 <?php if ($flash): ?><div class="notice notice--ok"><?= h($flash) ?></div><?php endif; ?>
 
 <div class="tc-page">
 <div class="tc-bar">
-  <div class="tc-bar__views">
-    <a class="btn btn--sm <?= $view === 'guest' ? '' : 'btn--plain' ?>" href="<?= h($nav($start, null, 'guest')) ?>">By guest</a>
-    <a class="btn btn--sm <?= $view === 'cottage' ? '' : 'btn--plain' ?>" href="<?= h($nav($start, null, 'cottage')) ?>">By cottage</a>
-  </div>
   <form method="get" class="tc-bar__left">
     <select name="property" onchange="this.form.submit()" aria-label="Property">
       <?php foreach (q("SELECT id, name FROM properties WHERE active = 1 ORDER BY id") as $p): ?>
@@ -164,7 +156,6 @@ admin_head('Availability', $user);
       <?php endforeach; ?>
     </select>
     <input type="hidden" name="start" value="<?= h($start) ?>"><input type="hidden" name="days" value="<?= $days ?>">
-    <input type="hidden" name="view" value="<?= $view ?>">
   </form>
   <div class="tc-bar__nav">
     <a class="btn btn--plain btn--sm" href="<?= h($nav(date('Y-m-d', strtotime("$start -$days days")))) ?>">&larr;</a>
@@ -182,14 +173,11 @@ admin_head('Availability', $user);
 <div class="tc-legend">
   <span><i class="tc-sw tc-sw--confirmed"></i>Booked</span>
   <span><i class="tc-sw tc-sw--pending"></i>Awaiting payment</span>
-  <?php if ($view === 'cottage'): ?>
   <span><i class="tc-sw tc-sw--closed"></i>Not on sale</span>
   <span><i class="tc-sw tc-sw--over"></i>Overbooked</span>
-  <?php endif; ?>
   <span><i class="tc-sw tc-sw--now"></i>Now</span>
   <span class="tc-legend__note">Bars run from check-in (<?= h($ci_time) ?>) to check-out (<?= h($co_time) ?>).
-    <?= $view === 'guest' ? 'Click a guest to see everything and change the booking, add a pickup or take a payment.'
-                          : 'Hover for details · click to open.' ?> Hover a day for all of its arrivals and departures.</span>
+    Click a booking for everything about it and to change it, add a transfer or take a payment. Hover a day for all of its arrivals and departures.</span>
 </div>
 
 <div class="tc" id="tc"><p class="tc__empty">Loading…</p></div>
@@ -216,7 +204,7 @@ admin_head('Availability', $user);
     const span = D.dates.length * D.dayMs;
 
     // Header: one column per day, with arrivals and departures.
-    let head = `<div class="tc__head"><div class="tc__corner">${D.view === 'guest' ? 'Guest' : 'Cottage'}</div><div class="tc__days" style="width:${width}px">`;
+    let head = `<div class="tc__head"><div class="tc__corner">Cottage</div><div class="tc__days" style="width:${width}px">`;
     D.dates.forEach((d, i) => {
       const ins = all.filter(u => u.ci === d).length, outs = all.filter(u => u.co === d).length;
       const wd = new Date(d + 'T00:00:00').getDay();
@@ -229,25 +217,6 @@ admin_head('Availability', $user);
     head += '</div></div>';
 
     let body = '';
-    if (D.view === 'guest') {
-      // One row per guest, in arrival order.
-      if (!D.guestRows.length) body = '';
-      D.guestRows.forEach((g, gi) => {
-        const l = Math.max(0, x(g.start)), r = Math.min(width, x(g.end));
-        const cutL = g.start < D.start, cutR = g.end > D.start + span;
-        const due = Math.round((g.total - g.paid) * 100) / 100;
-        const summary = Object.entries(g.rooms.reduce((a, rm) => (a[rm.cottage.replace(/ Cottage$| Swiss Tent$/, '')] = (a[rm.cottage.replace(/ Cottage$| Swiss Tent$/, '')] || 0) + 1, a), {}))
-          .map(([c, n]) => `${n}× ${c}`).join(', ');
-        body += `<div class="tc__row tc__row--guest" data-g="${gi}">
-            <button class="tc__label tc__who" type="button" data-g="${gi}"><b>${esc(g.guest)}</b>
-              <small>${esc(g.ref)} · ${g.rooms.length} room${g.rooms.length > 1 ? 's' : ''} · ${g.guests} guest${g.guests > 1 ? 's' : ''}</small></button>
-            <div class="tc__track" style="width:${width}px">
-              ${r > 0 && l < width ? `<button type="button" class="tc__bar tc__bar--${g.status} ${cutL ? 'cut-l' : ''} ${cutR ? 'cut-r' : ''}" data-g="${gi}"
-                   style="left:${l}px;width:${Math.max(6, r - l)}px">
-                 <span>${esc(summary)}${g.pickup ? ' · 🚗 pickup' : ''}${due > 0.5 ? ` · due ${inr(due)}` : ''}</span></button>` : ''}
-            </div></div>`;
-      });
-    } else
     D.groups.forEach(g => {
       // Room type row: how many are free each night.
       body += `<div class="tc__group"><div class="tc__label"><b>${esc(g.name)}</b><small>${g.total} cottages</small></div>
@@ -277,7 +246,6 @@ admin_head('Availability', $user);
       }
     });
 
-    if (D.view === 'guest' && !D.guestRows.length) body = '<p class="tc__empty">No guests in these dates.</p>';
     const nowX = x(D.now);
     const now = D.now > D.start && D.now < D.start + span ? `<div class="tc__now" style="left:${LABEL + nowX}px"></div>` : '';
     box.innerHTML = `<div class="tc__inner" style="width:${LABEL + width}px">${head}${body}${now}</div>`;
@@ -297,7 +265,7 @@ admin_head('Availability', $user);
       <div class="tc-tip__times"><span>Check in</span> ${fmt(u.ci, D.ciTime)}<br><span>Check out</span> ${fmt(u.co, D.coTime)}
         <br><span>Nights</span> ${u.nights}</div>
       <div>Total ${inr(u.total)} · paid ${inr(u.paid)}${due > 0.5 ? ` · <em>due ${inr(due)}</em>` : due < -0.5 ? ` · refund ${inr(-due)}` : ''}</div>
-      <small>Click to open</small>`;
+      <small>Click for details</small>`;
   }
   function dayCard(d) {
     const outs = all.filter(u => u.co === d), ins = all.filter(u => u.ci === d),
@@ -314,14 +282,6 @@ admin_head('Availability', $user);
     if (left + w > window.innerWidth - 8) left = e.clientX - w - pad;
     if (top + h > window.innerHeight - 8) top = Math.max(8, window.innerHeight - h - 8);
     tip.style.left = left + 'px'; tip.style.top = top + 'px';
-  }
-  function guestCard(g) {
-    const due = Math.round((g.total - g.paid) * 100) / 100;
-    return `<b>${esc(g.guest)}</b> · ${esc(g.ref)}
-      <div class="tc-tip__times"><span>Check in</span> ${fmt(g.ci, D.ciTime)}<br><span>Check out</span> ${fmt(g.co, D.coTime)}</div>
-      <div>${g.rooms.map(r => esc(r.cottage.replace(/ Cottage$| Swiss Tent$/, '') + ' — ' + r.room)).join('<br>')}</div>
-      <div>${g.cars.length ? '🚗 ' + g.cars.map(c => esc(c.car) + (c.qty > 1 ? ' × ' + c.qty : '')).join(', ') : 'No car booked'}</div>
-      <div>Total ${inr(g.total)} · paid ${inr(g.paid)}${due > 0.5 ? ` · <em>due ${inr(due)}</em>` : ''}</div><small>Click for details and changes</small>`;
   }
 
   /* The side panel: everything about a guest, and what can be done. */
@@ -346,17 +306,15 @@ admin_head('Availability', $user);
       <p class="tc-drawer__state tc-drawer__state--${st[0]}">${st[1]}</p>
       <p class="tc-drawer__contact">${g.phone ? esc(g.phone) : 'No phone given'}${g.email ? '<br>' + esc(g.email) : ''}</p>
       <div class="tc-drawer__times">
-        <div><span>Check in</span><b>${fmt(g.ci, D.ciTime)}</b>${g.arrival ? `<small>arriving about ${esc(g.arrival)}</small>` : ''}</div>
+        <div><span>Check in</span><b>${fmt(g.ci, D.ciTime)}</b>${g.arrival ? `<small>ETA: ${esc(g.arrival)}</small>` : ''}</div>
         <div><span>Check out</span><b>${fmt(g.co, D.coTime)}</b><small>${g.nights} night${g.nights > 1 ? 's' : ''}</small></div>
       </div>
       <h3>Rooms · ${g.guests} guest${g.guests === 1 ? '' : 's'}</h3>
-      <ul>${g.rooms.map(r => `<li>${esc(r.cottage)} <small>${esc(r.room)} · ${r.guests} guest${r.guests === 1 ? '' : 's'}</small></li>`).join('')}</ul>
-      <h3>Car</h3>
-      <p class="tc-drawer__pickup ${g.cars.length ? 'is-yes' : ''}">${g.cars.length
-        ? g.cars.map(c => `🚗 <b>${esc(c.car)}</b>${c.qty > 1 ? ' × ' + c.qty : ''} — airport transfer`).join('<br>')
-        : 'No car booked'}</p>
+      <ul class="tc-drawer__list">${g.rooms.map(r => `<li>${esc(r.cottage)} ${esc(r.room)} · ${r.guests} guest${r.guests === 1 ? '' : 's'}</li>`).join('')}</ul>
+      <h3>Transfers</h3>
+      <ul class="tc-drawer__list tc-drawer__transfers">${g.transfers.length ? g.transfers.map(t => `<li>${esc(t)}</li>`).join('') : '<li class="none">None</li>'}</ul>
       <h3>Extras</h3>
-      <ul>${g.addons.length ? g.addons.map(a => `<li>${esc(a)}</li>`).join('') : '<li class="none">None</li>'}</ul>
+      <ul class="tc-drawer__list">${g.addons.length ? g.addons.map(a => `<li>${esc(a)}</li>`).join('') : '<li class="none">None</li>'}</ul>
       ${g.notes ? `<h3>Notes</h3><p class="tc-drawer__notes">${esc(g.notes)}</p>` : ''}
       <div class="tc-drawer__money">
         <div><span>Total</span><b>${inr(g.total)}</b></div>
@@ -369,31 +327,28 @@ admin_head('Availability', $user);
       <p class="tc-drawer__mode">${g.mode === 'advance' ? `Paying ${g.percent}% now, the rest before arrival` : 'Paying in full'}</p>
       <div class="tc-drawer__actions">
         <a class="btn btn--sm" href="edit.php?id=${g.id}">Change booking</a>
-        <a class="btn btn--plain btn--sm" href="edit.php?id=${g.id}#extras">${g.cars.length ? 'Change car' : 'Add a car'}</a>
+        <a class="btn btn--plain btn--sm" href="edit.php?id=${g.id}#extras">${g.transfers.length ? 'Change transfer' : 'Add a transfer'}</a>
         ${due > 0.5 ? `<a class="btn btn--plain btn--sm" href="booking.php?id=${g.id}#payments">Collect ${inr(g.due_now > 0.5 ? g.due_now : due)}</a>` : ''}
         <a class="btn btn--plain btn--sm" href="booking.php?id=${g.id}">Open booking</a>
         ${tel ? `<a class="btn btn--plain btn--sm" href="tel:${tel}">Call</a>` : ''}
         ${wa ? `<a class="btn btn--plain btn--sm" target="_blank" rel="noopener" href="https://wa.me/${wa.length === 10 ? '91' + wa : wa}">WhatsApp</a>` : ''}
       </div>`;
     drawer.classList.add('is-open'); drawer.setAttribute('aria-hidden', 'false');
-    box.querySelectorAll('.tc__row--guest').forEach(r => r.classList.toggle('is-picked', r.dataset.g === String(D.guestRows.indexOf(g))));
   }
   function closeDrawer() {
     drawer.classList.remove('is-open'); drawer.setAttribute('aria-hidden', 'true');
-    box.querySelectorAll('.tc__row--guest.is-picked').forEach(r => r.classList.remove('is-picked'));
   }
   drawer.querySelector('.tc-drawer__close').addEventListener('click', closeDrawer);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
   box.addEventListener('click', e => {
-    const hit = e.target.closest('[data-g]'), bar = e.target.closest('[data-bid]');
-    if (hit && D.view === 'guest') { e.preventDefault(); openDrawer(D.guestRows[+hit.dataset.g]); }
-    else if (bar && !e.ctrlKey && !e.metaKey) { e.preventDefault(); openDrawer(D.guestRows.find(g => g.id === +bar.dataset.bid)); }
+    // A booking bar opens the side panel; Ctrl/Cmd-click still opens the booking page.
+    const bar = e.target.closest('[data-bid]');
+    if (bar && !e.ctrlKey && !e.metaKey) { e.preventDefault(); openDrawer(D.guestRows.find(g => g.id === +bar.dataset.bid)); }
   });
 
   box.addEventListener('mousemove', e => {
     const bar = e.target.closest('.tc__bar'), dayEl = e.target.closest('.tc__day');
-    if (bar && D.view === 'guest' && bar.dataset.g) { tip.innerHTML = guestCard(D.guestRows[+bar.dataset.g]); tip.classList.add('is-on'); place(e); }
-    else if (bar && bar._u) { tip.innerHTML = barCard(bar._u); tip.classList.add('is-on'); place(e); }
+    if (bar && bar._u) { tip.innerHTML = barCard(bar._u); tip.classList.add('is-on'); place(e); }
     else if (dayEl) { tip.innerHTML = dayCard(dayEl.dataset.day); tip.classList.add('is-on'); place(e); }
     else tip.classList.remove('is-on');
   });
@@ -401,7 +356,7 @@ admin_head('Availability', $user);
 
   draw();
   let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(draw, 120); });
-  if (!all.length && D.view === 'cottage') box.insertAdjacentHTML('beforeend', '<p class="tc__empty">No bookings in these dates.</p>');
+  if (!all.length) box.insertAdjacentHTML('beforeend', '<p class="tc__empty">No bookings in these dates.</p>');
 })();
 </script>
 <?php admin_foot(); ?>

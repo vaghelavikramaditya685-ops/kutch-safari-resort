@@ -39,7 +39,7 @@ Dates, each room's cottage and guests (add a row to add a room; blank a row to r
 **Check price** shows **What changes**: Added / Taken off / Changed with an amount each, then Old total, the sums and the **New total**, then **Money**: how the guest pays, paid so far, collect now, rest before arrival, or give back. **Save changes** asks in an on-page box and then writes it. Full logic: doc 22.
 
 ## 5. Availability (`calendar.php`)
-Tape chart by guest (default) or by cottage, 7 / 14 / 30 days, with a side panel per guest showing check-in/out, car, rooms, extras and money. Full logic: doc 23. The "Change rooms on sale" grid was removed (26 Sep 2026).
+Tape chart **by cottage** (the only view), 7 / 14 / 30 days. Clicking a booking opens a side panel with check-in/out and ETA, rooms, transfers, extras and money. Full logic: doc 23. The "By guest" view and the "Change rooms on sale" grid were removed (26 Sep 2026).
 
 ## 6. Special prices (`rates.php`)
 Replaces the old Rates page. Pick nights, tick cottages, enter the (double) price, **Check**, then **Save**. Guard rails: ≥ ₹500; 25%–400% of normal; tick to confirm below 60% or above 150%; no past dates. Saved prices are listed as date ranges with **Remove** (asks first). The normal price is never changed. Details: doc 21 §4.

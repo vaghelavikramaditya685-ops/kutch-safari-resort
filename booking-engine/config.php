@@ -14,7 +14,7 @@
 $CONFIG = [
 
   'db' => [
-    'driver'   => 'mysql',            // 'mysql' in production, 'sqlite' for local testing
+    'driver'   => 'sqlite',           // 'sqlite' for local testing; the live server's config.local.php must set 'mysql'
     'host'     => 'localhost',
     'name'     => 'kutch_booking',
     'user'     => 'root',

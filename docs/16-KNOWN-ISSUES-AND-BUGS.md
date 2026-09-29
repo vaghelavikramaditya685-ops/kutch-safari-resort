@@ -49,8 +49,8 @@ Our Journey (lorem ipsum, award photo box, empty timeline), Dining (food photo b
 ### 8. Destination and RannUtsavPackage use old headers and footers
 They have their own header (4.5 MB `logo-mark.png`), their own footer, no site navigation, and `<Link><a>` nested anchors (invalid HTML).
 
-### 9. Booking engine's "Back to website" points at another domain
-`properties.website_url` = kutchsafariresort.com / whiterann.com. Update it if kutchsafaribhuj.in is the live site.
+### 9. Booking engine's "Back to website" points at localhost
+`properties.website_url` for the resort is `http://localhost:3000` (local database and `seed.sql`, for testing). Set it to the live site before launch.
 
 ### 10. Stayflexi not connected
 The engine's channel-manager bridge is off, and its API paths are guesses. Until it's connected, split inventory between the engine and the OTAs (engine README, "Safe — separated"). See doc 27.

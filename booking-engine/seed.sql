@@ -27,7 +27,7 @@ VALUES
   'Lake-view cottages on the road to the White Rann',
   '+91 99252 38599', NULL, 'kutchsafaribhuj@yahoo.com',
   'Near Rudramata Dam, Bhuj–Khavda Road, Bhuj, Kutch, Gujarat 370001',
-  'https://www.kutchsafariresort.com', '#B85C2E', '12:00', '10:00', NULL, NULL, 1),
+  'http://localhost:3000', '#B85C2E', '12:00', '10:00', NULL, NULL, 1),
 
  (2, 'white-rann-camp', 'White Rann Camp',
   'Twenty Swiss tents, three minutes from the White Rann',

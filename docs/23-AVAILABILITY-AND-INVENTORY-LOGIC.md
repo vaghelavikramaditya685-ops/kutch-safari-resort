@@ -43,17 +43,16 @@ While the desk changes a booking, `availability_ignore_booking($id)` leaves that
 ## 7. The Availability calendar (`admin/calendar.php`)
 A tape chart, full page width. Each day is a full 24 hours. A stay is a bar from **check-in time (12:00) on arrival day to check-out time (10:00) on departure day** (`properties.check_in_time` / `check_out_time`), so a 10:00 departure and a 12:00 arrival sit in one row without overlapping.
 
-Two views:
-* **By guest (default):** one row per booking, in arrival order.
-* **By cottage:** rows per cottage type. The server lays each type's rooms into non-overlapping lanes, one per cottage the type owns (`total_rooms`). It reuses the lane that became free most recently before the stay starts, so turnovers line up. Any booking that doesn't fit goes into a red **Overbooked** row. Free counts per night, arrivals ↓ and departures ↑, and hatched "not on sale" nights are shown.
+One view only, **by cottage** (the "By guest" view was removed on request, 26 Sep 2026):
+* Rows per cottage type. The server lays each type's rooms into non-overlapping lanes, one per cottage the type owns (`total_rooms`). It reuses the lane that became free most recently before the stay starts, so turnovers line up. Any booking that doesn't fit goes into a red **Overbooked** row. Free counts per night, arrivals ↓ and departures ↑, and hatched "not on sale" nights are shown.
 
-Hover a bar for the guest card; hover a day for all its check-outs, check-ins and stays. **Click a guest or bar (either view)** to open the side panel:
+Hover a bar for the booking card; hover a day for all its check-outs, check-ins and stays. **Click a booking bar** to open the side panel:
 * Where they are today: Arrives in N days / Arrives today / Staying now (night X of Y) / Leaves today / Checked out
-* Phone and email; check-in and check-out date and time; the approximate arrival time the guest chose (the scroll wheel)
-* Rooms with occupancy and guests per room
-* **Car:** which airport-transfer car is booked (Sedan / Ertiga / Innova, and how many), read from the extras named "Airport transfer, one way — …"
-* All extras; notes
+* Phone and email; check-in and check-out date and time; **ETA** (the arrival time the guest chose on the scroll wheel)
+* Rooms as bullet points, e.g. "Kutchi AC Cottage Room 1 · Double · 2 guests"
+* **Transfers:** the car transfers by full name, e.g. "Airport transfer, one way — Sedan × 2" (extras whose code starts with `transfer`). Listed only here, not again under Extras. No emoji
+* Other extras; notes
 * Money: total, paid, and either Due now / Before arrival (50% plan), Fully paid, or Refund due; plus "Paying in full" or "Paying 50% now…"
-* Buttons: Change booking, Add or change car, Collect, Open booking, Call, WhatsApp
+* Buttons: Change booking, Add or change transfer, Collect, Open booking, Call, WhatsApp
 
 Ctrl/Cmd-click on a bar still opens the booking page directly. Only active properties are listed.

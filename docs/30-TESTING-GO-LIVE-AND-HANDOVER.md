@@ -38,8 +38,8 @@ pnpm dev          # website on :3000, /book/ proxied to the engine
 - [ ] Live Razorpay keys in the server's `config.local.php`, **after regenerating the live Key Secret** (it was shared in chat). Add the webhook `<base_url>/api/webhook-razorpay.php` with its secret
 - [ ] UPI id (`upi.vpa`) if QR payments are wanted
 - [ ] Strong admin password: `php bin/setup.php --admin manvir "Manvir" "<long password>"` (the local one is `1234`)
-- [ ] MySQL database from `schema.sql` + `seed.sql` (full setup **once**; never again on live, doc 28 §4)
-- [ ] `base_url` and `allowed_origins` for the real domain; `properties.website_url` → the live site ("Back to website")
+- [ ] MySQL database from `schema.sql` + `seed.sql` (full setup **once**; never again on live, doc 28 §4). **`config.php` now defaults to SQLite**, so the live `config.local.php` must say `'db' => ['driver' => 'mysql', …]`
+- [ ] `base_url` and `allowed_origins` for the real domain; `properties.website_url` → the live site ("Back to website"). `seed.sql` now sets it to `http://localhost:3000`, so change it in the live database after setup
 - [ ] Mail: SMTP settings and `from_email` on a domain you own (currently `@kutchsafariresort.com`)
 - [ ] Decide how the website reaches the engine: same host `/book/`, `VITE_BOOKING_URL`, or a Vercel rewrite (doc 15)
 

@@ -2,14 +2,19 @@
 
 ## Change log
 
-### 26 Sep 2026: change pricing, money by payment choice, admin polish (not yet committed)
+### 26 Sep 2026 (later): Availability by cottage only, tidier side panel, local defaults
+* **Availability is by cottage only.** The "By guest" / "By cottage" buttons and the by-guest layout were removed. Clicking a booking bar opens the side panel (it no longer leaves the page; Ctrl/Cmd-click still opens the booking page).
+* **Side panel tidied:** no car emoji anywhere; "ETA: 4:30 PM" instead of "arriving about…"; rooms as bullet points ("Kutchi AC Cottage Room 1 · Double · 2 guests"); car transfers listed once under **Transfers** by full name ("Airport transfer, one way — Sedan × 2"), not repeated under Extras.
+* **Local defaults:** `config.php` now defaults to SQLite (the live server's `config.local.php` must set `mysql`), and the resort's "Back to website" (`properties.website_url`) is `http://localhost:3000` in the local database and in `seed.sql`. **Change both for the live site** (doc 30 checklist).
+
+### 26 Sep 2026: change pricing, money by payment choice, admin polish (pushed to GitHub)
 * **Changing a booking is priced as a difference** (`modification_delta()`): new total = old total + added − taken off ± changed. Everything the guest keeps keeps exactly its booked amount (a share per night where special prices differ). New nights, rooms, occupancy and extras are priced at today's prices. A percent discount code moves only with rooms added or taken off. The preview lists each item under **Added / Taken off / Changed** with its amount and writes out the sum. The breakdown is saved with the change and shown on the booking page afterwards. Before, the whole cart was re-priced: adding a ₹7,450 room to a ₹22,000 booking gave ₹30,050.
 * **Money follows how the guest pays** (`booking_money()`): Due now (to reach 100%, or 50% on the 50% plan), Due before arrival (the rest on the 50% plan, as guests are told), or Refund due. Used in the change preview, the booking page and its Collect form, the Availability panel, the check-status page (`due_now`, `due_later`) and the receipt.
 * **`amount_paid` = payments − refunds everywhere:** online settlement and UPI confirmation used to ignore earlier refunds.
 * **No browser pop-ups:** confirmations are an on-page box (`data-confirm`), red for cancelling.
 * **Arrival time is a scroll wheel** (hour · minutes · AM/PM). Nothing is saved unless the guest turns it.
 * **`/book/admin` works as typed:** redirects to `/book/admin/` and then `login.php`, so the address fills itself in.
-* **Availability:** "Change rooms on sale" removed. Clicking a guest in either view opens the side panel, now with where they are in the stay (arrives in N days / staying now / leaves today), check-in and check-out, **which car** (Sedan / Ertiga / Innova), guests per room, and money by payment choice.
+* **Availability:** "Change rooms on sale" removed. Clicking a guest in either view (later: cottage view only) opens the side panel, now with where they are in the stay (arrives in N days / staying now / leaves today), check-in and check-out, **which car** (Sedan / Ertiga / Innova), guests per room, and money by payment choice.
 * **Test bookings removed** from the real database at the owner's request (KSR-2WQG3X, KSR-3E95RT, KSR-RKJL4F with their rooms, extras and payments). 0 bookings now.
 * **`bin/test-changes.php`**: 17 checks on a temporary copy of the database.
 * **Docs:** all 20 updated; 10 new (21–30) on pricing, changes and money, availability, admin, guest flow, payments, Stayflexi, database rules, lessons learned, and testing/go-live.
