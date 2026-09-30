@@ -1,6 +1,6 @@
 <?php
 /* ===========================================================================
- *  Price and money checks for changing a booking (docs/22, docs/30).
+ *  Price and money checks for changing a booking (docs/05-BOOKING-ENGINE.md "docs/22", docs/09-HISTORY-TESTING-AND-GO-LIVE.md "docs/30").
  *
  *      php bin/test-changes.php
  *

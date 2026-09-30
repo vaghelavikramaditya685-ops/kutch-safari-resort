@@ -1,0 +1,203 @@
+# BUGS.md: bugs found, to fix later
+
+_Tested 30 Sep 2026 with the demo data (6 "Demo …" bookings + the owner's KSR-GJKQYG). Nothing here has been fixed yet._
+
+**How it was tested.** All tests ran on **throwaway copies** of the booking engine and its database in a temp folder: one on port 8090 for pages and PDFs, one for the load tests. The real database was only read, never written. Checks covered:
+- the numbers stored for every booking;
+- the guest check-status API and page;
+- every receipt and the terms PDF;
+- every admin page with a test login made in the copy;
+- the Availability screen and side panel;
+- 7 heavy-traffic tests: up to 20 processes hitting the database at the same instant;
+- the new website pages, for console errors.
+
+Paths below are relative to `backend/booking-engine/` unless they start with `frontend/`.
+
+---
+
+## What works (checked, no bug)
+* **Stored money adds up for all 7 bookings.**
+  * rooms + extras + GST = total;
+  * amount paid = payments − refunds;
+  * nights match the dates.
+* **Availability matches the bookings.**
+  * Checked on the Availability chart, the booking page's room counts and the database, e.g. 30 Sep: 11 Kutchi / 6 Deluxe free.
+  * Cancelled bookings free their cottages.
+* **No double-booking under load.** 20 guests tried to book the last cottage at the same moment and exactly 1 booking was stored.
+* **No guest's data mixed with another's.** 20 simultaneous book-and-pay runs gave:
+  * 0 wrong names, emails, rooms or payments;
+  * 0 duplicate booking codes;
+  * 0 duplicate private codes;
+  * 0 payments without a booking.
+* **Desk payments add up under load.** 20 desk payments recorded on one booking at the same moment summed correctly.
+* **Guest look-up works.**
+  * Finds bookings by code + phone, code + email (any case) and code + private link.
+  * Wrong details are refused.
+  * The rate limit (15 per 5 minutes) works.
+* **Receipts render correctly.** All 7 open, show the correct amounts, GST and status, and show names with brackets and dashes properly.
+* **Admin pages load cleanly.** Bookings list (groups, counters, UPI box), every booking page, Change booking, Availability with side panel, Special prices, Enquiries and CSV all return 200 with no PHP errors or warnings.
+* **Website pages are clean.** Home, Experiences and Around the Resort have no console errors.
+
+---
+
+## High: money, refunds, lost bookings
+
+### B1. Cancelling on the last day of a price band charges the next band
+`lib/booking.php:911` (`cancel_booking`) counts days as `floor((check-in − now) / 24h)`. The table shown to guests (`cancellation_schedule`, `lib/booking.php:271`) counts whole calendar days, so they disagree on the boundary day.
+**Proof (copy):**
+| Check-in in | Guest is told cancelling today costs | Actually charged | Example on a ₹14,900 booking |
+|---|---|---|---|
+| 30 days | 0% ("Up to today") | **75%** | ₹11,175 kept instead of ₹0 |
+| 21 days | 75% | **100%** | ₹14,900 kept instead of ₹11,175 |
+
+**Fix:** count calendar days in both places: `(strtotime($check_in) - strtotime(date('Y-m-d'))) / 86400`. Also `available_payment_modes()` at line 251. Add a test in `bin/test-changes.php` for days 30, 29, 21 and 20.
+
+### B2. Refund owed after a cancellation is invisible to staff and guest
+Demo Vikram (KSR-Z8P7X6) was cancelled 45 days ahead, so ₹17,900 is owed back (`bookings.refund_amount`). Where it shows:
+* **Admin booking page:** shows "Paid ₹17,900" and nothing else. The money section is empty for cancelled bookings (`admin/booking.php:213`), so there is no "Refund due" line and no **Record refund** form. The desk sees the refund once in the message right after cancelling, then never again.
+* **Guest status page:** says only "This booking has been cancelled" (`manage.php:142`). The API forces `refund_due` to 0 for cancelled bookings (`api/booking-lookup.php:37`) and never sends `refund_amount`.
+* **Receipt PDF:** *does* say "Refund ₹17,900", so the guest's two views disagree.
+* **Bookings list:** the Cancelled group shows only "Paid", with no refund flag.
+* **No cancellation charge or reason shown.** Demo Priya (KSR-6JQ9JK, cancelled 10 days ahead, 100% kept) shows "Paid ₹80,850" with no charge line and no cancellation reason anywhere (`cancel_reason` is stored but not displayed).
+
+**Fix:**
+* For cancelled bookings, show "Cancellation charge X% ₹…", "Refund due ₹… (given back ₹…)" and a Record refund form until it's settled.
+* Return `refund_amount` from the lookup API and show it on the status page.
+* Show `cancel_reason` and `cancelled_at`.
+
+### B3. Desk changes an unpaid booking, but the guest still pays the old amount and it's marked confirmed
+`modify_booking()` (`lib/booking.php:654`) updates `total` but not `amount_due_now`. All three payment paths charge `amount_due_now`:
+* Razorpay: `lib/payment.php:57`
+* test payment: `lib/payment.php:241`
+* UPI QR: `lib/payment.php:272`
+
+**Proof (copy):**
+1. 50% booking of ₹14,900 (due now ₹7,450).
+2. The desk changes it to 4 nights (total ₹29,800).
+3. The guest pays and is charged **₹7,450**.
+4. The booking becomes **confirmed** with ₹7,450 still due now.
+
+**Fix:** recompute `amount_due_now` in `modify_booking()` (e.g. from `booking_money()`), or charge `booking_money($b)['due_now']` in the payment paths.
+
+### B4. Heavy traffic: most simultaneous bookings fail with "We could not save that booking" (SQLite)
+`lib/db.php:18` opens SQLite with no `busy_timeout`, so a second writer fails at once with *database is locked* instead of waiting.
+**Proof (copy):**
+* 20 guests booking **different dates** at the same moment: **17 refused, 3 saved**.
+* 20 guests booking 12 free Kutchi cottages: **14 refused**, only 6 saved, 6 cottages left unsold.
+* 34 `booking_failed` rows logged, all *database is locked*.
+
+This matters on this PC and anywhere SQLite is used. The live site is meant to use MySQL, which waits on the `FOR UPDATE` lock instead. **That path has not been tested:** MySQL isn't installed here.
+**Fix:**
+* `PRAGMA busy_timeout = 5000` and `PRAGMA journal_mode = WAL` after opening SQLite.
+* Start write transactions with `BEGIN IMMEDIATE` on SQLite.
+* Run the same load test (`conc_run.php` pattern) on MySQL before launch.
+
+### B5. Test payment has no "already paid" check: repeated presses multiply the amount paid
+`test_payment_settle()` (`lib/payment.php:232`) only refuses cancelled bookings.
+**Proof (copy):**
+* "I've paid (test)" pressed 20 times at once on a ₹14,900 booking recorded **₹1,49,000 paid** (20 payment rows).
+* One ordinary second press later added another ₹7,450.
+
+Test mode must be off at launch anyway, but until then any double-click corrupts the booking.
+**Fix:** refuse unless status is `pending` and `booking_money()['due_now'] > 0`, inside a transaction.
+
+---
+
+## Medium: under load, or wrong information
+
+### B6. One payment confirmed at the same moment runs its side effects many times
+`settle_payment()` (`lib/payment.php:150`) and `upi_mark_received()` (`lib/payment.php:319`) read the status first, then update it: check, then act. The amount stays right (same payment row), but:
+**Proof (copy):**
+* The same online payment confirmed by 20 processes at once (browser return + webhook + retries) sent the confirmation email and pushed to Stayflexi **15 times**.
+* Two staff pressing **Money received** at once ran it 5 of 5 times.
+
+Once Stayflexi is connected, this could create duplicate reservations on the OTAs.
+**Fix:** make it atomic, e.g. `UPDATE payments SET status='paid' … WHERE id = ? AND status <> 'paid'`, and only continue if 1 row changed.
+
+### B7. Rate limiting will slow down and may block real guests under heavy traffic
+`rate_limit()` (`api/_init.php:78`):
+* It adds an `audit_log` row for **every** guest request.
+* It counts rows with no index (`schema.sql:342`).
+* **Measured (copy):** 0.1 ms per request now, **105 ms** after 500,000 rows (roughly a busy season). Every page makes several calls.
+* It keys on `REMOTE_ADDR` only. Behind a proxy or CDN (Vercel rewrite, Cloudflare), every guest shares one address, so 12 bookings in 5 minutes from *everyone* would block everyone.
+
+**Fix:**
+* Add an index on `(action, ip, created_at)`.
+* Delete `rl_%` rows older than a day (cron).
+* Use the real client IP header from the known proxy.
+
+### B8. 50% option and free-cancellation promise are offered when they can't apply
+`config.php:127`: the `advance` mode has no `min_days_before_arrival`. For a stay 10 days away the guest is still offered "Pay 50% now — Balance due 30 days before arrival. Free cancellation up to 30 days before arrival." Both dates are already past. The same note is printed on the receipt (see Demo Karan, 17 days out).
+**Fix:** hide 50% (or change its note) inside 30 days, and only show "free cancellation" when it's still possible. Owner to confirm the rule.
+
+### B9. Admin offers "Cancel booking" for guests who are already staying, then fails with a guest-facing message
+`admin/booking.php:281` shows the cancel form whenever the booking isn't cancelled. `cancel_booking()` refuses any stay that has started (`lib/booking.php:908`).
+**Proof (copy):** pressing Cancel on in-house Demo Rohan shows *"Past stays cannot be cancelled online. Please call us."* to the staff member. There is no way to record a no-show or an early departure.
+**Fix:** hide the form once the stay has started. Add "No-show" / "Left early" actions (the schema already allows `no_show` and `completed`).
+
+### B10. Required change (owner, 30 Sep 2026): only one admin session at a time
+**Today:** two people signed in with the same login from two browsers both get full access (tested on the copy). The only guards are:
+* the per-tab mark (a new tab must sign in again);
+* the 10-minute idle timeout.
+
+**Wanted:** while someone is using the admin (e.g. Manvir), nobody else can get in. The next person can sign in only after that tab is closed or signed out.
+**Suggested design:**
+* Store the active session id and a `last_seen` time in the database (e.g. an `admin_lock` row).
+* The open admin tab sends a small heartbeat every 20–30 s. Browsers don't reliably report a closed tab, so the lock expires about 60 s after the last heartbeat.
+* A second sign-in is refused with "The admin panel is in use by Manvir since 3:10 pm. Try again when they close it."
+* Sign out releases the lock immediately.
+* Decide with the owner whether an "I'm Manvir, take over" option is needed for a crashed browser.
+
+This also prevents two people changing the same booking at once, which nothing prevents today.
+
+### B11. A UPI payment waiting for the desk holds the cottage indefinitely
+`rooms_booked()` (`lib/inventory.php:174`) counts any pending booking with an `awaiting_confirmation` UPI payment, with no time limit. Demo Karan (KSR-LL6CZZ) has held a Kutchi cottage since 29 Sep. If the guest never paid, the cottage stays blocked until someone notices.
+**Fix:** expire the UPI wait after N hours, or flag old ones on the Bookings page.
+
+### B12. The unpaid half says "before arrival" even after the guest has arrived
+Demo Rohan is staying now (night 2 of 2) with ₹10,100 unpaid. Every screen still says "Due before arrival" / "the rest before arrival":
+* admin booking page (`admin/booking.php:179`, `:231`)
+* Availability side panel (`admin/calendar.php:331`)
+* receipt
+
+**Fix:** once check-in day has come, show it as overdue ("Collect at the desk ₹…") and highlight it on the Bookings list.
+
+---
+
+## Low: display and tidy-ups
+
+* **B13. Empty "If you need to cancel" heading.** `lib/documents.php:288` prints the heading even when every period is over (stays that have started or finished), so the receipt shows an empty section.
+* **B14. Stayflexi would receive base prices.** `lib/channel.php:146` sends the stored `nightly` list, which holds the base (double) price per night, not what was charged. For singles and triples, Stayflexi would get the wrong nightly amount, e.g. Demo Asha's triple: ₹6,500 sent vs ₹8,000 charged. Not live yet (Stayflexi off).
+* **B15. Bookings list "due" means different things.** The list shows the whole unpaid balance as "due" (Demo Karan: "due ₹14,900"). The booking page splits it into ₹7,450 now + ₹7,450 before arrival.
+* **B16. A finished stay stays "confirmed".** There is no `completed` step (the list calls it "checked out" only by date).
+* **B17. Guests told they owe more than they paid, with nothing collecting it.** Demo Neha's page says cancelling now costs 75% (₹16,875) but only ₹13,000 was paid, and nothing explains or collects the difference.
+
+---
+
+## Not tested (need the live setup)
+* **MySQL under load** (B4 and B6 on MySQL): row locks, deadlocks when two carts lock cottage types in a different order.
+* **Real Razorpay** payments, webhooks and refunds; real emails.
+* **Real multi-worker web server.** Load was tested at the database level: PHP's built-in server on Windows handles one request at a time.
+
+## Still open from earlier checks (details in `docs/08-STATUS-ISSUES-AND-ROADMAP.md`)
+* **Must be off before launch:**
+  * sample mode and test payments;
+  * debug mode;
+  * `website_url` still points to localhost;
+  * a long admin password is needed;
+  * the live Razorpay secret must be regenerated;
+  * the six demo bookings must be removed.
+* Home contact form is a mock (sends nothing).
+* Stayflexi not connected; SMTP not set; no owner email on new bookings.
+* ~269 MB of unoptimised images; placeholder content (Our Journey, Dining, FAQ, `[WRC LOGO]`).
+* Brochure vs website facts await the owner (distances, years, room names).
+
+## How to re-run these tests
+The scripts are not in the repo; they were one-off, in the session's temp folder. The pattern:
+1. Copy `backend/booking-engine/` without `config.local.php` to a temp folder.
+2. Copy `data/booking.sqlite` into it.
+3. Add a `config.local.php` with `db.driver = sqlite`, no keys, and mail off.
+4. Create a login there with `php bin/setup.php --admin qa-tester "QA" <password>`.
+5. Run it with `php -S 127.0.0.1:8090`.
+
+For load, start 20 `php worker.php` processes that wait for the same start time, then call `create_booking()`, `settle_payment()`, `test_payment_settle()`, `record_offline_payment()` or `upi_mark_received()`, and afterwards compare every booking's rows. **Never point these at the real `data/booking.sqlite`.**

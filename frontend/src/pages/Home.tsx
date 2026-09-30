@@ -198,7 +198,7 @@ export default function Home() {
             <a href={bookingUrl()} className="bg-[var(--terracotta)] text-white px-8 py-4 uppercase tracking-widest text-sm font-semibold hover:bg-[#b04838] transition-colors rounded-sm shadow-md">
               Check Availability & Book
             </a>
-            <Link href="/experiences" className="bg-white/10 backdrop-blur-md border border-white/30 text-white px-8 py-4 uppercase tracking-widest text-sm font-semibold hover:bg-white hover:text-black transition-colors rounded-sm shadow-md">
+            <Link href="/around-the-resort" className="bg-white/10 backdrop-blur-md border border-white/30 text-white px-8 py-4 uppercase tracking-widest text-sm font-semibold hover:bg-white hover:text-black transition-colors rounded-sm shadow-md">
               Explore Kutch
             </Link>
           </div>
@@ -220,16 +220,16 @@ export default function Home() {
             </div>
             <div>
               <p className="text-sm font-semibold tracking-[0.2em] uppercase text-[var(--terracotta)] mb-4">Welcome to Kutch Safari Resort</p>
-              <h2 className="text-4xl md:text-5xl font-display font-bold text-zinc-900 mb-6 leading-tight">A Quiet Hideaway on the Road to the White Rann</h2>
+              <h2 className="text-4xl md:text-5xl font-display font-bold text-zinc-900 mb-6 leading-tight">Where Tradition Meets Comfort on the Road to the White Rann</h2>
               <div className="space-y-4 text-zinc-900/80 text-lg leading-relaxed">
                 <p>
-                  Tucked amidst lush green and clean desert air, Kutch Safari Resort sits on a rise overlooking the Rudramata Dam — fifteen kilometres from Bhuj, on the Khavda road that carries you to Dhordo, the White Rann and Dholavira.
+                  Kutch Safari Resort is one of Bhuj's hidden gems: a thoughtfully designed resort on a rise overlooking the Rudramata Dam, offering authentic Kutchi charm with modern comfort. We're just 15 kilometres (about 20 minutes) from Bhuj city, on the Khavda road that leads to Dhordo, the White Rann and Dholavira. That makes us an ideal base for exploring Kutch.
                 </p>
                 <p>
-                  Twenty cottages face the water. Each has comfortable bedding, free Wi-Fi, a flat-screen television, room service and a private balcony where the light changes all evening. Our lake-view restaurant, The Banni, serves Kutchi, Gujarati, Punjabi, Chinese and Continental dishes.
+                  Twenty cottages face the water, each combining traditional architecture with everything you need to unwind: comfortable bedding, free Wi-Fi, a flat-screen television, room service and a private balcony where the light changes all evening. At our lake-view restaurant, The Banni, you can enjoy Kutchi, Gujarati, Punjabi, Chinese and Continental dishes.
                 </p>
                 <p>
-                  We have welcomed travellers for more than three decades. That, and where we stand, is what makes this one of the finest places to stay in Bhuj and the Rann of Kutch.
+                  Whether you're a textile enthusiast, a culture lover or simply looking for a peaceful getaway, you'll find scenic views, fresh desert air and personalised hospitality here. We've welcomed travellers for more than three decades. That experience, and where we stand, is what makes this one of the finest places to stay in Bhuj and the Rann of Kutch.
                 </p>
               </div>
               <Link href="/our-journey" className="inline-flex items-center gap-2 mt-8 text-[var(--terracotta)] uppercase tracking-widest text-sm font-semibold hover:text-zinc-900 transition-colors">

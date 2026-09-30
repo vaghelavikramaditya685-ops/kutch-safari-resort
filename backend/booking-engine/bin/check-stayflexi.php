@@ -74,7 +74,7 @@ if ($missing) {
 if (!channel_enabled()) {
     echo "\nStayflexi is not switched on, so nothing was contacted.\n";
     echo "Until it is, keep this website's rooms separate from the ones the OTAs sell —\n";
-    echo "see the Stayflexi section of README.md.\n\n";
+    echo "see the Stayflexi section of docs/05-BOOKING-ENGINE.md.\n\n";
     exit(0);
 }
 

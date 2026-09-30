@@ -15,6 +15,7 @@ import Stay from "./pages/Stay";
 import Destination from "./pages/Destination";
 import RannUtsavPackage from "./pages/RannUtsavPackage";
 import Experiences from "./pages/Experiences";
+import AroundTheResort from "./pages/AroundTheResort";
 import BookingRedirect from "./pages/BookingRedirect";
 import { adminUrl } from "./lib/booking";
 
@@ -24,7 +25,8 @@ const SITE = "Kutch Safari Resort";
 const TITLES: Record<string, string> = {
   "/": "Kutch Safari Resort | Bhunga Cottages by the Lake, Bhuj",
   "/stay": `The Stay: Kutchi & Deluxe AC Cottages | ${SITE}`,
-  "/experiences": `Experiences in Kutch | ${SITE}`,
+  "/experiences": `Experiences | ${SITE}`,
+  "/around-the-resort": `Around the Resort: Places to Explore in Kutch | ${SITE}`,
   "/our-journey": `Our Journey | ${SITE}`,
   "/dining": `Dining at The Banni | ${SITE}`,
   "/gallery": `Gallery | ${SITE}`,
@@ -66,6 +68,7 @@ function Router() {
       <Route path={"/admin/*"}>{() => <BookingRedirect to={adminUrl()} label="Opening the admin panel…" />}</Route>
       <Route path={"/stay"} component={Stay} />
       <Route path={"/experiences"} component={Experiences} />
+      <Route path={"/around-the-resort"} component={AroundTheResort} />
       <Route path={"/our-journey"} component={OurJourney} />
       <Route path={"/dining"} component={Dining} />
       <Route path={"/gallery"} component={GalleryPage} />

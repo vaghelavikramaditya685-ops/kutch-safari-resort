@@ -34,6 +34,7 @@ export default function Footer() {
               <li><Link href="/stay" className="hover:text-zinc-900 transition-colors">Rooms & Tariff</Link></li>
               <li><Link href="/dining" className="hover:text-zinc-900 transition-colors">Dining</Link></li>
               <li><Link href="/experiences" className="hover:text-zinc-900 transition-colors">Experiences</Link></li>
+              <li><Link href="/around-the-resort" className="hover:text-zinc-900 transition-colors">Around the Resort</Link></li>
               <li><Link href="/gallery" className="hover:text-zinc-900 transition-colors">Gallery</Link></li>
             </ul>
           </div>

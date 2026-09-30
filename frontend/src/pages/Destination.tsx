@@ -150,7 +150,7 @@ export default function Destination() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 px-4">
         <h1 className="font-display text-4xl text-foreground">Destination not found</h1>
-        <Link href="/experiences" className="bg-[var(--terracotta)] text-white px-8 py-3 uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition-opacity">
+        <Link href="/around-the-resort" className="bg-[var(--terracotta)] text-white px-8 py-3 uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition-opacity">
             Back to Beyond Bhuj
           </Link>
       </div>
@@ -169,7 +169,7 @@ export default function Destination() {
                 <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/60">Resort &middot; Bhuj</span>
               </div>
             </Link>
-          <Link href="/experiences" className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors">
+          <Link href="/around-the-resort" className="flex items-center gap-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors">
               <ArrowLeft className="h-4 w-4" />
               Back to Beyond Bhuj
             </Link>

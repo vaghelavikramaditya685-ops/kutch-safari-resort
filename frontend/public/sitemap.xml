@@ -21,6 +21,11 @@
     <changefreq>monthly</changefreq>
   </url>
   <url>
+    <loc>https://kutchsafaribhuj.in/around-the-resort</loc>
+    <priority>0.8</priority>
+    <changefreq>monthly</changefreq>
+  </url>
+  <url>
     <loc>https://kutchsafaribhuj.in/packages</loc>
     <priority>0.8</priority>
     <changefreq>monthly</changefreq>

@@ -13,6 +13,7 @@ export default function Navbar() {
     { label: "Stay", href: "/stay" },
     { label: "Dining", href: "/dining" },
     { label: "Experiences", href: "/experiences" },
+    { label: "Around the Resort", href: "/around-the-resort" },
     { label: "Packages", href: "/packages" },
     { label: "Gallery", href: "/gallery" },
     { label: "Plan Your Visit", href: "/plan-your-visit" },
@@ -35,8 +36,8 @@ export default function Navbar() {
       </div>
 
       <header className="sticky top-0 z-50 bg-[#f8f5e2] shadow-sm border-b border-zinc-200">
-        <div className="container mx-auto px-6 h-16 flex justify-between items-center">
-          <Link href="/" className="flex items-center lg:w-48">
+        <div className="w-full max-w-[1440px] mx-auto px-6 h-16 flex justify-between items-center">
+          <Link href="/" className="flex items-center shrink-0">
             <img 
               src="/assets/images/new/logo-main.jpg" 
               alt="Kutch Safari Resort Logo" 
@@ -44,7 +45,8 @@ export default function Navbar() {
             />
           </Link>
           
-          <nav className="hidden lg:flex flex-1 justify-center items-center gap-4 xl:gap-8 text-[11px] font-semibold text-zinc-900 uppercase tracking-widest px-4">
+          {/* Full menu from 1320px, every item on one line. Narrower screens use the menu button. */}
+          <nav className="hidden min-[1320px]:flex flex-1 justify-center items-center gap-3 min-[1500px]:gap-6 text-[11px] font-semibold text-zinc-900 uppercase tracking-wider px-4 whitespace-nowrap">
             {NAV_LINKS.map((link) => (
               <Link 
                 key={link.href} 
@@ -59,7 +61,7 @@ export default function Navbar() {
             </Link>
           </nav>
           
-          <div className="flex items-center justify-end gap-4 lg:w-auto lg:min-w-[12rem]">
+          <div className="flex items-center justify-end gap-4 shrink-0">
             <a href="https://whiteranncamp.travstack.com/" target="_blank" rel="noreferrer" className="hidden md:flex items-center justify-center gap-2 border border-[#e4d5c7] px-4 py-2 uppercase text-[10px] tracking-widest font-semibold text-zinc-700 hover:border-zinc-300 transition-colors rounded-sm bg-white shadow-sm">
               [WRC LOGO]
             </a>
@@ -67,7 +69,7 @@ export default function Navbar() {
               Book Now
             </a>
             <button 
-              className="lg:hidden text-zinc-900 p-2" 
+              className="min-[1320px]:hidden text-zinc-900 p-2" 
               onClick={() => setOpen(!open)}
               aria-label={open ? "Close menu" : "Open menu"}
               aria-expanded={open}
@@ -80,7 +82,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {open && (
-        <div className="fixed inset-0 top-[116px] md:top-[116px] z-40 bg-[#f8f5e2] lg:hidden overflow-y-auto">
+        <div className="fixed inset-0 top-[116px] md:top-[116px] z-40 bg-[#f8f5e2] min-[1320px]:hidden overflow-y-auto">
           <nav className="flex flex-col p-6 gap-6 text-base font-medium text-zinc-900 uppercase tracking-widest">
             {NAV_LINKS.map((link) => (
               <Link 
