@@ -210,6 +210,7 @@ function razorpay_refund(int $booking_id, float $amount, string $reason = ''): a
         'created_at' => now(),
         'paid_at'    => now(),
     ]);
+    refresh_amount_paid($booking_id);   // payments minus refunds, as record_offline_refund() does
     audit('refund_issued', 'booking', $booking_id, ['amount' => $amount]);
     return ['ok' => true, 'refund' => $res];
 }

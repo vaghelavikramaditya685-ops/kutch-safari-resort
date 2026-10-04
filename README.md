@@ -69,7 +69,7 @@ _(was `context/ai_instructions.md`)_
 ### Hard rules (owner's)
 1. **Do not push to GitHub** unless the owner asks in that conversation. Committing locally is fine when asked. [DOC]
 2. **No invented data in the real database** (`backend/booking-engine/data/booking.sqlite`). Test on a throwaway copy; delete it after. Demo data only when the owner asks, marked "Demo …" / @example.com. [DOC]
-3. **Never run full `bin/setup.php` on a database with real data** — it empties rooms, prices, special prices and extras. `--admin` alone is safe. [CODE seed.sql]
+3. **Never run full `bin/setup.php` on a database with real data** — it empties rooms, prices, special prices and extras. `--admin` alone is safe. Since 4 Oct 2026 the script enforces this: it refuses unknown options (e.g. a typo such as `--amdin`) and refuses a full setup when bookings exist unless `--reset` is given, and a reload that half-fails ends with FAILED instead of "Ready". [CODE seed.sql, bin/setup.php]
 4. **Secrets** only in `config.local.php`; never commit, print or copy them. [CODE .gitignore]
 5. **Keep the colours**; the owner approves visual changes. [DOC]
 6. Don't type the owner's real passwords anywhere; the local test login is for local testing only. [DOC]

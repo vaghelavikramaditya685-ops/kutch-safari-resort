@@ -1,6 +1,10 @@
 # BUGS.md: bugs found, to fix later
 
-_Tested 30 Sep 2026 with the demo data (6 "Demo …" bookings + the owner's KSR-GJKQYG). B1–B17 are not fixed yet. A second check on 4 Oct 2026 (debug mode + syntax, see the next section) added B18–B19 and fixed two problems on the spot._
+_Tested 30 Sep 2026 with the demo data (6 "Demo …" bookings + the owner's KSR-GJKQYG). B1–B17 are not fixed yet. Two checks on 4 Oct 2026 followed:
+- **Debug mode + syntax:** added B18–B19 and fixed F1–F2.
+- **Runtime, every code path executed:** added B20–B26 and fixed R1–R4.
+
+Both are described in the next two sections. B1–B26 are open._
 
 ## 4 Oct 2026: debug-mode and syntax check
 
@@ -39,6 +43,37 @@ _Tested 30 Sep 2026 with the demo data (6 "Demo …" bookings + the owner's KSR-
 - The website has no console errors and correct titles.
 
 **New open bugs:** B18 and B19 below.
+
+## 4 Oct 2026 (later): runtime check, executing every code path
+
+**What ran.** Every path was executed with debug mode on, including the ones that are switched off on this PC:
+- Razorpay, Stayflexi and SMTP email, pointed at local fake servers (nothing reached a real service).
+- Pay-at-hotel, White Rann Camp and discount codes, switched on in a throwaway copy.
+- All 8 command-line/cron scripts.
+- 69 HTTP requests through those paths, checked against what each action did in the database.
+- The guest booking page's JavaScript: Razorpay checkout (its popup stubbed), UPI QR, three rooms with mixed occupancy, sold-out dates with suggestions, the network-failure screen and retry, and the remembered-booking banner.
+- Every state on the check-status page, the PDF viewer, and the admin's SHA-256 sign-in (including its fallback), confirm box and per-tab sign-in.
+- The website's mobile menu, lightbox and contact form, plus all 53 media paths.
+- The production Express server (`pnpm start`) and the Vercel contact function.
+- The legacy Python scripts were checked without running them: they rewrite files.
+
+**Result.** After the fixes below: no PHP warnings or errors, an empty error log, no JavaScript errors, and every expectation met. Pricing tests 17/17, TypeScript and the build pass, and the real database was only read.
+
+**Fixed on 4 Oct (found by running the code):**
+* **R1. `setup.php` treated any unknown option as "run the full setup".** A typo such as `--amdin`, or `--help`, reloaded `seed.sql` over the copy's data. That wiped its Stayflexi mapping and reset special prices. Three statements failed on foreign keys, yet it still printed **"Ready."** and exited as a success. **Fix:**
+  * Unknown options are refused.
+  * A full setup on a database with bookings is refused unless `--reset` is given.
+  * Any failed statement ends with "FAILED", exit 1.
+  * A first-time setup on an empty database is unchanged.
+* **R2. Razorpay refunds did not update "amount paid".** `razorpay_refund()` recorded the −₹14,900 refund but left `amount_paid` at ₹14,900. `record_offline_refund()` already recalculated it. **Fix:** call `refresh_amount_paid()`. Verified: ₹0 after a full refund.
+* **R3. Email (it had never run before).** **Fix:** subject and sender name encoded; body base64; `Date` and `Message-ID` added; the SMTP client stops if STARTTLS fails. Verified with a mail parser and a fake server that refuses TLS. The problems were:
+  * The subject was sent as raw UTF-8 (`Booking confirmed — … · …`), which some mail apps show as `â€"`.
+  * There were no `Date` or `Message-ID` headers, so mail was more likely filed as spam.
+  * A line starting with "." could cut a message short, and very long lines could exceed SMTP's 998-character limit.
+  * **If STARTTLS failed, the client carried on and sent the mailbox password in plain text.**
+* **R4. `pnpm start` failed on Windows.** It used `NODE_ENV=production node dist/index.js`, Linux syntax that Windows' shell can't run: `'NODE_ENV' is not recognized`. **Fix:** the script is `node dist/index.js`, and the server sets production mode itself, so error pages still hide stack traces.
+
+**New open bugs:** B20–B26 below.
 
 **How it was tested.** All tests ran on **throwaway copies** of the booking engine and its database in a temp folder: one on port 8090 for pages and PDFs, one for the load tests. The real database was only read, never written. Checks covered:
 - the numbers stored for every booking;
@@ -230,11 +265,23 @@ In real life, the cottage would be held again (perhaps after being resold), Stay
 * `cancel_booking()` should mark waiting UPI payments as void.
 * The UPI box should leave out cancelled bookings, or flag them.
 
+## B20–B26 (4 Oct 2026, from the runtime check)
+* **B20 (medium). Opening the admin in a second tab signs out the first one.** A new tab has no per-tab mark, so it goes to `logout.php?again=1`, which ends the whole session. Someone halfway through changing a booking who opens another tab to look something up loses that work on their next save ("Your session expired"). Verified: after a second tab opened, the first tab's next request went to the sign-in page. Belongs with the one-admin-at-a-time work (B10): the lock planned there should replace this.
+* **B21 (medium, UX). Three rooms, two chosen: "Continue" does nothing.** On the booking page, pressing **Continue** before every room has a cottage leaves the page unchanged, with no message (`assets/engine.js`, `#roomsDone` handler: `if (cart.picks.every(Boolean)) …`). Guests will think the button is broken. **Fix:** say which room still needs a cottage, or disable the button until all are chosen.
+* **B22 (low, privacy). The check-status page sends the guest's phone or email in the address.** The lookup is `GET api/booking-lookup.php?ref=…&contact=<phone or email>`, so the details land in server logs and browser history. The API already accepts POST (`input()` reads JSON); `manage.php` should send it that way.
+* **B23 (low). A junk reply from Stayflexi is reported to the guest as "Those dates have just been taken".** A 200 response that isn't JSON (e.g. an HTML error page) leaves the availability count at 0 (`lib/channel.php` `channel_verify_still_available()`), so the guest is told the room sold out. **Fix:** treat a reply without the expected fields like "unreachable": "We could not confirm availability just now. Please call us."
+* **B24 (low). Both contact endpoints accept empty posts and report success.**
+  * `backend/server/index.ts` `POST /api/contact` stores *anything*, even a form post with no JSON, as an "enquiry" in `data/enquiries.json` inside the project folder, and replies "Enquiry saved successfully".
+  * `api/contact.ts` (Vercel) only logs, and also says success with no body.
+  * The site doesn't use either today (the Home form is still the mock), but don't wire them up as they are. The engine's `api/enquiry.php` already validates and stores enquiries properly.
+* **B25 (tidy-up). The 35 legacy Python scripts can't run.** Every one opens files under `client/…`, the folder renamed to `frontend/` on 29 Sep, so each would fail at its first file. 29 of them rewrite project files. They compile and have no undefined names or missing imports. **Fix:** delete `scripts/legacy/` (already marked "delete once confirmed").
+* **B26 (low). `setup.php --reset` on a database with bookings still half-applies.** `seed.sql` deletes properties, which bookings point at, so 3 statements fail; this is now reported as FAILED (R1). Only ever use `--reset` on a test copy.
+
 ---
 
 ## Not tested (need the live setup)
 * **MySQL under load** (B4 and B6 on MySQL): row locks, deadlocks when two carts lock cottage types in a different order.
-* **Real Razorpay** payments, webhooks and refunds; real emails.
+* **Real Razorpay** payments, webhooks and refunds; real emails. The code paths themselves were run against local fakes on 4 Oct 2026; what's untested is the real services' responses and delivery.
 * **Real multi-worker web server.** Load was tested at the database level: PHP's built-in server on Windows handles one request at a time.
 
 ## Still open from earlier checks (details in `docs/08-STATUS-ISSUES-AND-ROADMAP.md`)

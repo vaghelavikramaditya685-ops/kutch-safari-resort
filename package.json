@@ -8,7 +8,7 @@
     "dev:book": "php -S 127.0.0.1:8080 -t backend/booking-engine",
     "setup:book": "php backend/booking-engine/bin/setup.php",
     "build": "vite build && esbuild backend/server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
-    "start": "NODE_ENV=production node dist/index.js",
+    "start": "node dist/index.js",
     "preview": "vite preview --host",
     "check": "tsc --noEmit",
     "format": "prettier --write ."

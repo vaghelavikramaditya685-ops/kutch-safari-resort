@@ -3,6 +3,12 @@ import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
 
+// This server only ever runs the built site, so it is production unless told
+// otherwise. Set here rather than as "NODE_ENV=production node …" in package.json,
+// which Windows' command shell cannot run. Production also stops Express showing
+// stack traces to visitors.
+process.env.NODE_ENV ??= "production";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // The project root: one level up from the bundle (dist/index.js), two levels up

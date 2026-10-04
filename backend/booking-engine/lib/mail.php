@@ -7,6 +7,20 @@
 
 require_once __DIR__ . '/db.php';
 
+/**
+ * A header value as mail allows it. Subjects such as "Booking confirmed — KSR-…"
+ * contain characters outside plain ASCII, which must be encoded in a header or
+ * some mail apps show them as "â€"".
+ */
+function mail_header_text(string $s): string {
+    return preg_match('/[^\x20-\x7E]/', $s) ? '=?UTF-8?B?' . base64_encode($s) . '?=' : $s;
+}
+
+/** The body, base64 in short lines: safe for any server (no 998-character lines, no lone dots). */
+function mail_body(string $html): string {
+    return chunk_split(base64_encode($html), 76, "\r\n");
+}
+
 function send_mail(string $to, string $subject, string $html, ?string $bcc = null): bool {
     if (!$to) return false;
 
@@ -15,13 +29,14 @@ function send_mail(string $to, string $subject, string $html, ?string $bcc = nul
 
     $headers  = "MIME-Version: 1.0\r\n";
     $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-    $headers .= sprintf("From: %s <%s>\r\n", $from_name, $from_email);
+    $headers .= "Content-Transfer-Encoding: base64\r\n";
+    $headers .= sprintf("From: %s <%s>\r\n", mail_header_text((string) $from_name), $from_email);
     $headers .= sprintf("Reply-To: %s\r\n", $from_email);
     if ($bcc) $headers .= sprintf("Bcc: %s\r\n", $bcc);
 
     if (cfg('mail.smtp.enabled')) return smtp_send($to, $subject, $html, $bcc);
 
-    $sent = @mail($to, $subject, $html, $headers);
+    $sent = @mail($to, mail_header_text($subject), mail_body($html), $headers);
     audit($sent ? 'mail_sent' : 'mail_failed', 'email', null, ['to' => $to, 'subject' => $subject]);
     return $sent;
 }
@@ -49,8 +64,15 @@ function smtp_send(string $to, string $subject, string $html, ?string $bcc = nul
     $read();
     $say('EHLO ' . ($_SERVER['SERVER_NAME'] ?? 'localhost'));
     if (cfg('mail.smtp.secure') === 'tls') {
-        $say('STARTTLS');
-        stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+        // If the server will not switch to TLS, stop: carrying on would send the
+        // mailbox password below in plain text.
+        $ok_tls = str_starts_with($say('STARTTLS'), '220')
+               && @stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+        if (!$ok_tls) {
+            fclose($fp);
+            audit('smtp_tls_failed', 'email', null, ['host' => $host]);
+            return false;
+        }
         $say('EHLO ' . ($_SERVER['SERVER_NAME'] ?? 'localhost'));
     }
     if ($user) {
@@ -63,11 +85,15 @@ function smtp_send(string $to, string $subject, string $html, ?string $bcc = nul
     if ($bcc) $say("RCPT TO:<$bcc>");
     $say('DATA');
 
-    $msg  = "From: " . cfg('mail.from_name') . " <$from>\r\n";
+    // Date and Message-ID: mail without them is more likely to be filed as spam.
+    $domain = substr(strrchr((string) $from, '@') ?: '@localhost', 1);
+    $msg  = "Date: " . date('r') . "\r\n";
+    $msg .= "Message-ID: <" . bin2hex(random_bytes(12)) . "@$domain>\r\n";
+    $msg .= "From: " . mail_header_text((string) cfg('mail.from_name')) . " <$from>\r\n";
     $msg .= "To: <$to>\r\n";
-    $msg .= "Subject: $subject\r\n";
-    $msg .= "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n";
-    $msg .= $html . "\r\n.";
+    $msg .= "Subject: " . mail_header_text($subject) . "\r\n";
+    $msg .= "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n";
+    $msg .= mail_body($html) . ".";
     $resp = $say($msg);
     $say('QUIT');
     fclose($fp);

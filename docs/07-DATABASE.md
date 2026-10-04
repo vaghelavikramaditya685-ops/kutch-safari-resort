@@ -108,6 +108,13 @@ The owner's rule: **no synthetic data** in the real database. It must be real, a
 * **Text limits** (29 Sep 2026): SQLite ignores column sizes, MySQL refuses longer values. `lib/db.php` → `LIMITS` enforces them in code for every form: name 120, email 160, city 80, guest note 2,000, enquiry message 3,000, staff notes 2,000, payment note 300, cancel reason 250; phone 7–15 digits; arrival time "h:mm AM/PM".
 
 ### 4. Schema changes, and a warning about setup
+**Since 4 Oct 2026 `setup.php` guards against this:**
+* Unknown options are refused.
+* A full setup on a database that has bookings is refused unless `--reset` is given.
+* If any statement fails, it reports FAILED rather than "Ready".
+
+With `--reset` on a database that has bookings, the reload still half-applies (properties cannot be deleted while bookings point at them), so treat `--reset` as test-copy-only.
+
 **Re-running `php bin/setup.php` (without `--admin`) reloads `seed.sql`, which first empties `properties`, `room_types`, `rate_plans`, `rates` (special prices), `inventory`, `addons`, `packages` and `package_prices`.** Prices changed in the admin, special prices and extras would be lost, and White Rann Camp comes back as it is in the seed (switched off). Bookings and payments are not in that list, but they point at room types by id. **Never re-run full setup on the live database.** `--admin` on its own is safe.
 
 There are **no migration scripts**. `bin/setup.php` creates missing tables (`CREATE TABLE IF NOT EXISTS`). Columns added during this project (`rate_plans.single_price`, `addons.min_quantity`, wider `booking_rooms.rate_plan_name`) are in `schema.sql`, so a fresh install has them. An **older existing** database needs them added by hand (`ALTER TABLE …`).

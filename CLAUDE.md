@@ -7,7 +7,7 @@ The project: website (`frontend/`, React 19 + Vite) and booking engine + admin p
 ## Rules to follow first (full list in `README.md` → "Instructions for AI Agents and Developers")
 * Do not push to GitHub unless the owner asks in that conversation.
 * No invented data in the real database (`backend/booking-engine/data/booking.sqlite`); test on a throwaway copy. The 6 demo bookings are named "Demo …" / @example.com.
-* Never run full `bin/setup.php` on real data (only `--admin`).
+* Never run full `bin/setup.php` on real data (only `--admin`). It now refuses unknown options and refuses when bookings exist unless `--reset` is passed — never pass `--reset` on real data.
 * Secrets only in `backend/booking-engine/config.local.php` (git-ignored); never commit, print or copy them.
 * Keep the colours; the owner approves visual changes.
 * When docs change, keep this file and the README tables in sync. All Markdown lives in `README.md`, `BUGS.md` and `docs/01`–`09` (plus this file).
@@ -17,7 +17,7 @@ The project: website (`frontend/`, React 19 + Vite) and booking engine + admin p
 | File | What it contains |
 |---|---|
 | `CLAUDE.md` | This map. |
-| [`BUGS.md`](BUGS.md) | Bugs to fix, with file:line, proof and suggested fix. Covers the 30 Sep 2026 test with the demo data (B1–B17: money, refunds, heavy traffic, admin; the one-admin-at-a-time requirement is B10) and the 4 Oct 2026 debug-mode and syntax check (no syntax errors; B18–B19 found; F1 list-instead-of-text input and F2 arrival-wheel JS error fixed). B1–B19 are not fixed yet. |
+| [`BUGS.md`](BUGS.md) | Bugs to fix, with file:line, proof and suggested fix. Covers the 30 Sep 2026 test with the demo data (B1–B17: money, refunds, heavy traffic, admin; the one-admin-at-a-time requirement is B10) the 4 Oct 2026 debug-mode and syntax check (no syntax errors; B18–B19 found; F1 list-instead-of-text input and F2 arrival-wheel JS error fixed) and the 4 Oct 2026 runtime check, every code path executed with Razorpay/Stayflexi/SMTP faked (B20–B26 found; R1 setup.php typo-reset guard, R2 Razorpay refund amount_paid, R3 email encoding/headers/STARTTLS, R4 `pnpm start` on Windows fixed). B1–B26 are not fixed yet. |
 | [`README.md`](README.md) | Start here. What the project is, the owner's hard rules for anyone changing code, AI instructions and glossary, project overview and current state, quick start (install/run), repository layout, and a table mapping every old doc to its new place. |
 | [`docs/01-ARCHITECTURE-AND-SETUP.md`](docs/01-ARCHITECTURE-AND-SETUP.md) | How the React site and the PHP booking engine fit together, tech stack and why, the full folder tree with entry points, environment/settings/run commands and common setup errors, component and PHP dependency maps. |
 | [`docs/02-WEBSITE.md`](docs/02-WEBSITE.md) | The React site (`frontend/`): every route, the menu (full from 1,320 px), each page (Home, Stay, Experiences from the brochure, Around the Resort, destination guides, content pages), shared components, SEO/titles/sitemap, forms and interactions, visitor journeys. |

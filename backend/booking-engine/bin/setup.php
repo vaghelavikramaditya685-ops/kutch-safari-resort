@@ -2,8 +2,9 @@
 /* ===========================================================================
  *  One-time setup. Run from the command line:
  *
- *      php bin/setup.php                       create tables + starting data
+ *      php bin/setup.php                       create tables + starting data (empty database)
  *      php bin/setup.php --admin "username-or-email" "Your Name" "password"
+ *      php bin/setup.php --reset               reload the starting data over existing bookings
  *
  *  Works against MySQL (cPanel) and SQLite (local testing). The schema file is
  *  written for MySQL; when the driver is sqlite it is translated on the way in,
@@ -102,6 +103,7 @@ function run_script(string $file): int {
     foreach (split_statements($sql) as $stmt) {
         try { db()->exec($stmt); $n++; }
         catch (Throwable $e) {
+            $GLOBALS['setup_failed'] = ($GLOBALS['setup_failed'] ?? 0) + 1;
             echo "  ! " . substr(preg_replace('/\s+/', ' ', $stmt), 0, 70) . "\n    " . $e->getMessage() . "\n";
         }
     }
@@ -130,7 +132,30 @@ if (in_array('--admin', $args, true)) {
     exit(0);
 }
 
-/* --- Full setup -------------------------------------------------------- */
+/* --- Full setup: only on purpose ------------------------------------------
+ * It reloads seed.sql, which empties rooms, prices, special prices and extras
+ * first. An unknown option (a typo such as --amdin) used to fall through to here
+ * and do exactly that, so options are checked, and a database that already has
+ * bookings is left alone unless --reset is given. */
+foreach (array_slice($args, 1) as $a) {
+    if ($a !== '--reset') {
+        echo "Unknown option: $a (nothing was changed)\n\n"
+           . "  php bin/setup.php                                 first-time setup (empty database)\n"
+           . "  php bin/setup.php --admin USERNAME NAME PASSWORD  add or reset an admin login\n"
+           . "  php bin/setup.php --reset                         reload the starting data anyway\n";
+        exit(1);
+    }
+}
+$bookings = 0;
+try { $bookings = (int) qval("SELECT COUNT(*) FROM bookings", [], 0); } catch (Throwable $e) { /* no tables yet: a fresh install */ }
+if ($bookings > 0 && !in_array('--reset', $args, true)) {
+    echo "This database already has $bookings booking(s). A full setup would reload the starting\n"
+       . "data and replace rooms, prices, special prices and extras. Nothing was changed.\n\n"
+       . "  To add or reset an admin login:     php bin/setup.php --admin USERNAME NAME PASSWORD\n"
+       . "  To reload the starting data anyway: php bin/setup.php --reset\n";
+    exit(1);
+}
+
 echo "Creating tables ... ";
 echo run_script(__DIR__ . '/../schema.sql') . " statements\n";
 
@@ -184,5 +209,11 @@ if (!qval("SELECT id FROM admin_users LIMIT 1")) {
 $counts = [];
 foreach (['properties', 'room_types', 'rate_plans', 'rates', 'addons', 'packages'] as $t) {
     $counts[] = "$t=" . qval("SELECT COUNT(*) FROM $t", [], 0);
+}
+// A reload that half-failed must not look like a success.
+if (!empty($GLOBALS['setup_failed'])) {
+    echo "\nFAILED: {$GLOBALS['setup_failed']} statement(s) did not run (see the lines marked ! above).\n"
+       . "The database may be only partly set up. " . implode('  ', $counts) . "\n";
+    exit(1);
 }
 echo "\nReady. " . implode('  ', $counts) . "\n";

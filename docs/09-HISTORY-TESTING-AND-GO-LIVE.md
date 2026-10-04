@@ -41,6 +41,19 @@ _Updated 30 Sep 2026. Newest first._
 #### 30 Sep 2026 (later): docs combined from 70 files into 10
 At the owner's request every Markdown file (docs 01–30, docs/notes, the 20 `context/` files, both engine READMEs and the 29 Sep report folders) was merged into `README.md` + `docs/01`–`09`. Each old file is a section headed "(was `old/path.md`)" with an anchor; the table at the bottom of `README.md` maps every old file to its new place. Older text that says "doc 22" or "docs/30" means those sections. The old files are in git history.
 
+### 4 Oct 2026 (later still): runtime check, every code path executed
+* **What ran:** the paths that never run on this PC, switched on in a throwaway copy with Razorpay, Stayflexi and email pointed at local fakes, plus all 8 CLI and cron scripts.
+  * Server side: 69 HTTP requests (Razorpay order, verify, replays, webhook and refunds; Stayflexi down, sold-out and junk replies; pay-at-hotel; White Rann Camp; discount codes; admin refunds and the sign-in lockout).
+  * Browser: the guest booking page's JavaScript (Razorpay checkout, UPI QR, three rooms, sold-out suggestions, network-failure retry, remembered booking), check-status states, the PDF viewer and admin scripts.
+  * Website: interactions and media paths, `pnpm start` and the Vercel function.
+* **Fixed:**
+  * **R1 `setup.php`:** unknown options are refused; there is no full reload over bookings without `--reset`; a half-failed reload says FAILED, not "Ready".
+  * **R2 Razorpay refunds:** they now update `amount_paid`.
+  * **R3 email:** encoded subject and sender name, base64 body, `Date` and `Message-ID` headers, and the client stops if STARTTLS fails instead of sending the password in plain text.
+  * **R4 `pnpm start`:** works on Windows.
+* **Logged in `BUGS.md`:** B20 (a second admin tab signs out the first), B21 (multi-room Continue silently does nothing), B22 (status lookup puts phone/email in the URL), B23 (junk Stayflexi reply shown as "just taken"), B24 (contact endpoints accept empty posts), B25 (legacy Python scripts can't run; delete), B26 (`--reset` half-applies with bookings).
+* After the fixes: 0 PHP warnings or errors, 0 JavaScript errors, all expectations met; pricing tests 17/17; `tsc` and the build pass. The real database was only read.
+
 ### 4 Oct 2026 (later): debug-mode and syntax check of everything
 * **Syntax: no errors in any file.** 260 tracked files were run through a real parser for their type: PHP lint, `tsc` plus the production build, Python compile, `node --check`, JSON/YAML/XML/HTML parsers, lightningcss, SQL loaded into a fresh database, and every image and video opened. Full breakdown in `BUGS.md` → "4 Oct 2026".
 * **Debug mode:**

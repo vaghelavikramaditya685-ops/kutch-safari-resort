@@ -195,7 +195,7 @@ Website: `VITE_BOOKING_URL` (build time; default `/book/`) [CODE `lib/booking.ts
 | Razorpay "HTTP 0" on Windows | no CA bundle | `curl_trust_system_certs()` (already in code) |
 | `/book/admin` broken layout | missing trailing slash | redirect in `_auth.php` (fixed) |
 | Port 8080 in use | a previous PHP server | stop it, or reuse |
-| `NODE_ENV=production` fails in cmd | Unix-style env in `pnpm start` | use Git Bash / Linux host |
+| ~~`NODE_ENV=production` fails in cmd~~ | Fixed 4 Oct 2026: `pnpm start` is now `node dist/index.js`, and `backend/server/index.ts` sets production mode itself | works in cmd, PowerShell, Git Bash and Linux |
 
 ---
 
