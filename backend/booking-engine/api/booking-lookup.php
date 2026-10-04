@@ -9,7 +9,9 @@ rate_limit('lookup', 15, 300);
 $b = in_str('token') !== ''
    ? find_booking_by_token(in_str('ref'), in_str('token'))
    : find_booking(in_str('ref'), in_str('contact'));
-if (!$b) json_fail('We could not find a booking with those details.', 404);
+// A mistyped code or phone is an ordinary answer, not a server error: a 404 status made
+// the browser log "Failed to load resource" every time. manage.php reads ok/error.
+if (!$b) json_fail('We could not find a booking with those details.', 200);
 
 json_out(['ok' => true, 'booking' => [
     'ref' => $b['ref'], 'status' => booking_lapsed($b) ? 'not paid' : $b['status'],

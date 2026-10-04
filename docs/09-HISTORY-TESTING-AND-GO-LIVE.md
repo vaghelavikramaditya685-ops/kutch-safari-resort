@@ -41,6 +41,21 @@ _Updated 30 Sep 2026. Newest first._
 #### 30 Sep 2026 (later): docs combined from 70 files into 10
 At the owner's request every Markdown file (docs 01–30, docs/notes, the 20 `context/` files, both engine READMEs and the 29 Sep report folders) was merged into `README.md` + `docs/01`–`09`. Each old file is a section headed "(was `old/path.md`)" with an anchor; the table at the bottom of `README.md` maps every old file to its new place. Older text that says "doc 22" or "docs/30" means those sections. The old files are in git history.
 
+### 4 Oct 2026 (latest): console check, every level on every page
+* **Checked:** every console level (errors, warnings, info, logs, debug) and failed network loads.
+  * Website: all routes in development (desktop and 375 px, with interactions) and in the production build.
+  * Engine: a full booking with the debug bar open, check-status lookups, and the receipt and terms viewers.
+  * Admin: every screen, including the previews and Availability side panels.
+  * Server consoles: Vite, PHP and Node.
+  * A source scan for leftover `console.*` and `debugger`.
+* **Result:** the browser console is silent everywhere (development shows only Vite's and React's normal messages; production logs nothing). There are no React warnings and no stray `console.*` or `debugger` in browser code.
+* **Fixed:**
+  * **C1:** a mistyped check-status lookup returned HTTP 404, which logged "Failed to load resource" in the console. `api/booking-lookup.php` now answers 200 with `ok: false`; the page works the same.
+  * **C2:** `/favicon.ico` 404s. The engine now has the website's `favicon.ico`, linked next to `icon.svg`.
+  * **C3:** the production server's raw `EADDRINUSE` stack trace became a plain "Port … is already in use" message.
+* Noted in `BUGS.md` B24: both contact endpoints `console.log` the full enquiry, including personal details.
+* Pricing tests 17/17; `tsc` and the build pass. The real database was only read.
+
 ### 4 Oct 2026 (later still): runtime check, every code path executed
 * **What ran:** the paths that never run on this PC, switched on in a throwaway copy with Razorpay, Stayflexi and email pointed at local fakes, plus all 8 CLI and cron scripts.
   * Server side: 69 HTTP requests (Razorpay order, verify, replays, webhook and refunds; Stayflexi down, sold-out and junk replies; pay-at-hotel; White Rann Camp; discount codes; admin refunds and the sign-in lockout).

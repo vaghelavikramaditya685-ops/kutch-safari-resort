@@ -31,6 +31,7 @@ if ($doc === 'terms') {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title><?= $e($title) ?></title>
+<link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
 <style>
   :root { --clay: #B85C2E; --ink: #241F1B; --line: #E4DCD1; }

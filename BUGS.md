@@ -3,8 +3,9 @@
 _Tested 30 Sep 2026 with the demo data (6 "Demo …" bookings + the owner's KSR-GJKQYG). B1–B17 are not fixed yet. Two checks on 4 Oct 2026 followed:
 - **Debug mode + syntax:** added B18–B19 and fixed F1–F2.
 - **Runtime, every code path executed:** added B20–B26 and fixed R1–R4.
+- **Console, every level on every page:** fixed C1–C3; no new open bugs.
 
-Both are described in the next two sections. B1–B26 are open._
+All three are described in the next sections. B1–B26 are open._
 
 ## 4 Oct 2026: debug-mode and syntax check
 
@@ -74,6 +75,26 @@ Both are described in the next two sections. B1–B26 are open._
 * **R4. `pnpm start` failed on Windows.** It used `NODE_ENV=production node dist/index.js`, Linux syntax that Windows' shell can't run: `'NODE_ENV' is not recognized`. **Fix:** the script is `node dist/index.js`, and the server sets production mode itself, so error pages still hide stack traces.
 
 **New open bugs:** B20–B26 below.
+
+## 4 Oct 2026 (latest): console check, every level on every page
+
+**What was checked.** Every console level (errors, warnings, info, logs, debug) plus failed network loads:
+- **Website in development:** all 23 routes at desktop size, key pages at phone size (375 px), with the menu, lightbox, contact form, FAQ jump and full-page scrolling.
+- **Website production build:** all routes.
+- **Booking engine:** a full booking with the debug bar open and the arrival wheel used; check-status lookups (right, wrong and private link); the receipt and terms viewers.
+- **Admin:** sign-in, list filters, booking pages, change and special-price previews, Availability at 7/14/30 days with 5 side panels, enquiries, sign-out.
+- **Server consoles:** Vite, PHP (built-in server and error log) and Node.
+- **Source scan** for leftover `console.*` and `debugger`.
+
+**Result.**
+- The browser console was silent everywhere: in development the only lines are Vite's and React's own normal messages, and the production build logs nothing at all.
+- No React warnings, no `debugger` statements, and no `console.*` calls in any browser code.
+- Server consoles are clean after the fixes below.
+
+**Fixed on 4 Oct (found by this check):**
+* **C1. A mistyped check-status lookup logged a red console error.** `api/booking-lookup.php` answered "not found" with HTTP 404, so the browser logged "Failed to load resource: the server responded with a status of 404" every time a guest mistyped a code or phone number. **Fix:** it now answers 200 with `ok: false`, like the booking API's other guest mistakes. `manage.php` reads `ok`/`error`, so the page behaves the same. Verified: right, wrong and right-again lookups all display correctly with an empty console.
+* **C2. `/favicon.ico` returned 404 on nearly every engine page** (26 times in the PHP server log): browsers that don't use SVG icons ask for it. **Fix:** `favicon.ico` (the website's) added to the engine and linked next to `icon.svg` on the booking, status, viewer and admin pages. Verified: 200, and no 404s since.
+* **C3. The production server crashed with a raw stack trace when its port was taken** (`Unhandled 'error' event … EADDRINUSE`). **Fix:** `backend/server/index.ts` prints "Port 3100 is already in use…" and exits.
 
 **How it was tested.** All tests ran on **throwaway copies** of the booking engine and its database in a temp folder: one on port 8090 for pages and PDFs, one for the load tests. The real database was only read, never written. Checks covered:
 - the numbers stored for every booking;
@@ -274,6 +295,7 @@ In real life, the cottage would be held again (perhaps after being resold), Stay
   * `backend/server/index.ts` `POST /api/contact` stores *anything*, even a form post with no JSON, as an "enquiry" in `data/enquiries.json` inside the project folder, and replies "Enquiry saved successfully".
   * `api/contact.ts` (Vercel) only logs, and also says success with no body.
   * The site doesn't use either today (the Home form is still the mock), but don't wire them up as they are. The engine's `api/enquiry.php` already validates and stores enquiries properly.
+  * Both also write the whole enquiry (name, email, phone, message) to the server console with `console.log`, so personal details end up in server and Vercel logs.
 * **B25 (tidy-up). The 35 legacy Python scripts can't run.** Every one opens files under `client/…`, the folder renamed to `frontend/` on 29 Sep, so each would fail at its first file. 29 of them rewrite project files. They compile and have no undefined names or missing imports. **Fix:** delete `scripts/legacy/` (already marked "delete once confirmed").
 * **B26 (low). `setup.php --reset` on a database with bookings still half-applies.** `seed.sql` deletes properties, which bookings point at, so 3 statements fail; this is now reported as FAILED (R1). Only ever use `--reset` on a test copy.
 

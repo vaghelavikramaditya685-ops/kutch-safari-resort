@@ -13,6 +13,7 @@ $ref = htmlspecialchars($_GET['ref'] ?? '', ENT_QUOTES);
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Check your booking</title>
+<link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
 <meta name="robots" content="noindex">
 <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">

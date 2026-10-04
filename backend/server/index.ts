@@ -74,6 +74,15 @@ async function startServer() {
 
   const port = process.env.PORT || 3000;
 
+  // Without this, a busy port ends the process with Node's raw "Unhandled 'error'
+  // event" stack trace instead of saying what is wrong.
+  server.on("error", (err: NodeJS.ErrnoException) => {
+    console.error(err.code === "EADDRINUSE"
+      ? `Port ${port} is already in use. Stop whatever is using it, or set the PORT environment variable to a free port and start again.`
+      : `Server could not start: ${err.message}`);
+    process.exit(1);
+  });
+
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });

@@ -40,6 +40,7 @@ $e        = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Book your stay — <?= $e($property['name']) ?></title>
+<link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
