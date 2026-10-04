@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { Snowflake, Wifi, Coffee, Tv, Lock, Archive, X, Wind } from "lucide-react";
+import { Snowflake, Wifi, Coffee, Tv, Lock, Wind } from "lucide-react";
 import { bookingUrl } from "@/lib/booking";
 
-function RoomTemplate({ title, exteriorTitle, interiorTitle, extImgs, intImgs, subtitle, description, onBookNow }: any) {
+function RoomTemplate({ title, exteriorTitle, interiorTitle, extImgs, intImgs, subtitle, description }: any) {
   const [lightbox, setLightbox] = useState<string | null>(null);
 
   return (
@@ -113,98 +113,6 @@ function RoomTemplate({ title, exteriorTitle, interiorTitle, extImgs, intImgs, s
     </div>
   );
 }
-
-function Accommodation() {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <section id="cottages" className="bg-[#e4d5c7] pt-24 pb-16">
-      <div className="container px-4">
-        <h2 className="text-center font-display text-4xl md:text-5xl uppercase tracking-[0.15em] text-[#4a4a4a] mb-8">
-          ACCOMMODATION
-        </h2>
-        <p className="max-w-4xl mx-auto text-base md:text-lg leading-relaxed text-center text-[#5a5a5a] mb-16 font-light">
-          Experience Kutchi hospitality in our traditional AC Cottages and Deluxe AC Cottages. Spread across the hillside, each is beautifully decorated with the mirror work and mud appliqu├® of local artisans. With sit-outs and verandas facing the lake, nature is never out of sight. <em>We call it Rustic Luxury.</em>
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 max-w-5xl mx-auto">
-          <div className="flex flex-col items-center gap-6">
-            <img 
-              src="/assets/images/new/kutch-ac-cottage-bhunga1.jpg" 
-              alt="Kutch AC Cottage" 
-              className="w-full aspect-[3/4] object-cover shadow-lg border-2 border-white/20" 
-            />
-            <div className="text-center">
-              <h3 className="font-display text-xl tracking-[0.15em] text-[#4a4a4a] uppercase">Kutch AC Cottage</h3>
-              <p className="text-sm tracking-widest text-[#4a4a4a]/70 uppercase mt-1">(Standard)</p>
-            </div>
-          </div>
-          <div className="flex flex-col items-center gap-6">
-            <img 
-              src="/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-deluxe-ac-cottage.jpg" 
-              alt="Deluxe AC Cottage" 
-              className="w-full aspect-[3/4] object-cover shadow-lg border-2 border-white/20" 
-            />
-            <div className="text-center">
-              <h3 className="font-display text-xl tracking-[0.15em] text-[#4a4a4a] uppercase">Deluxe AC Cottage</h3>
-              <p className="text-sm tracking-widest text-[#4a4a4a]/70 uppercase mt-1">(Deluxe)</p>
-            </div>
-          </div>
-        </div>
-
-        {!expanded && (
-          <div className="mt-16 flex justify-center">
-            <button 
-              onClick={() => setExpanded(true)} 
-              className="bg-[var(--terracotta)] text-white px-12 py-3.5 uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition-opacity shadow-md"
-            >
-              Explore
-            </button>
-          </div>
-        )}
-      </div>
-
-      {expanded && (
-        <div className="mt-24 bg-background pt-20 border-t border-black/5 animate-in fade-in duration-700 slide-in-from-top-8">
-          <RoomTemplate 
-            title="Kutch AC Cottage"
-            exteriorTitle="Exterior"
-            interiorTitle="Interior"
-            extImgs={[
-              "/assets/images/new/kutch-ac-cottage-bhunga1.jpg",
-              "/assets/images/new/kutch-ac-cottage-kutchi-bathroom1.jpg"
-            ]}
-            intImgs={[
-              "/assets/images/new/kutch-ac-cottage-kutchi-cottage-interior-2.jpg",
-              "/assets/images/new/kutch-ac-cottage-_dsc9435.jpg"
-            ]}
-            subtitle="Cottages inspired by Local Styles"
-            description="Our signature circular bhungas feature traditional thatched roofs that keep the interior cool, adorned with authentic Kutchi mirror-work. Each cottage is fully air-conditioned with modern en-suite bathrooms and a private veranda where you enjoy a luxurious lifestyle called Rustic Luxury!"
-          />
-
-          <RoomTemplate 
-            title="Deluxe AC Cottage"
-            exteriorTitle="Exterior"
-            interiorTitle="Interior"
-            extImgs={[
-              "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-deluxe-ac-cottage.jpg",
-              "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-kutch-safari-ab-vision-17.jpg"
-            ]}
-            intImgs={[
-              "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-deluxe-ac-cottage-interior.jpg",
-              "/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-deluxe-ac-cottage-interior-02.jpg"
-            ]}
-            subtitle="Spacious & Elegantly Designed"
-            description="The deluxe cottages offer enhanced comfort while retaining the rich cultural aesthetics of the region. Perfect for families looking for an extended lakeside retreat, these spacious rooms feature exquisite decor, beautiful garden views, and full amenities."
-          />
-        </div>
-      )}
-    </section>
-  );
-}
-
-
-
 
 export default function Stay() {
   useEffect(() => {

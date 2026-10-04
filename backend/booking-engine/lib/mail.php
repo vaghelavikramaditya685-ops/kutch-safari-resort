@@ -23,6 +23,11 @@ function mail_body(string $html): string {
 
 function send_mail(string $to, string $subject, string $html, ?string $bcc = null): bool {
     if (!$to) return false;
+    // Switched off (config mail.enabled = false, e.g. on a development PC): nothing is sent.
+    if (!cfg('mail.enabled', true)) {
+        audit('mail_skipped', 'email', null, ['to' => $to, 'subject' => $subject, 'why' => 'mail.enabled is off']);
+        return false;
+    }
 
     $from_email = cfg('mail.from_email');
     $from_name  = cfg('mail.from_name');
@@ -36,6 +41,18 @@ function send_mail(string $to, string $subject, string $html, ?string $bcc = nul
 
     if (cfg('mail.smtp.enabled')) return smtp_send($to, $subject, $html, $bcc);
 
+    // PHP's mail() on Windows talks to the SMTP server in php.ini (localhost:25 unless
+    // set). With nothing listening it waited about 2 seconds before failing, on every
+    // payment confirmation and enquiry. Check quickly first and fail at once.
+    if (PHP_OS_FAMILY === 'Windows') {
+        $host = (string) (ini_get('SMTP') ?: 'localhost'); $port = (int) (ini_get('smtp_port') ?: 25);
+        $probe = @fsockopen($host, $port, $errno, $errstr, 0.3);
+        if (!$probe) {
+            audit('mail_failed', 'email', null, ['to' => $to, 'subject' => $subject, 'error' => "no mail server at $host:$port"]);
+            return false;
+        }
+        fclose($probe);
+    }
     $sent = @mail($to, mail_header_text($subject), mail_body($html), $headers);
     audit($sent ? 'mail_sent' : 'mail_failed', 'email', null, ['to' => $to, 'subject' => $subject]);
     return $sent;

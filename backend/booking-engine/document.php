@@ -14,7 +14,7 @@ $doc = ($_GET['doc'] ?? '') === 'terms' ? 'terms' : 'receipt';
 if ($doc === 'terms') {
     $code = (string) ($_GET['property'] ?? 'kutch-safari-resort');
     $p = q1("SELECT * FROM properties WHERE code = ? AND active = 1", [$code]);
-    if (!$p) { http_response_code(404); exit('Unknown property.'); }
+    if (!$p) guest_error_page(404, 'Not found', 'We could not find those terms. Please call us and we will send them to you.');
     $src = 'terms.php?' . http_build_query(['property' => $code]);
     $title = 'Terms and conditions — ' . $p['name'];
     $file = $code . '-terms.pdf';

@@ -1,6 +1,6 @@
 ﻿import { Link } from "wouter";
 import { useEffect } from "react";
-import { ArrowLeft, CheckCircle2, Tent, Car, Utensils, Ticket, MapPin, Calendar } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Tent, Car, Utensils, Ticket, MapPin } from "lucide-react";
 
 export default function RannUtsavPackage() {
   useEffect(() => {

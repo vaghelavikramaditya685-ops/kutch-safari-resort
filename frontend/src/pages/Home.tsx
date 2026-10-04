@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { useEffect, useState } from "react";
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle2, User, PhoneCall, Sun, Cloud, Wind, ArrowRight } from "lucide-react";
+import { Phone, Mail, CheckCircle2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -148,11 +148,20 @@ function ContactSection() {
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <input required type="text" placeholder="Full Name" className="w-full p-4 bg-[#f8f5e2] border border-[#e4d5c7] rounded-sm text-sm" onChange={(e) => setFormData({...formData, name: e.target.value})} />
-                    <input required type="email" placeholder="Email Address" className="w-full p-4 bg-[#f8f5e2] border border-[#e4d5c7] rounded-sm text-sm" onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                    {/* Each field has a label for screen readers and a name/autocomplete for the browser (the placeholders are what shows). */}
+                    <div>
+                      <label htmlFor="contact-name" className="sr-only">Full name</label>
+                      <input required id="contact-name" name="name" autoComplete="name" type="text" placeholder="Full Name" className="w-full p-4 bg-[#f8f5e2] border border-[#e4d5c7] rounded-sm text-sm" onChange={(e) => setFormData({...formData, name: e.target.value})} />
+                    </div>
+                    <div>
+                      <label htmlFor="contact-email" className="sr-only">Email address</label>
+                      <input required id="contact-email" name="email" autoComplete="email" type="email" placeholder="Email Address" className="w-full p-4 bg-[#f8f5e2] border border-[#e4d5c7] rounded-sm text-sm" onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                    </div>
                   </div>
-                  <input required type="tel" placeholder="Phone Number" className="w-full p-4 bg-[#f8f5e2] border border-[#e4d5c7] rounded-sm text-sm" onChange={(e) => setFormData({...formData, phone: e.target.value})} />
-                  <textarea required rows={4} placeholder="Your Message..." className="w-full p-4 bg-[#f8f5e2] border border-[#e4d5c7] rounded-sm text-sm resize-none" onChange={(e) => setFormData({...formData, message: e.target.value})}></textarea>
+                  <label htmlFor="contact-phone" className="sr-only">Phone number</label>
+                  <input required id="contact-phone" name="phone" autoComplete="tel" type="tel" placeholder="Phone Number" className="w-full p-4 bg-[#f8f5e2] border border-[#e4d5c7] rounded-sm text-sm" onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+                  <label htmlFor="contact-message" className="sr-only">Your message</label>
+                  <textarea required id="contact-message" name="message" rows={4} placeholder="Your Message..." className="w-full p-4 bg-[#f8f5e2] border border-[#e4d5c7] rounded-sm text-sm resize-none" onChange={(e) => setFormData({...formData, message: e.target.value})}></textarea>
                   <button type="submit" disabled={submitting} className="w-full bg-[var(--terracotta)] text-white py-4 uppercase tracking-[0.15em] text-sm font-semibold rounded-sm">
                     {submitting ? 'Sending...' : 'Submit Inquiry'}
                   </button>

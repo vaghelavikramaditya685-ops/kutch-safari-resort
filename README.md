@@ -93,7 +93,7 @@ _(was `context/ai_instructions.md`)_
 
 ### How to verify a change
 1. `php -l` on changed PHP; `pnpm check`; `pnpm build`.
-2. `php backend/booking-engine/bin/test-changes.php` (17/17) and `bin/check-system.php`.
+2. `php backend/booking-engine/bin/test-changes.php` (17/17), `bin/test-logic.php` (29/29), `bin/test-concurrency.php` (12/12) and `bin/check-system.php`. All work on a temporary copy of the database.
 3. For flows: run a copy of the engine on another port with a copy of the DB (see `chaos/EVIDENCE/`), never the real one.
 4. Open the pages in a browser; check the console and that nothing scrolls sideways at 375 px.
 
@@ -245,7 +245,6 @@ backend/
 api/contact.ts        Vercel serverless contact handler (stays at the root: Vercel needs /api there)
 docs/                 9 project docs (01–09); all Markdown lives in README.md + docs/
 chaos/EVIDENCE/       scripts used by the 29 Sep 2026 chaos test (the reports are in docs/09)
-scripts/legacy/       old one-off edit scripts, kept for history only (unused)
 ```
 
 Routes: `/`, `/stay`, `/experiences` (brochure content), `/around-the-resort`

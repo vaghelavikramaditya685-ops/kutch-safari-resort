@@ -17,7 +17,10 @@ check_csrf();
 
 $id = (int) ($_GET['id'] ?? 0);
 $b  = get_booking($id);
-if (!$b) { admin_head('Not found', $user); echo '<div class="notice notice--err">No such booking.</div>'; admin_foot(); exit; }
+if (!$b) { http_response_code(404); admin_head('Not found', $user); echo '<div class="notice notice--err">No such booking.</div>'; admin_foot(); exit; }
+// What the price was checked against: if the booking changes before Save (a payment,
+// another change, a cancellation), the save is refused and the price checked again.
+$version = substr(hash('sha256', implode('|', [$b['status'], $b['total'], $b['amount_paid'], $b['check_in'], $b['check_out'], $b['updated_at']])), 0, 16);
 
 $room_types = q("SELECT * FROM room_types WHERE property_id = ? AND active = 1 ORDER BY sort_order, id", [$b['property_id']]);
 $plans = q("SELECT rp.*, rt.name AS room_name, rt.max_adults FROM rate_plans rp JOIN room_types rt ON rt.id = rp.room_type_id
@@ -67,7 +70,11 @@ foreach ($form['addons'] as $aid => $qty) if ($qty > 0) $changes['addons'][] = [
 
 $quote = null; $error = '';
 if ($posted) {
-    if (($_POST['do'] ?? '') === 'save') {
+    if (($_POST['do'] ?? '') === 'save' && !hash_equals($version, (string) ($_POST['version'] ?? ''))) {
+        $error = 'This booking has changed since you checked the price (a payment, another change or a cancellation). Check the new price below before saving.';
+        $quote = quote_modification($id, $changes);
+        if (!$quote['ok']) { $error = $quote['error']; $quote = null; }
+    } elseif (($_POST['do'] ?? '') === 'save') {
         $r = modify_booking($id, $changes, $user['name']);
         if ($r['ok']) { header('Location: booking.php?id=' . $id . '&changed=1'); exit; }
         $error = $r['error'];
@@ -87,8 +94,8 @@ $e = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
   · total <?= inr($b['total']) ?> · paid <?= inr($b['amount_paid']) ?>.
   Prices are worked out at today's rates, the same way the website prices a new booking.</p>
 
-<?php if ($b['status'] === 'cancelled'): ?>
-  <div class="notice notice--err">This booking is cancelled and cannot be changed.</div>
+<?php if ($b['status'] === 'cancelled' || $b['status'] === 'no_show' || $b['status'] === 'completed'): ?>
+  <div class="notice notice--err"><?= $b['status'] === 'cancelled' ? 'This booking is cancelled and cannot be changed.' : 'This stay has ended and cannot be changed.' ?></div>
 <?php admin_foot(); exit; endif; ?>
 
 <?php if ($error): ?><div class="notice notice--err"><?= $e($error) ?></div><?php endif; ?>
@@ -98,8 +105,8 @@ $e = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
   <div class="panel">
     <h3 style="font-size:1rem">Dates</h3>
     <div class="editform__dates">
-      <div class="field"><label>Check in</label><input type="date" name="check_in" value="<?= $e($form['check_in']) ?>" required></div>
-      <div class="field"><label>Check out</label><input type="date" name="check_out" value="<?= $e($form['check_out']) ?>" required></div>
+      <div class="field"><label for="e-in">Check in</label><input type="date" id="e-in" name="check_in" value="<?= $e($form['check_in']) ?>" required></div>
+      <div class="field"><label for="e-out">Check out</label><input type="date" id="e-out" name="check_out" value="<?= $e($form['check_out']) ?>" required></div>
     </div>
   </div>
 
@@ -111,7 +118,7 @@ $e = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
       <?php foreach ($rows as $i => $r): ?>
       <tr>
         <td><b>Room <?= $i + 1 ?></b></td>
-        <td><select name="room[<?= $i ?>][cottage]">
+        <td><select name="room[<?= $i ?>][cottage]" aria-label="Room <?= $i + 1 ?> cottage">
           <option value="">— no room —</option>
           <?php foreach ($plans as $p): $v = $p['room_type_id'] . ':' . $p['id']; ?>
             <option value="<?= $v ?>" <?= ($r['cottage'] ?? '') === $v ? 'selected' : '' ?>><?= $e($p['room_name'] . ' — ' . $p['name']) ?></option>
@@ -120,7 +127,7 @@ $e = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
             <option value="<?= $e($r['cottage']) ?>" selected>Current cottage (no longer on sale — choose another)</option>
           <?php endif; ?>
         </select></td>
-        <td><select name="room[<?= $i ?>][guests]">
+        <td><select name="room[<?= $i ?>][guests]" aria-label="Room <?= $i + 1 ?> guests">
           <?php foreach ($labels as $g => $l): ?>
             <option value="<?= $g ?>" <?= (int) ($r['guests'] ?? 2) === $g ? 'selected' : '' ?>><?= $l ?> · <?= $g ?> guest<?= $g > 1 ? 's' : '' ?></option>
           <?php endforeach; ?>
@@ -139,7 +146,7 @@ $e = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
       <tr>
         <td><?= $e($a['name']) ?><?= (int) $a['min_quantity'] > 1 ? ' <small style="color:var(--muted)">(min ' . (int) $a['min_quantity'] . ')</small>' : '' ?></td>
         <td><?= inr($a['price']) ?> <small style="color:var(--muted)"><?= $unit ?></small></td>
-        <td><input type="number" min="0" step="1" name="addon[<?= (int) $a['id'] ?>]" value="<?= (int) ($form['addons'][(int) $a['id']] ?? 0) ?>" style="width:90px"></td>
+        <td><input type="number" min="0" step="1" name="addon[<?= (int) $a['id'] ?>]" aria-label="How many: <?= $e($a['name']) ?>" value="<?= (int) ($form['addons'][(int) $a['id']] ?? 0) ?>" style="width:90px"></td>
       </tr>
       <?php endforeach; ?>
     </table>
@@ -183,14 +190,15 @@ $e = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
       <?php if ($m['refund'] > 0.5): ?>
         <tr class="chg--add"><td><strong>Give back to the guest</strong></td><td class="num"><strong><?= inr($m['refund']) ?></strong></td></tr>
       <?php else: ?>
-        <tr class="chg__total"><td><strong>Collect now</strong></td>
+        <tr class="chg__total"><td><strong><?= $m['arrived'] ? 'Collect at the desk' : 'Collect now' ?></strong></td>
           <td class="num"><strong><?= inr($m['due_now']) ?></strong></td></tr>
-        <?php if ($m['mode'] === 'advance' || $m['later'] > 0.5): ?>
+        <?php if (($m['mode'] === 'advance' && !$m['arrived']) || $m['later'] > 0.5): ?>
           <tr><td>Rest, before arrival</td><td class="num"><?= inr($m['later']) ?></td></tr>
         <?php endif; ?>
       <?php endif; ?>
     </table>
     <p class="muted" style="font-size:.82rem;margin:8px 0 12px">Record the money on the booking page after saving.</p>
+    <input type="hidden" name="version" value="<?= $e($version) ?>">
     <button class="btn" type="submit" name="do" value="save"
             data-confirm="Save these changes to <?= $e($b['ref']) ?>? The guest will see the new details and the new total of <?= inr($quote['total']) ?>." data-ok="Save changes">Save changes</button>
   </div>

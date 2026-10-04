@@ -56,6 +56,10 @@ $CONFIG = [
     'payee_name' => 'Kutch Safari Resort',
     // Minutes a UPI QR stays valid before the held rooms are released.
     'hold_minutes' => 45,
+    // Once the guest has scanned the QR, the cottage stays held while the desk
+    // checks the bank — for at most this many hours. After that it goes back on
+    // sale; the payment can still be confirmed if the cottage is still free.
+    'confirm_hours' => 48,
   ],
 
   /* --- Test payments (TESTING ONLY) --------------------------------------
@@ -126,6 +130,9 @@ $CONFIG = [
                   'note' => 'Free cancellation up to 30 days before arrival.'],
     'advance' => ['enabled' => true,  'label' => 'Pay 50% now',
                   'percent' => 50,
+                  // Only offered while the stay is more than this many days away: after
+                  // that the rest would already be due, so the guest pays in full.
+                  'balance_days_before' => 30,
                   'note' => 'Balance due 30 days before arrival. Free cancellation up to 30 days before arrival.'],
     // Off: every booking is paid 50% or in full when it is made; nothing is left fully unpaid.
     'hotel'   => ['enabled' => false, 'label' => 'Pay at the property',
@@ -165,6 +172,8 @@ $CONFIG = [
    * cPanel → Email Accounts → Connect Devices.
    */
   'mail' => [
+    // false sends nothing at all (logged as mail_skipped) — for a development PC.
+    'enabled'    => true,
     'from_email' => 'reservations@kutchsafariresort.com',
     'from_name'  => 'Kutch Safari Resort',
     'bcc_office' => 'kutchsafaribhuj@yahoo.com',
@@ -217,6 +226,14 @@ $CONFIG = [
     'http://localhost:8080',
     'http://127.0.0.1:8080',
   ],
+
+  /* --- Proxies in front of this engine -----------------------------------
+   * Only if the engine sits behind a proxy or CDN (a Vercel rewrite, Cloudflare):
+   * list the proxy's own addresses here, so each guest's real address is read
+   * from X-Forwarded-For for the rate limits. Leave empty when guests reach the
+   * engine directly (cPanel), or every guest could claim any address.
+   */
+  'trusted_proxies' => [],
 
   /* --- Developer ---------------------------------------------------------*/
   'debug'    => true,    // set to false on the live site: hides error details

@@ -410,6 +410,8 @@ body::after {
 }
 .assignbar span { font-size: .86rem; color: var(--body); }
 .assignbar .btn:disabled { opacity: .45; cursor: not-allowed; }
+/* Continue before every room has a cottage: looks the same as before, but says what is missing when pressed. */
+.assignbar .btn.is-waiting { opacity: .45; }
 
 /* "You booked KSR-…" — shown again after a refresh (engine.js showLastBooking). */
 .lastbooking {
@@ -447,3 +449,14 @@ body::after {
 .wheel__value { font-size: .88rem; color: var(--muted); }
 .wheelbox.is-set .wheel__value { color: var(--ink); font-weight: 600; }
 .wheel__side .btn[hidden] { display: none; }
+
+/* Read by screen readers, not shown: each page's one top-level heading. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* Admin: this tab is no longer signed in (idle, or the panel was opened elsewhere). */
+.admin-gone { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 9998;
+  display: flex; gap: 14px; align-items: center; max-width: calc(100% - 32px);
+  background: var(--paper); border: 1px solid var(--line); border-left: 4px solid var(--err);
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 16px; font-size: .88rem; }
+.admin-gone p { margin: 0; }

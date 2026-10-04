@@ -17,7 +17,7 @@ $error = '';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     // Slow down repeated guesses from one address.
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'cli';
+    $ip = client_ip() ?? 'cli';   // the same address audit() records
     $recent = (int) qval("SELECT COUNT(*) FROM audit_log WHERE action = 'login_failed' AND ip = ? AND created_at > ?",
                          [$ip, date('Y-m-d H:i:s', time() - 900)], 0);
     $user_sha = strtolower(trim((string) ($_POST['user_sha256'] ?? '')));
@@ -34,18 +34,33 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         foreach (q("SELECT * FROM admin_users WHERE active = 1") as $row) {
             if (hash_equals(hash('sha256', strtolower(trim((string) $row['email']))), $user_sha)) { $u = $row; break; }
         }
-        if ($u && password_verify($pass_sha, $u['password_hash'])) {
+        // One admin at a time: while someone else has the panel open, nobody else gets in.
+        $holder = ($u && password_verify($pass_sha, $u['password_hash'])) ? admin_lock_row() : null;
+        if ($holder && admin_lock_live($holder) && $holder['session_id'] !== session_id()) {
+            audit('login_refused_in_use', 'admin', $u['id'], ['held_by' => $holder['admin_name']], $u['email']);
+            $error = admin_in_use_message($holder);
+        } elseif ($u && password_verify($pass_sha, $u['password_hash'])) {
+            $old = session_id();
             session_regenerate_id(true);
+            // This browser's own earlier sign-in passes the panel on to the new one.
+            exec_sql("UPDATE admin_lock SET session_id = ? WHERE id = 1 AND session_id = ?", [session_id(), $old]);
             $_SESSION['admin_id'] = (int) $u['id'];
-            update('admin_users', (int) $u['id'], ['last_login' => now()]);
-            audit('login_ok', 'admin', $u['id'], null, $u['email']);
-            $_SESSION['last_seen'] = time();
-            header('Location: index.php?signed_in=1');   // marks this tab as signed in
-            exit;
+            if ($other = admin_lock_take($u)) {   // someone got in a moment before
+                $_SESSION = [];
+                $error = admin_in_use_message($other);
+            } else {
+                update('admin_users', (int) $u['id'], ['last_login' => now()]);
+                audit('login_ok', 'admin', $u['id'], null, $u['email']);
+                $_SESSION['last_seen'] = time();
+                header('Location: index.php?signed_in=1');   // marks this tab as signed in
+                exit;
+            }
         }
-        // Log only the start of the username hash, never the username or password.
-        audit('login_failed', 'admin', null, ['user_sha256' => substr($user_sha, 0, 12)]);
-        $error = 'That username and password do not match.';
+        if ($error === '') {
+            // Log only the start of the username hash, never the username or password.
+            audit('login_failed', 'admin', null, ['user_sha256' => substr($user_sha, 0, 12)]);
+            $error = 'That username and password do not match.';
+        }
     }
 }
 
@@ -55,7 +70,7 @@ admin_head('Sign in');
   <div class="panel">
     <h2>Reservations</h2>
     <p style="font-size:.86rem">Sign in to manage bookings.</p>
-    <?php if ($error): ?><div class="notice notice--err"><?= h($error) ?></div>
+    <?php if ($error): ?><div class="notice notice--err" role="alert"><?= h($error) ?></div>
     <?php elseif (!empty($_GET['again'])): ?><div class="notice notice--info">Please sign in. The admin panel asks for the password in every new window or tab, and after 10 minutes without use.</div><?php endif; ?>
     <noscript><div class="notice notice--err">Signing in needs JavaScript: the username and password are hashed (SHA-256) in your browser before they are sent.</div></noscript>
     <form method="post" id="loginForm">

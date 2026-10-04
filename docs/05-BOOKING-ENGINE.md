@@ -38,17 +38,29 @@ _(was `context/backend_spec.md`)_
 ### Business rules [CODE `config.php` unless noted]
 * Price per room-night = double price (special price if set) − single discount (Single) + ₹1,500 extra bed (Triple); GST included for the resort, slab 5% ≤ ₹7,500 else 18% on the pre-tax value [CODE `price_rooms`, `tax_split`].
 * Change of a booking = old total + added − taken off ± changed; kept items keep booked amounts [CODE `modification_delta`].
-* Money: `due_now` (to reach 100% or 50%), `later` (50% plan, before arrival), `refund` [CODE `booking_money`].
-* Holding rooms: confirmed always; pending while ≤ 45 min old, or money/UPI check pending [CODE `rooms_booked`].
+* Money: `due_now` (to reach 100% or 50%; from the arrival day, everything unpaid: "Collect at the desk"), `later` (50% plan, before arrival), `refund` [CODE `booking_money`]. A cancelled booking's charge and refund: `cancellation_money()`.
+* Holding rooms: confirmed always; pending while ≤ 45 min old, once money is paid, or while a UPI payment waits for the desk (at most 48 h, `upi.confirm_hours`) [CODE `rooms_booked`]. No-shows, early departures and cancellations hold nothing.
 * Limits: 21 nights, 5 rooms online, 2 hours' notice, 2 years ahead, 1–50 of an extra, gala ≥ 10.
-* Cancellation ladder: 30+ days free, 21–29 days 75%, < 21 days 100%.
+* Cancellation ladder: 30+ days free, 21–29 days 75%, < 21 days 100%, counted in **whole calendar days** (`days_until()`, `cancellation_percent()`); never more than was paid is kept. Once the stay has started it cannot be cancelled: the desk marks a **no-show** or **left early** (`end_stay_early()`).
+* 50% is offered only while the stay is more than 30 days away (`payment_modes.advance.balance_days_before`); "free cancellation" is left out of the notes once it has passed (`payment_mode_note()`).
+* Statuses: `pending` → `confirmed` → (`cancelled` | `no_show` | `completed` = left early). A finished confirmed stay is shown as "Checked out".
+
+### Many requests at the same moment (5 Oct 2026)
+Every "check, then write" runs in a write transaction that takes the lock first (`db_begin()`: `BEGIN IMMEDIATE` on SQLite, `FOR UPDATE` row locks on MySQL; `lock_booking()`):
+* booking a cottage (cottage types always locked in the same order);
+* paying, including test payments; confirming a payment (one conditional update, so the email and Stayflexi happen once);
+* "Money received", desk payments and refunds (never over the balance or what is owed);
+* cancelling, no-show/left early, changing a booking (refused if it changed since its price was checked);
+* the rate limit's count-and-record.
+
+SQLite waits up to 15 s for the lock (`busy_timeout`) and runs in WAL mode. Proved by `bin/test-concurrency.php` (20 processes at once).
 
 ### Validation (29 Sep 2026)
 Every guest/enquiry/admin input checked in the backend (never trusting the page): lengths per `LIMITS`, phone 7–15 digits, arrival "h:mm AM/PM", real dates, extras quantities, listed methods/statuses. Errors are plain sentences; guest-detail errors carry `field:"guest"` [CODE]. See [../chaos/REPORT.md](09-HISTORY-TESTING-AND-GO-LIVE.md#chaos-report).
 
 ### Background jobs [CODE `bin/`]
 * `sync-inventory.php` every 10 min (Stayflexi → `inventory`), `retry-failed-sync.php` hourly — only when Stayflexi is on.
-* `test-changes.php`, `check-system.php` — tests on a temporary copy of the database.
+* `test-changes.php`, `test-logic.php`, `test-concurrency.php`, `check-system.php` — tests on a temporary copy of the database.
 
 ### Errors and logging
 Exceptions in APIs become JSON errors (details only when `debug` is on) [CODE `api/_init.php`]; money/inventory actions in `audit_log`; mail failures logged [CODE].
@@ -592,7 +604,7 @@ Admin → **Special prices** (`admin/rates.php`) writes rows into `rates (rate_p
 * In a change, a partial stay is rounded as **amount first, GST inside it second**, so ₹7,450 a night stays exactly ₹7,450 (it once came out as ₹7,450.01).
 
 ### 8. What is paid now
-`quote_cart()` returns `amount_due_now`: the full total, or `payment_modes.advance.percent` (50%) of it. "Pay at the property" (`hotel`) is switched off, so a booking is never left with nothing paid. After booking, `booking_money()` (doc 22) works out due now / due before arrival / refund from the payments.
+`quote_cart()` returns `amount_due_now`: the full total, or `payment_modes.advance.percent` (50%) of it (50% only while the stay is more than 30 days away). "Pay at the property" (`hotel`) is switched off, so a booking is never left with nothing paid. After booking, `booking_money()` (doc 22) works out due now / due before arrival / refund from the payments, and every payment charges `payable_now()`: what is due now, worked out from the booking as it is today.
 
 ### 9. Where to change what
 | To change | Edit |
@@ -656,8 +668,9 @@ It is also saved in the audit log with the change (`booking_modified`), so the b
 | `refund` | paid − total, if over | paid − total, if over |
 
 * The 50% plan's balance is labelled **"before arrival"** because that is what guests are told (`payment_modes.advance.note`: "Balance due 30 days before arrival"). If the owner collects it at check-in instead, change that note and the labels together.
-* Used by: the change preview (`admin/edit.php`), the booking page ("Due now", "Due before arrival", the Collect form), the Availability side panel, the guest's check-status page (`api/booking-lookup.php` → `due_now`, `due_later`) and the receipt PDF.
-* A cancelled booking owes nothing and is owed nothing here. Its refund is `bookings.refund_amount`.
+* **From the arrival day** (`arrived`), nothing is "before arrival" any more: the whole unpaid amount is in `due_now`, labelled "Collect at the desk" for staff and "To pay at the desk" for the guest (`due_now_label()`).
+* Used by: the change preview (`admin/edit.php`), the booking page ("Due now", "Due before arrival", the Collect form), the bookings list (due now / before arrival), the Availability side panel, the guest's check-status page (`api/booking-lookup.php` → `due_now`, `due_later`, `arrived`), the receipt PDF and every payment (`payable_now()`).
+* A cancelled booking or a no-show owes nothing and is owed nothing here. A cancellation's money is `cancellation_money()`: the charge (percent and amount, from the `booking_cancelled` audit row), what was kept (never more than was paid), `refund_amount` owed, what has been given back since (refund rows after `cancelled_at`) and what is still outstanding. Staff record refunds with **Record refund** on the booking page until it is settled.
 
 ### 4. After saving
 * `modify_booking()` re-checks availability under a lock, deletes and re-inserts the booking's rooms and extras, updates the totals, audits old → new with the breakdown, and (once Stayflexi is connected) cancels and re-pushes the reservation there.
@@ -808,14 +821,18 @@ _Written 26 Sep 2026. Code: `lib/payment.php`, `api/payment-*.php`, `api/webhook
 
 ### 1. What the guest can pay
 * **50% now** or **in full** (`config.php → payment_modes`). "Pay at the property" is off (`hotel.enabled = false`), so every booking has money behind it.
-* The amount asked for at checkout is `bookings.amount_due_now`, fixed when the booking is made. A later change by the desk does **not** change it. The desk collects any difference itself (doc 22).
+* What is charged is `payable_now()`: `booking_money()['due_now']` for a booking still waiting for payment, worked out from the booking as it is now. `bookings.amount_due_now` is only a record of what was asked at checkout. (Until 5 Oct 2026 the payments charged that stored amount, so an unpaid 50% booking that the desk made dearer was still charged the old 50% and confirmed: B3.)
 
 ### 2. Razorpay (cards, UPI apps, netbanking)
-1. `api/payment-create.php` → `razorpay_create_order()` → Razorpay order for `amount_due_now` (in paise). The booking ref goes in `receipt`/`notes`. **Since 29 Sep 2026 the request must include the booking's private `manage_token`**, and only unpaid (pending) bookings can start a payment — before, anyone could start one with just a booking number and leave a stranger's booking "waiting for UPI", holding its rooms.
+1. `api/payment-create.php` → `razorpay_create_order()` → Razorpay order for `payable_now()` (in paise). The booking ref goes in `receipt`/`notes`. **Since 29 Sep 2026 the request must include the booking's private `manage_token`**, and only unpaid (pending) bookings can start a payment — before, anyone could start one with just a booking number and leave a stranger's booking "waiting for UPI", holding its rooms.
 2. The guest pays in Razorpay Checkout (script from Razorpay's CDN, loaded only when enabled).
 3. `api/payment-verify.php` → `razorpay_confirm()` checks the HMAC signature → `settle_payment()`.
-4. `api/webhook-razorpay.php` (`payment.captured`, `payment.failed`, `refund.processed`) is the backup if the browser closes. `settle_payment()` is **idempotent**: the browser and the webhook often both arrive, and the second is ignored.
-5. `settle_payment()`: marks the payment paid, recounts `amount_paid` = payments − refunds (`refresh_amount_paid()`), sets the booking `confirmed`, pushes it to Stayflexi (doc 27), and sends the confirmation email.
+4. `api/webhook-razorpay.php` (`payment.captured`, `payment.failed`, `refund.processed`) is the backup if the browser closes. `settle_payment()` is **idempotent**: marking the payment paid is one conditional update, so when the browser, the webhook and retries arrive at the same moment exactly one gets through (B6). A forged or garbled return never turns a paid payment into "failed".
+5. `settle_payment()`, inside one locked transaction:
+   * marks the payment paid and recounts `amount_paid` = payments − refunds (`refresh_amount_paid()`);
+   * a booking still pending becomes `confirmed`, and only then is it pushed to Stayflexi (doc 27) and the confirmation emailed (once);
+   * **a booking cancelled meanwhile** stays cancelled: the money is recorded and added to `refund_amount` (owed back in full);
+   * **a booking that had stopped holding its cottage** (paid after its window) whose cottage someone else has since booked is cancelled with a full refund, never sold twice (`booking_rooms_still_free()`).
 
 **Keys** live only in `backend/booking-engine/config.local.php` (git-ignored). This PC uses the **test** keys. Test and live key pairs were checked against Razorpay on 26 Sep 2026. The live Key Secret was shared over WhatsApp and chat, so **regenerate it before launch**. Any copy handed to someone else must leave the keys out (doc 30 §4).
 
@@ -824,19 +841,21 @@ _Written 26 Sep 2026. Code: `lib/payment.php`, `api/payment-*.php`, `api/webhook
 ### 3. UPI QR (straight to the bank account)
 * Needs `upi.vpa` (the account's UPI id; not set yet). The QR is drawn in the browser (qrious) with the exact amount and the booking ref.
 * The payment is `awaiting_confirmation` until staff see the money in the bank and click **Money received** in the admin (`upi_mark_received()`). That is the **only** way a UPI QR payment becomes paid.
-* While waiting, the booking keeps its rooms. With nothing paid and nothing waiting, it lapses after 45 minutes (doc 23).
+* While waiting, the booking keeps its rooms, for at most `upi.confirm_hours` (48). After that the cottage goes back on sale; the box on the bookings list shows how long each payment has waited and flags those no longer holding. With nothing paid and nothing waiting, a booking lapses after 45 minutes (doc 23).
+* **Cancelling withdraws a waiting UPI QR** (payment status `void`), and **Money received** on a cancelled booking is refused (B18): the cancelled booking cannot come back to life. A booking already paid another way still shows its waiting QR, flagged: confirming it records money that is then owed back.
 
 ### 4. Test payments (turn off before launch)
-`test_payments.enabled = true` shows **I've paid (test)**. `api/payment-test.php` → `test_payment_settle()` needs the booking's own `manage_token`, records a `test` payment of `amount_due_now`, and goes through the same `settle_payment()` path as a real payment, so everything downstream behaves as it will for real. Receipts say "Test payment — no money taken".
+`test_payments.enabled = true` shows **I've paid (test)**. `api/payment-test.php` → `test_payment_settle()` needs the booking's own `manage_token`, and only works on a booking still waiting for payment. Under the booking's lock it records one `test` payment of `payable_now()` (twenty presses at once record one, B5), then goes through the same `settle_payment()` path as a real payment, so everything downstream behaves as it will for real. Receipts say "Test payment — no money taken".
 
 ### 5. Money taken or given back by the desk
-* **Collect the balance** → `record_offline_payment()` (cash, card, bank transfer, UPI — only these). A **pending** booking is confirmed once what it needs now is paid (all of it, or the 50%), with Stayflexi push and confirmation email, the same as an online payment (fixed 29 Sep 2026). The amount is capped at the balance. It is refused on cancelled or fully paid bookings.
-* **Give back** (after a change made the stay cheaper) → `record_offline_refund()`. It is stored as a negative `refund` row.
-* **Cancel** → the ladder decides the charge. Card payments are refunded through Razorpay automatically (`razorpay_refund()`) once it is connected; otherwise the refund is recorded.
+* **Collect the balance** → `record_offline_payment()` (cash, card, bank transfer, UPI — only these). A **pending** booking is confirmed once what it needs now is paid (all of it, or the 50%), with Stayflexi push and confirmation email, the same as an online payment (fixed 29 Sep 2026). The amount is capped at the balance, checked under the booking's lock (two staff recording the same payment at once cannot both get past it). It is refused on cancelled, no-show or fully paid bookings, and on an unpaid booking whose cottage was taken after its hold ended.
+* **Give back** → `record_offline_refund()`: after a change made the stay cheaper (up to what was overpaid), or **after a cancellation** (up to the refund it left outstanding). It is stored as a negative `refund` row, checked under the lock.
+* **Cancel** → the ladder decides the charge (whole calendar days), but never more than was paid is kept. Card payments are refunded through Razorpay automatically (`razorpay_refund()`) once it is connected; otherwise the desk records the refund under **Give back to the guest**.
+* **No-show / Left early** (from the arrival day) → `end_stay_early()`: the cottages go back on sale from today; the money stays as it is.
 * `bookings.amount_paid` is always recounted by `refresh_amount_paid()` = paid payments − refunds. Online settlement and UPI confirmation now use it too. **Fixed 26 Sep 2026:** before, they counted payments only and ignored earlier refunds.
 
 ### 6. What "due" means
-See doc 22 §3 (`booking_money()`): due now, due before arrival (50% plan), or refund due.
+See doc 22 §3 (`booking_money()`): due now (or "Collect at the desk" once the guest has arrived), due before arrival (50% plan), or refund due; and `cancellation_money()` for a cancelled booking.
 
 ---
 

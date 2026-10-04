@@ -120,6 +120,27 @@ function channel_pull_inventory(array $property, string $from, string $to): arra
     return ['ok' => true, 'rows' => $written];
 }
 
+/**
+ * What one room of a booking line was actually charged each night, before GST:
+ * the line's amount spread over its nights in proportion to the stored nightly
+ * prices. The stored `nightly` list is the base (double) price, so a single or a
+ * triple sent it as-is told Stayflexi ₹6,500 for a night charged ₹8,000. The
+ * nights add up exactly to the line's amount per room.
+ */
+function charged_nightly(array $line): array {
+    $base = json_decode((string) ($line['nightly'] ?: '{}'), true) ?: [];
+    if (!$base) return [];
+    $per_room = (float) $line['subtotal'] / max(1, (int) $line['rooms']);
+    $sum = array_sum($base);
+    $out = []; $left = money($per_room); $dates = array_keys($base);
+    foreach ($dates as $i => $d) {
+        $out[$d] = $i === count($dates) - 1 ? money($left)
+                 : money($sum > 0 ? $per_room * (float) $base[$d] / $sum : $per_room / count($dates));
+        $left -= $out[$d];
+    }
+    return $out;
+}
+
 /* ---------------------------------------------------------------------------
  * Push a confirmed booking to Stayflexi so the OTAs are closed down.
  * Called right after payment succeeds.
@@ -143,7 +164,7 @@ function channel_push_booking(int $booking_id): array {
             'numRooms'   => (int) $r['rooms'],
             'adults'     => (int) $r['adults'],
             'children'   => (int) $r['children'],
-            'nightly'    => json_decode($r['nightly'] ?: '{}', true),
+            'nightly'    => charged_nightly($r),
             'amount'     => (float) $r['subtotal'],
         ];
     }
@@ -212,6 +233,24 @@ function channel_cancel_booking(int $booking_id): array {
     return ['ok' => $ok, 'body' => $body];
 }
 
+/**
+ * The fewest rooms free on any night in a Stayflexi availability reply, or null
+ * when the reply does not say (an HTML error page, an empty list, a field
+ * missing). Null means "could not confirm", never "sold out": a junk reply used to
+ * count as 0 rooms and tell the guest the dates had just been taken.
+ */
+function sf_min_available($body): ?int {
+    $days = is_array($body) ? ($body['roomTypes'][0]['availability'] ?? $body['data'] ?? null) : null;
+    if (!is_array($days) || !$days) return null;
+    $min = PHP_INT_MAX;
+    foreach ($days as $day) {
+        $n = is_array($day) ? ($day['available'] ?? $day['availableRooms'] ?? null) : null;
+        if (!is_numeric($n)) return null;
+        $min = min($min, (int) $n);
+    }
+    return $min;
+}
+
 /* ---------------------------------------------------------------------------
  * Last line of defence, called inside the booking transaction.
  *
@@ -240,11 +279,14 @@ function channel_verify_still_available(array $property, int $room_type_id, stri
         return ['ok' => true, 'checked' => false, 'warning' => "channel unreachable (HTTP $status)"];
     }
 
-    $min = PHP_INT_MAX;
-    foreach (($body['roomTypes'][0]['availability'] ?? $body['data'] ?? []) as $day) {
-        $min = min($min, (int) ($day['available'] ?? $day['availableRooms'] ?? 0));
+    $min = sf_min_available($body);
+    if ($min === null) {
+        audit('stayflexi_unreadable', 'room_type', $room_type_id, ['status' => $status, 'body' => array_slice((array) $body, 0, 5)]);
+        if (cfg('stayflexi.fail_closed')) {
+            return ['ok' => false, 'reason' => 'We could not confirm availability just now. Please call us to book.'];
+        }
+        return ['ok' => true, 'checked' => false, 'warning' => 'channel reply not understood'];
     }
-    if ($min === PHP_INT_MAX) $min = 0;
 
     return $min >= $rooms
         ? ['ok' => true, 'checked' => true, 'available' => $min]

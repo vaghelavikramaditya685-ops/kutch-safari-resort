@@ -251,21 +251,69 @@ function quote_cart(array $cart): array {
     ];
 }
 
+/**
+ * Whole calendar days from today to a date: 0 on the day itself, 30 a month ahead.
+ * Counted the way the guest reads the cancellation table, never from the clock
+ * time: floor((check-in − now) / 24h) made the 30th day before arrival "29 days"
+ * from mid-morning on, so a guest told "no charge" was charged 75%.
+ */
+function days_until(string $date): int {
+    return (int) round((strtotime($date . ' 00:00:00') - strtotime(date('Y-m-d') . ' 00:00:00')) / 86400);
+}
+
+/** Free cancellation lasts until this many days before arrival (the ladder's last 0% step), or null if there is none. */
+function free_cancellation_days(): ?int {
+    $free = null;
+    foreach (cfg('cancellation', []) as $step) {
+        if ((float) $step['charge_percent'] <= 0) $free = max($free ?? 0, (int) $step['days_before']);
+    }
+    return $free;
+}
+
+/**
+ * The note shown under a payment choice, for a stay starting on $check_in.
+ * "Free cancellation up to 30 days before arrival" is left out once that day
+ * has passed: it was still promised to a guest booking 10 days ahead.
+ */
+function payment_mode_note(string $key, string $check_in): string {
+    $note = (string) cfg('payment_modes.' . $key . '.note', '');
+    $free = free_cancellation_days();
+    if ($free === null || days_until($check_in) < $free) {
+        $note = trim(preg_replace('/\s*Free cancellation[^.]*\.?/i', '', $note));
+    }
+    return $note;
+}
+
 /** Which payment choices to show, given how close the arrival is. */
 function available_payment_modes(string $check_in): array {
     $out = [];
-    $days_out = (int) floor((strtotime($check_in) - time()) / 86400);
+    $days_out = days_until($check_in);
     foreach (cfg('payment_modes', []) as $key => $m) {
         if (empty($m['enabled'])) continue;
         if (isset($m['min_days_before_arrival']) && $days_out < (int) $m['min_days_before_arrival']) continue;
+        // 50% now, the rest N days before arrival: once that day has come the rest
+        // would already be due, so only paying in full is offered.
+        if (isset($m['balance_days_before']) && $days_out <= (int) $m['balance_days_before']) continue;
         $out[$key] = [
             'label'   => $m['label'],
-            'note'    => $m['note'] ?? '',
+            'note'    => payment_mode_note($key, $check_in),
             'percent' => $m['percent'] ?? 100,
         ];
     }
     if (!$out) $out['full'] = ['label' => 'Pay in full now', 'note' => '', 'percent' => 100];
     return $out;
+}
+
+/** The cancellation charge, in percent, for cancelling a stay starting on $check_in today (or on $on). */
+function cancellation_percent(string $check_in, ?string $on = null): float {
+    $ladder = cfg('cancellation', []);
+    usort($ladder, fn($a, $b) => (int) $b['days_before'] <=> (int) $a['days_before']);
+    $days = $on === null ? days_until($check_in)
+          : (int) round((strtotime($check_in . ' 00:00:00') - strtotime(substr($on, 0, 10) . ' 00:00:00')) / 86400);
+    foreach ($ladder as $step) {
+        if ($days >= (int) $step['days_before']) return (float) $step['charge_percent'];
+    }
+    return 100.0;
 }
 
 /**
@@ -385,7 +433,7 @@ function quote_modification(int $booking_id, array $changes): array {
     $q['old_total']  = (float) $b['total'];
     $q['paid']       = (float) $b['amount_paid'];
     $q['difference'] = money($q['total'] - $q['paid']);   // > 0 still owed, < 0 overpaid
-    $q['money']      = booking_money(['total' => $q['total'], 'amount_paid' => $q['paid'],
+    $q['money']      = booking_money(['total' => $q['total'], 'amount_paid' => $q['paid'], 'check_in' => $q['check_in'],
                                       'payment_mode' => $b['payment_mode'], 'status' => $b['status']]);
     $q['old_money']  = booking_money($b);
     return $q;
@@ -587,24 +635,66 @@ function nights_label(array $dates): string {
  *   due_now    — what is short of that
  *   later      — what is left to pay before arrival (50% plan)
  *   refund     — what was paid over the total
+ *   arrived    — the stay has started: nothing is "before arrival" any more, so
+ *                whatever is unpaid is in due_now, to collect at the desk
+ * A cancelled booking or a no-show owes nothing more here; what a cancellation
+ * gives back is cancellation_money().
  */
 function booking_money(array $b): array {
     $total = (float) $b['total'];
     $paid  = (float) $b['amount_paid'];
     $mode  = $b['payment_mode'] ?? 'full';
     $pct   = $mode === 'advance' ? (float) cfg('payment_modes.advance.percent', 50) : ($mode === 'hotel' ? 0.0 : 100.0);
+    $arrived = !empty($b['check_in']) && $b['check_in'] <= date('Y-m-d');
+    if ($arrived) $pct = 100.0;
     $needed = money($total * $pct / 100);
-    $open = ($b['status'] ?? '') !== 'cancelled';
+    $open = !in_array($b['status'] ?? '', ['cancelled', 'no_show'], true);
     return [
         'total'      => $total,
         'paid'       => $paid,
         'mode'       => $mode,
         'percent'    => $pct,
+        'arrived'    => $arrived,
         'needed_now' => $needed,
         'due_now'    => $open ? max(0.0, money($needed - $paid)) : 0.0,
         'later'      => $open ? max(0.0, money($total - max($paid, $needed))) : 0.0,
         'refund'     => $open ? max(0.0, money($paid - $total)) : 0.0,
         'balance'    => money($total - $paid),
+    ];
+}
+
+/** "Due now", or "Collect at the desk" once the guest has arrived. */
+function due_now_label(array $money): string {
+    return $money['arrived'] ? 'Collect at the desk' : 'Due now';
+}
+
+/**
+ * Money on a cancelled booking: what the cancellation kept, what it owes back,
+ * and how much of that has been given back since (refunds recorded after
+ * cancelled_at). The charge is never more than was paid: a guest on the 50% plan
+ * who cancels late loses what they paid, and nothing more is collected.
+ */
+function cancellation_money(array $b): array {
+    $owed = (float) ($b['refund_amount'] ?? 0);
+    $given = 0.0;
+    if (!empty($b['cancelled_at'])) {
+        $given = -(float) qval("SELECT COALESCE(SUM(amount), 0) FROM payments WHERE booking_id = ? AND purpose = 'refund'
+                                 AND status IN ('paid','refunded') AND created_at >= ?", [(int) $b['id'], $b['cancelled_at']], 0);
+    }
+    $detail = json_decode((string) qval("SELECT detail FROM audit_log WHERE action = 'booking_cancelled' AND entity = 'booking'
+                                          AND entity_id = ? ORDER BY id DESC LIMIT 1", [(string) $b['id']], ''), true) ?: [];
+    $paid_then = money((float) $b['amount_paid'] + $given);   // what had been paid when it was cancelled
+    // Cancellations from before the charge was logged: work it out from the day it was cancelled.
+    // (Nothing kept means no charge: e.g. cancelled because the cottage was gone when the money arrived.)
+    $pct = isset($detail['charge_percent']) ? (float) $detail['charge_percent']
+         : (empty($b['cancelled_at']) ? null : ($paid_then - $owed <= 0.5 ? 0.0 : cancellation_percent($b['check_in'], $b['cancelled_at'])));
+    return [
+        'percent'     => $pct,
+        'charge'      => isset($detail['charge']) ? (float) $detail['charge'] : ($pct === null ? null : money((float) $b['total'] * $pct / 100)),
+        'kept'        => max(0.0, money($paid_then - $owed)),
+        'refund'      => money($owed),
+        'given'       => money($given),
+        'outstanding' => max(0.0, money($owed - $given)),
     ];
 }
 
@@ -618,8 +708,17 @@ function modify_booking(int $booking_id, array $changes, string $actor): array {
     try {
         // Re-check under lock, still leaving this booking's own rooms out.
         availability_ignore_booking($booking_id, true);
+        $locked = lock_booking($booking_id);
+        // Cancelled, or changed by someone else, while this change was being priced.
+        if (!$locked || $locked['status'] === 'cancelled' || $locked['updated_at'] !== $b['updated_at']
+            || abs((float) $locked['total'] - (float) $b['total']) > 0.001
+            || $locked['check_in'] !== $b['check_in'] || $locked['check_out'] !== $b['check_out']) {
+            db_rollback();
+            return ['ok' => false, 'error' => 'This booking was changed or cancelled by someone else a moment ago. Reload it and check the change again.'];
+        }
         $wanted = [];
         foreach ($q['rooms'] as $line) $wanted[$line['room_type_id']] = ($wanted[$line['room_type_id']] ?? 0) + (int) $line['rooms'];
+        ksort($wanted);
         foreach ($wanted as $rt_id => $n) {
             $rt = q1("SELECT * FROM room_types WHERE id = ?" . for_update(), [$rt_id]);
             if (rooms_free_for_stay($rt, $q['check_in'], $q['check_out']) < $n) {
@@ -768,17 +867,19 @@ function create_booking(array $cart, array $guest): array {
         foreach ($quote['rooms'] as $line) {
             $wanted[$line['room_type_id']] = ($wanted[$line['room_type_id']] ?? 0) + (int) $line['rooms'];
         }
-        foreach ($quote['rooms'] as $line) {
-            $rt = q1("SELECT * FROM room_types WHERE id = ?" . for_update(), [$line['room_type_id']]);
+        // Cottage types are always locked in the same order, so two carts holding
+        // Kutchi + Deluxe and Deluxe + Kutchi never wait on each other (MySQL deadlock).
+        ksort($wanted);
+        foreach ($wanted as $rt_id => $n) {
+            $rt = q1("SELECT * FROM room_types WHERE id = ?" . for_update(), [$rt_id]);
             $free = rooms_free_for_stay($rt, $quote['check_in'], $quote['check_out'], $cart['hold_token'] ?? null);
-            if ($free < $wanted[$line['room_type_id']]) {
+            if ($free < $n) {
                 db_rollback();
                 return ['ok' => false, 'error' => 'Sorry — ' . $rt['name'] . ' has just been taken for those dates.'];
             }
 
             // And ask the channel manager, which knows about the OTAs too.
-            $check = channel_verify_still_available($property, (int) $line['room_type_id'],
-                        $quote['check_in'], $quote['check_out'], (int) $line['rooms']);
+            $check = channel_verify_still_available($property, (int) $rt_id, $quote['check_in'], $quote['check_out'], $n);
             if (!$check['ok']) {
                 db_rollback();
                 return ['ok' => false, 'error' => $check['reason']];
@@ -914,36 +1015,80 @@ function find_booking(string $ref, string $contact): ?array {
  * Cancelling.
  * ------------------------------------------------------------------------ */
 function cancel_booking(int $id, string $reason = '', string $actor = 'guest'): array {
-    $b = get_booking($id);
-    if (!$b) return ['ok' => false, 'error' => 'Booking not found.'];
-    if ($b['status'] === 'cancelled') return ['ok' => false, 'error' => 'That booking is already cancelled.'];
-    if ($b['check_in'] < date('Y-m-d')) return ['ok' => false, 'error' => 'Past stays cannot be cancelled online. Please call us.'];
+    // Read, check and write in one locked step: two people pressing Cancel at the
+    // same moment cancel it once, and a payment landing at that moment is either
+    // counted in the refund or recorded afterwards as owed back (settle_payment).
+    $r = db_tx(function () use ($id, $reason, $actor) {
+        $b = lock_booking($id);
+        if (!$b) return ['ok' => false, 'error' => 'Booking not found.'];
+        if ($b['status'] === 'cancelled') return ['ok' => false, 'error' => 'That booking is already cancelled.'];
+        if (!in_array($b['status'], ['pending', 'confirmed'], true)) return ['ok' => false, 'error' => 'This stay has ended and cannot be cancelled.'];
+        // Once the stay has started it is a no-show or an early departure, not a cancellation.
+        if ($b['check_in'] < date('Y-m-d')) {
+            return ['ok' => false, 'error' => $actor === 'guest' ? 'Past stays cannot be cancelled online. Please call us.'
+                : 'This stay has already started. Use "Guest did not arrive" or "Guest left early" instead.'];
+        }
 
-    // Work out the charge from the ladder in config.
-    $days_out = (int) floor((strtotime($b['check_in']) - time()) / 86400);
-    $charge_percent = 100.0;
-    foreach (cfg('cancellation', []) as $step) {
-        if ($days_out >= (int) $step['days_before']) { $charge_percent = (float) $step['charge_percent']; break; }
-    }
-    $charge = money((float) $b['total'] * $charge_percent / 100);
-    $refund = money(max(0, (float) $b['amount_paid'] - $charge));
+        // Days counted as whole calendar days, the same way the guest's table counts them.
+        $charge_percent = cancellation_percent($b['check_in']);
+        $charge = money((float) $b['total'] * $charge_percent / 100);
+        $refund = money(max(0, (float) $b['amount_paid'] - $charge));
 
-    update('bookings', $id, [
-        'status'        => 'cancelled',
-        'cancelled_at'  => now(),
-        'cancel_reason' => $reason ?: 'Cancelled by ' . $actor,
-        'refund_amount' => $refund,
-        'updated_at'    => now(),
-    ]);
-    exec_sql("DELETE FROM holds WHERE booking_id = ?", [$id]);
+        update('bookings', $id, [
+            'status'        => 'cancelled',
+            'cancelled_at'  => now(),
+            'cancel_reason' => $reason ?: 'Cancelled by ' . $actor,
+            'refund_amount' => $refund,
+            'updated_at'    => now(),
+        ]);
+        exec_sql("DELETE FROM holds WHERE booking_id = ?", [$id]);
+        // A UPI QR the guest has not paid yet is withdrawn: "Money received" on it
+        // would otherwise bring the cancelled booking back to life. (A card payment
+        // already started is left alone: if Razorpay still captures it, the money is
+        // recorded and owed back — see settle_payment.)
+        exec_sql("UPDATE payments SET status = 'void' WHERE booking_id = ? AND provider = 'upi_qr' AND status = 'awaiting_confirmation'", [$id]);
+        audit('booking_cancelled', 'booking', $id,
+              ['charge_percent' => $charge_percent, 'charge' => $charge, 'paid' => (float) $b['amount_paid'], 'refund' => $refund], $actor);
+        return ['ok' => true, 'charge_percent' => $charge_percent, 'charge' => $charge, 'refund_due' => $refund,
+                'paid' => (float) $b['amount_paid']];
+    });
+    if (!$r['ok']) return $r;
 
     channel_cancel_booking($id);
-    audit('booking_cancelled', 'booking', $id,
-          ['charge_percent' => $charge_percent, 'refund' => $refund], $actor);
+    $refund = $r['refund_due'];
+    $r['note'] = $refund > 0
+        ? 'A refund of ₹' . number_format($refund, 2) . ' will reach your account in 5–7 working days.'
+        : ($r['charge'] > $r['paid'] + 0.5 && $r['paid'] > 0
+            ? 'No refund is due: the cancellation charge (₹' . number_format($r['charge'], 2) . ') is more than the ₹'
+              . number_format($r['paid'], 2) . ' paid, so what was paid is kept and nothing more is collected.'
+            : 'No refund is due under the cancellation policy.');
+    return $r;
+}
 
-    return ['ok' => true, 'charge_percent' => $charge_percent, 'charge' => $charge,
-            'refund_due' => $refund,
-            'note' => $refund > 0
-                ? 'A refund of ₹' . number_format($refund, 2) . ' will reach your account in 5–7 working days.'
-                : 'No refund is due under the cancellation policy.'];
+/**
+ * The stay has started and the guest never came (no_show), or left before their
+ * check-out (completed). Either way the rooms from today on go back on sale; the
+ * money stays as it is (the policy charges a no-show in full). Desk only.
+ */
+function end_stay_early(int $id, string $outcome, string $actor, string $reason = ''): array {
+    if (!in_array($outcome, ['no_show', 'completed'], true)) return ['ok' => false, 'error' => 'Unknown action.'];
+    $r = db_tx(function () use ($id, $outcome, $actor, $reason) {
+        $b = lock_booking($id);
+        if (!$b) return ['ok' => false, 'error' => 'Booking not found.'];
+        if ($b['status'] !== 'confirmed') return ['ok' => false, 'error' => 'Only a confirmed booking can be marked like this.'];
+        $today = date('Y-m-d');
+        if ($b['check_in'] > $today) return ['ok' => false, 'error' => 'The stay has not started yet. Cancel it instead.'];
+        if ($b['check_out'] <= $today) return ['ok' => false, 'error' => 'This stay has already ended.'];
+        // cancelled_at doubles as "when the stay was ended early", for the list and the booking page.
+        update('bookings', $id, ['status' => $outcome, 'cancelled_at' => now(),
+                                 'cancel_reason' => $reason !== '' ? $reason : null, 'updated_at' => now()]);
+        audit($outcome === 'no_show' ? 'booking_no_show' : 'booking_left_early', 'booking', $id,
+              ['from' => $today, 'check_out' => $b['check_out'], 'reason' => $reason], $actor);
+        return ['ok' => true];
+    });
+    // A no-show's reservation is cancelled in Stayflexi too, so its nights go back on
+    // sale on the OTAs. An early departure is left for the desk to shorten there by
+    // hand: cancelling it would also wipe the nights the guest did stay.
+    if ($r['ok'] && $outcome === 'no_show') channel_cancel_booking($id);
+    return $r;
 }

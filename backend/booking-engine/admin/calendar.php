@@ -70,7 +70,7 @@ foreach ($rows as $r) {
             'total'   => (float) $r['total'],
             'paid'    => (float) $r['amount_paid'],
             // Split by how they pay: in full, or 50% now and the rest before arrival.
-            'money'   => array_intersect_key(booking_money($r), array_flip(['mode', 'percent', 'due_now', 'later', 'refund'])),
+            'money'   => array_intersect_key(booking_money($r), array_flip(['mode', 'percent', 'due_now', 'later', 'refund', 'arrived'])),
         ];
     }
 }
@@ -325,10 +325,10 @@ admin_head('Availability', $user);
         <div><span>Paid</span><b>${inr(g.paid)}</b></div>
         ${g.refund > 0.5 ? `<div class="is-refund"><span>Refund due</span><b>${inr(g.refund)}</b></div>`
           : due <= 0.5 ? `<div class="is-paid"><span>Balance</span><b>Fully paid</b></div>`
-          : `${g.due_now > 0.5 ? `<div class="is-due"><span>Due now</span><b>${inr(g.due_now)}</b></div>` : ''}
+          : `${g.due_now > 0.5 ? `<div class="is-due"><span>${g.arrived ? 'Collect at the desk' : 'Due now'}</span><b>${inr(g.due_now)}</b></div>` : ''}
              ${g.later > 0.5 ? `<div><span>Before arrival</span><b>${inr(g.later)}</b></div>` : ''}`}
       </div>
-      <p class="tc-drawer__mode">${g.mode === 'advance' ? `Paying ${g.percent}% now, the rest before arrival` : 'Paying in full'}</p>
+      <p class="tc-drawer__mode">${g.arrived ? (due > 0.5 ? 'Staying now: collect what is unpaid at the desk' : 'Staying now') : g.mode === 'advance' ? `Paying ${g.percent}% now, the rest before arrival` : 'Paying in full'}</p>
       <div class="tc-drawer__actions">
         <a class="btn btn--sm" href="edit.php?id=${g.id}">Change booking</a>
         <a class="btn btn--plain btn--sm" href="edit.php?id=${g.id}#extras">${g.transfers.length ? 'Change transfer' : 'Add a transfer'}</a>

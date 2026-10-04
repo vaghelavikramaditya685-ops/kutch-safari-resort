@@ -241,9 +241,10 @@
       ${r.results.map(roomCard).join('')}
       ${n > 1 ? `
         <div class="assignbar">
-          <span><b>${done} of ${n} rooms chosen</b>
+          <span id="roomsLeft"><b>${done} of ${n} rooms chosen</b>
             ${done < n ? ` · still to choose: ${cart.picks.map((p, i) => p ? null : `Room ${i + 1}`).filter(Boolean).join(', ')}` : ''}</span>
-          <button class="btn" type="button" id="roomsDone" ${done < n ? 'disabled' : ''}>Continue</button>
+          <button class="btn ${done < n ? 'is-waiting' : ''}" type="button" id="roomsDone" aria-describedby="roomsLeft"
+                  ${done < n ? 'aria-disabled="true"' : ''}>Continue</button>
         </div>` : ''}`;
 
     wireRoomCards();
@@ -381,8 +382,14 @@
       window.scrollTo(0, y);
     }));
 
+    // Pressed before every room has a cottage: say which room is missing, rather
+    // than a button that silently does nothing.
     const done = $('#roomsDone');
-    if (done) done.addEventListener('click', () => { if (cart.picks.every(Boolean)) goToAddons(); });
+    if (done) done.addEventListener('click', () => {
+      if (cart.picks.every(Boolean)) return goToAddons();
+      const left = cart.picks.map((p, i) => p ? null : `Room ${i + 1}`).filter(Boolean);
+      alertBox(`Choose a cottage for ${left.join(' and ')} first: press Select on a cottage and tick ${left.length > 1 ? 'those rooms' : 'that room'}.`);
+    });
   }
 
   /* =====================================================================
@@ -421,11 +428,12 @@
       if (!groups[g]) cards.push(groups[g] = { group: g, items: [] });
       groups[g].items.push(a);
     });
+    const nameOf = id => (list.find(a => a.id === id) || {}).name || 'of this';
     const counter = id => `
       <div class="qty">
-        <button type="button" data-step-addon="-1" aria-label="Fewer">−</button>
-        <span data-qty="${id}">${(chosen(id) || {}).quantity || 0}</span>
-        <button type="button" data-step-addon="1" aria-label="More">+</button>
+        <button type="button" data-step-addon="-1" aria-label="Fewer: ${nameOf(id)}">−</button>
+        <span data-qty="${id}" aria-live="polite">${(chosen(id) || {}).quantity || 0}</span>
+        <button type="button" data-step-addon="1" aria-label="More: ${nameOf(id)}">+</button>
       </div>`;
     const groupCard = g => `
       <div class="addon addon--group">
@@ -487,9 +495,9 @@
           <div>
             ${price}
             <div class="qty" style="margin-top:8px">
-              <button type="button" data-step-addon="-1">−</button>
-              <span data-qty="${a.id}">${(chosen(a.id) || {}).quantity || 0}</span>
-              <button type="button" data-step-addon="1">+</button>
+              <button type="button" data-step-addon="-1" aria-label="Fewer: ${a.name}">−</button>
+              <span data-qty="${a.id}" aria-live="polite">${(chosen(a.id) || {}).quantity || 0}</span>
+              <button type="button" data-step-addon="1" aria-label="More: ${a.name}">+</button>
             </div>
           </div>
         </div>`;
@@ -546,10 +554,10 @@
   function arrivalWheel() {
     const col = (k, label) => `<div class="wheel__col" data-k="${k}" tabindex="0" role="listbox" aria-label="${label}">
         <div class="wheel__pad"></div>
-        ${WHEEL_COLS[k].map((v, i) => `<div class="wheel__item" data-i="${i}" role="option">${v}</div>`).join('')}
+        ${WHEEL_COLS[k].map((v, i) => `<div class="wheel__item" data-i="${i}" role="option" aria-selected="false">${v}</div>`).join('')}
         <div class="wheel__pad"></div></div>`;
     return `<div class="wheelbox">
-        <div class="wheel" aria-labelledby="g-arrival-label">
+        <div class="wheel" role="group" aria-labelledby="g-arrival-label">
           ${col('h', 'Hour')}<span class="wheel__colon">:</span>${col('m', 'Minutes')}${col('p', 'AM or PM')}
           <div class="wheel__band" aria-hidden="true"></div>
         </div>
@@ -565,7 +573,7 @@
     if (!cols.length) return;
     const start = { h: 1, m: 0, p: 1 };   // where the wheels rest: 2:00 PM (not chosen yet)
     const pick = {};
-    let touched = false, settling = true;
+    let touched = false;   // set only by the guest's own wheel, touch, click or key
     const show = () => {
       // A wheel still settling (its 90 ms timer below) can finish after the guest has
       // moved on to payment, when this step and the wheel are no longer on the page.
@@ -577,7 +585,10 @@
       $('#g-arrival-clear').hidden = !v;
       $$('.wheelbox').forEach(b => b.classList.toggle('is-set', !!v));
     };
-    const mark = (col, i) => col.querySelectorAll('.wheel__item').forEach(it => it.classList.toggle('is-on', +it.dataset.i === i));
+    const mark = (col, i) => col.querySelectorAll('.wheel__item').forEach(it => {
+      it.classList.toggle('is-on', +it.dataset.i === i);
+      it.setAttribute('aria-selected', String(+it.dataset.i === i));
+    });
     cols.forEach(col => {
       const k = col.dataset.k, n = WHEEL_COLS[k].length;
       pick[k] = start[k];
@@ -589,24 +600,30 @@
         t = setTimeout(() => {
           const i = Math.max(0, Math.min(n - 1, Math.round(col.scrollTop / WHEEL_ROW)));
           pick[k] = i; mark(col, i);
-          if (!settling) touched = true;
           show();
         }, 90);
       });
       col.addEventListener('click', e => {
         const it = e.target.closest('.wheel__item');
-        if (it) { touched = true; col.scrollTo({ top: +it.dataset.i * WHEEL_ROW, behavior: 'smooth' }); }
+        if (!it) return;
+        touched = true;
+        // Clicking the time already in the middle (2:00 PM to begin with) chooses it at
+        // once: there is nothing to scroll, so the scroll handler would never record it.
+        if (+it.dataset.i === pick[k]) show();
+        else col.scrollTo({ top: +it.dataset.i * WHEEL_ROW, behavior: 'smooth' });
       });
       col.addEventListener('keydown', e => {
+        // Keys that scroll the wheel are a choice too (Tab, which only moves on, is not).
+        if (['PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key)) touched = true;
         if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
         e.preventDefault(); touched = true;
         const i = Math.max(0, Math.min(n - 1, pick[k] + (e.key === 'ArrowDown' ? 1 : -1)));
-        col.scrollTo({ top: i * WHEEL_ROW, behavior: 'smooth' });
+        if (i === pick[k]) show();   // already at the end of the wheel: that value is the choice
+        else col.scrollTo({ top: i * WHEEL_ROW, behavior: 'smooth' });
       });
       ['wheel', 'touchstart', 'pointerdown'].forEach(ev => col.addEventListener(ev, () => { touched = true; }, { passive: true }));
     });
     $('#g-arrival-clear').addEventListener('click', () => { touched = false; show(); });
-    setTimeout(() => { settling = false; }, 250);
     show();
   }
 
@@ -825,7 +842,7 @@
 
     $('#payArea').innerHTML = `
       <div class="qr-box">
-        <canvas id="qr"></canvas>
+        <canvas id="qr" role="img" aria-label="UPI QR code to pay ${rupees(upi.amount)} to ${upi.payee}"></canvas>
         <p style="margin-bottom:6px"><strong>${rupees(upi.amount)}</strong> to ${upi.payee}</p>
         <p style="font-size:.84rem;color:var(--muted)">${upi.vpa}</p>
         <p style="font-size:.84rem;margin:14px 0 6px">Quote this reference if you call us:</p>
@@ -965,7 +982,7 @@
     $('#occList').innerHTML = cart.occupancy.map((g, i) => `
       <label class="occ__room">
         <span>Room ${i + 1}</span>
-        <select data-occ="${i}" aria-label="Guests in room ${i + 1}">
+        <select data-occ="${i}" id="occ-${i}" name="occupancy_${i}" aria-label="Guests in room ${i + 1}">
           ${OCCUPANCY.map(([v, label, note]) =>
             `<option value="${v}" ${v === g ? 'selected' : ''}>${label} · ${note}</option>`).join('')}
         </select>

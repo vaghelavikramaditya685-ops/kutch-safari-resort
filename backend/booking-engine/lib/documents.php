@@ -59,8 +59,10 @@ function booking_terms(array $property, ?array $b = null): array {
     foreach (cancellation_terms() as $line) $t[] = $line;
 
     if ($b) {
+        // Only what still applies to this booking: no "free cancellation up to 30 days
+        // before arrival" on a receipt for a stay 17 days away.
         $mode = cfg('payment_modes.' . $b['payment_mode']);
-        if ($mode) $t[] = 'Payment: ' . $mode['label'] . '. ' . ($mode['note'] ?? '');
+        if ($mode) $t[] = trim('Payment: ' . $mode['label'] . '. ' . payment_mode_note((string) $b['payment_mode'], $b['check_in']));
     } else {
         foreach (cfg('payment_modes', []) as $m) {
             if (!empty($m['enabled'])) $t[] = 'Payment option — ' . $m['label'] . ': ' . ($m['note'] ?? '');
@@ -195,7 +197,9 @@ function receipt_pdf(array $b): string {
     $pdf = $doc->pdf;
 
     $status = booking_lapsed($b) ? 'NOT CONFIRMED — NOT PAID'
-            : (['confirmed' => 'CONFIRMED', 'pending' => 'AWAITING PAYMENT', 'cancelled' => 'CANCELLED'][$b['status']]
+            : (['confirmed' => $b['check_out'] <= date('Y-m-d') ? 'CONFIRMED · CHECKED OUT' : 'CONFIRMED',
+                'pending' => 'AWAITING PAYMENT', 'cancelled' => 'CANCELLED',
+                'no_show' => 'NO-SHOW', 'completed' => 'CHECKED OUT EARLY'][$b['status']]
                ?? strtoupper((string) $b['status']));
     $doc->letterhead($p, [
         ['BOOKING RECEIPT', 8.5, true, $accent],
@@ -203,7 +207,7 @@ function receipt_pdf(array $b): string {
         ['Issued ' . date('j M Y, g:i a'), 8.5, false, DocWriter::MUTED],
         ['Booked ' . date('j M Y', strtotime($b['created_at'])), 8.5, false, DocWriter::MUTED],
         ...(($m = booking_modified_at((int) $b['id'])) ? [['Updated by the resort ' . date('j M Y', strtotime($m)), 8.5, false, DocWriter::MUTED]] : []),
-        [$status, 9, true, $b['status'] === 'cancelled' ? [192, 57, 43] : ($b['status'] === 'confirmed' ? [46, 125, 50] : [178, 106, 0])],
+        [$status, 9, true, in_array($b['status'], ['cancelled', 'no_show'], true) ? [192, 57, 43] : (in_array($b['status'], ['confirmed', 'completed'], true) ? [46, 125, 50] : [178, 106, 0])],
     ]);
 
     // Guest and stay, side by side.
@@ -261,10 +265,22 @@ function receipt_pdf(array $b): string {
     $doc->row('Paid', inr_pdf((float) $b['amount_paid']));
     $balance = round((float) $b['total'] - (float) $b['amount_paid'], 2);
     $m = booking_money($b);
-    if ($m['due_now'] > 0.5)    $doc->row('Due now', inr_pdf($m['due_now']), true);
+    if ($m['due_now'] > 0.5)    $doc->row($m['arrived'] ? 'To pay at the desk' : 'Due now', inr_pdf($m['due_now']), true);
     if ($m['later'] > 0.5) $doc->row('Due before arrival', inr_pdf($m['later']), true);
-    if ($b['status'] !== 'cancelled' && $balance < -0.5) $doc->row('Refund due to you', inr_pdf(-$balance), true);
-    if ($b['status'] === 'cancelled' && (float) $b['refund_amount'] > 0) $doc->row('Refund', inr_pdf((float) $b['refund_amount']), true);
+    if (!in_array($b['status'], ['cancelled', 'no_show'], true) && $balance < -0.5) $doc->row('Refund due to you', inr_pdf(-$balance), true);
+    if ($b['status'] === 'cancelled') {
+        // What the cancellation kept and gives back — the same figures as the status page and the desk.
+        $cm = cancellation_money($b);
+        if ($cm['percent'] !== null) {
+            $doc->row('Cancellation charge (' . rtrim(rtrim(number_format($cm['percent'], 2), '0'), '.') . '%)', inr_pdf($cm['kept']), false,
+                $cm['charge'] !== null && $cm['charge'] > $cm['kept'] + 0.5 ? 'The charge is ' . inr_pdf($cm['charge']) . '; only what was paid is kept, nothing more is collected.' : null);
+        }
+        if ($cm['refund'] > 0.5) {
+            $doc->row('Refund', inr_pdf($cm['refund']), true, $cm['outstanding'] > 0.5
+                ? ($cm['given'] > 0.5 ? inr_pdf($cm['given']) . ' given back so far, ' . inr_pdf($cm['outstanding']) . ' to come' : 'To be given back to you')
+                : 'Given back in full');
+        }
+    }
 
     // Money received.
     $paid = array_filter($b['payments'], fn($x) => in_array($x['status'], ['paid', 'refunded'], true));
@@ -283,11 +299,12 @@ function receipt_pdf(array $b): string {
         }
     }
 
-    // What cancelling would cost, with this booking's own dates.
-    if ($b['status'] !== 'cancelled') {
+    // What cancelling would cost, with this booking's own dates — only while it can
+    // still be cancelled (it used to print the heading alone once the stay had started).
+    $sched = array_filter(cancellation_schedule($b['check_in'], (float) $b['total']), fn($s) => !$s['past']);
+    if (in_array($b['status'], ['pending', 'confirmed'], true) && $b['check_in'] >= date('Y-m-d') && $sched) {
         $doc->heading('If you need to cancel');
-        foreach (cancellation_schedule($b['check_in'], (float) $b['total']) as $s) {
-            if ($s['past']) continue;      // a period that is over is no longer a choice
+        foreach ($sched as $s) {
             $doc->row(cancellation_label($s), $s['charge_percent'] <= 0 ? 'No charge'
                 : rtrim(rtrim(number_format($s['charge_percent'], 2), '0'), '.') . '% · ' . inr_pdf($s['charge_amount']));
         }

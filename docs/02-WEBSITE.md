@@ -50,7 +50,7 @@ Steps: 1 rooms (occupancy per room, Select + room ticks for several rooms) → 2
 * Scripts/styles are versioned `?v=<filemtime>` so updates are picked up [CODE `index.php`].
 
 ### Admin front end
-Server-rendered PHP pages with small inline scripts: on-page confirm box for any `data-confirm` form/button (no browser pop-ups), per-tab sign-in mark, Availability tape chart + side panel, SHA-256 hashing on the sign-in page [CODE `admin/_auth.php`, `calendar.php`, `login.php`].
+Server-rendered PHP pages with small inline scripts: on-page confirm box for any `data-confirm` form/button (no browser pop-ups), per-tab sign-in mark and the one-admin heartbeat (`heartbeat.php`), Availability tape chart + side panel, SHA-256 hashing on the sign-in page [CODE `admin/_auth.php`, `calendar.php`, `login.php`].
 
 ---
 
@@ -193,7 +193,7 @@ Six cards (White Rann & Rann Utsav, Road to Heaven & Dholavira, Banni Villages, 
 
 #### 2.9 ContactSection (`id="contact"`)
 * Shows WhatsApp and email.
-* Form fields: name, email, phone, message.
+* Form fields: name, email, phone, message. Each has an id, a name, an `autoComplete` hint and a label for screen readers (`sr-only`; the placeholders are what shows), since 5 Oct 2026.
 * **Still a mock:** `setTimeout(1500)`, then a success toast. Nothing is sent. See [`13-FORMS-AND-INTERACTIONS.md`](#docs-13) for wiring it to the engine's `api/enquiry.php` (which now validates phone, email, dates and length).
 
 ---
@@ -473,8 +473,11 @@ The booking engine also sends `<meta name="robots" content="noindex">`. The admi
 ### `frontend/public/sitemap.xml`
 16 URLs: `/`, `/stay`, `/our-journey`, `/dining`, `/experiences`, `/around-the-resort`, `/gallery`, `/plan-your-visit`, `/packages`, `/white-rann-camp`, and the six `/destination/*` guides.
 
+### Canonical address and unknown addresses (5 Oct 2026)
+`usePageTitle()` in `App.tsx` also sets `<link rel="canonical">` on every real page: `https://kutchsafaribhuj.in` + the path, with `/rann-utsav-package` and `/white-rann-camp/tariff` pointing at `/white-rann-camp`. Any other address answers with the site (the host serves `index.html` for every path), so it gets `<meta name="robots" content="noindex">`. Search engines would otherwise list it or report a "soft 404". The Express server answers a missing *file* (e.g. `/assets/x.jpg`) with a real 404.
+
 ### Remaining gaps
-1. No `<link rel="canonical">`.
+1. Every page shares the meta description from `index.html` (per-page text needs the owner; `BUGS.md` O5).
 2. No JSON-LD. A `Resort`/`LodgingBusiness` schema with address, phone, geo and `priceRange` would help.
 3. `og:image` too big, with spaces in its name.
 4. Gallery: 19 of 26 images still have generic "photo N of 26" alt text (they need someone to describe them).
@@ -503,7 +506,7 @@ Direct booking is handled by `backend/booking-engine/`, not the React site.
    * "Pay at the property" is switched off.
 6. Confirmation with Receipt (PDF), Check status, Call. The page remembers the last booking on the device. Confirmation email (`lib/mail.php`), BCC to the office, once mail is set up.
 
-**Check status:** `/book/manage.php` → `api/booking-lookup.php` (code + mobile or email, or a `?ref=&token=` link). Shows the stay, due now / due before arrival or refund due, "Updated by the resort", and Receipt, Terms, Call. **Guests cannot cancel online** (`api/booking-cancel.php` always refuses); they call or WhatsApp, and the admin cancels.
+**Check status:** `/book/manage.php` → `api/booking-lookup.php` (code + mobile or email, or a `?ref=&token=` link; sent as a POST since 5 Oct 2026, so the phone or email never sits in an address or a log). Shows the stay, due now / due before arrival (or "To pay at the desk" once the guest has arrived) or refund due, a cancelled booking's charge and refund, "Updated by the resort", and Receipt, Terms, Call. **Guests cannot cancel online** (`api/booking-cancel.php` always refuses); they call or WhatsApp, and the admin cancels.
 
 **Enquiry endpoint:** `api/enquiry.php` stores enquiries in the engine's `enquiries` table, which staff see in Admin → Enquiries.
 
@@ -535,7 +538,7 @@ Nothing is sent. The inputs are write-only (no `value`), so the "reset" doesn't 
 
 Two backends are available. Pick one:
 * **Recommended:** POST to the engine's `api/enquiry.php` (at `BOOKING_URL + "api/enquiry.php"`). Enquiries then appear in the same admin panel as bookings. It takes JSON `{ name*, phone*, email, property, check_in, check_out, guests, interest, message, website }` (* required; `website` is a honeypot, leave it empty). It emails the office and returns `{ ok, id, message }`. Rate limit: 8 per 10 min per IP. The form already collects name, email, phone (required) and message, which map straight across.
-* Express `POST /api/contact` → `data/enquiries.json`. This doesn't work on Vercel (no persistent disk), and `api/contact.ts` only logs.
+* Express `POST /api/contact` → `data/enquiries.json` (checks the fields, stores only name, phone, email and message, no personal details in the log). This doesn't work on Vercel (no persistent disk), and `api/contact.ts` stores nothing, so it answers 503 with the phone number instead of claiming success.
 
 ### 4. Other interactions
 * WhatsApp: `https://wa.me/919925238599` (Home contact, BookingRedirect fallback), with a pre-filled message on Destination, RannUtsavPackage and the Experiences page's **Arrange an Experience** button (30 Sep 2026).

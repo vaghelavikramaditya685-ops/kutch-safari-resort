@@ -24,6 +24,17 @@ function razorpay_enabled(): bool {
     return (bool) cfg('razorpay.enabled', false) && cfg('razorpay.key_id') && cfg('razorpay.key_secret');
 }
 
+/**
+ * What a guest pays now, worked out from the booking as it is today: the full
+ * amount, or the 50% advance, less anything already paid. Not the amount_due_now
+ * stored at checkout: after the desk changed an unpaid 50% booking from ₹14,900
+ * to ₹29,800, that still charged ₹7,450 and confirmed the booking.
+ */
+function payable_now(array $b): float {
+    if ($b['status'] !== 'pending') return 0.0;
+    return booking_money($b)['due_now'];
+}
+
 function rzp_request(string $method, string $path, ?array $payload = null): array {
     $ch = curl_init('https://api.razorpay.com/v1/' . ltrim($path, '/'));
     curl_setopt_array($ch, [
@@ -54,7 +65,7 @@ function razorpay_create_order(int $booking_id): array {
     $b = get_booking($booking_id);
     if (!$b) return ['ok' => false, 'error' => 'Booking not found.'];
 
-    $amount = (float) $b['amount_due_now'];
+    $amount = payable_now($b);
     if ($amount <= 0) return ['ok' => false, 'error' => 'Nothing is payable online for this booking.'];
 
     [$ok, $status, $res] = rzp_request('POST', 'orders', [
@@ -118,7 +129,8 @@ function razorpay_confirm(string $order_id, string $payment_id, string $signatur
     if (!$pay) return ['ok' => false, 'error' => 'We do not recognise that payment.'];
 
     if (!razorpay_verify_signature($order_id, $payment_id, $signature)) {
-        update('payments', (int) $pay['id'], ['status' => 'failed', 'raw_response' => 'signature mismatch']);
+        // A forged or garbled return never undoes a payment that is already confirmed.
+        exec_sql("UPDATE payments SET status = 'failed', raw_response = 'signature mismatch' WHERE id = ? AND status <> 'paid'", [(int) $pay['id']]);
         audit('razorpay_signature_mismatch', 'payment', $pay['id']);
         return ['ok' => false, 'error' => 'That payment could not be verified. You have not been charged twice — please call us.'];
     }
@@ -133,7 +145,7 @@ function razorpay_confirm(string $order_id, string $payment_id, string $signatur
             if ($cok) $res = $cres;
         }
         if (($res['status'] ?? '') !== 'captured') {
-            update('payments', (int) $pay['id'], ['status' => 'failed', 'raw_response' => json_encode($res)]);
+            exec_sql("UPDATE payments SET status = 'failed', raw_response = ? WHERE id = ? AND status <> 'paid'", [json_encode($res), (int) $pay['id']]);
             return ['ok' => false, 'error' => 'The payment did not complete. Please try again.'];
         }
     }
@@ -141,42 +153,70 @@ function razorpay_confirm(string $order_id, string $payment_id, string $signatur
     return settle_payment((int) $pay['id'], $payment_id, $res);
 }
 
-/** Shared by the browser callback and the webhook, so either can confirm. */
-function settle_payment(int $payment_row_id, string $payment_id, array $res): array {
-    $pay = q1("SELECT * FROM payments WHERE id = ?", [$payment_row_id]);
-    if (!$pay) return ['ok' => false, 'error' => 'Unknown payment.'];
+/**
+ * Shared by the browser callback, the webhook, test payments and the desk's
+ * "Money received", so any of them can confirm. Marking the payment paid is one
+ * conditional update: when the browser, the webhook and retries arrive at the
+ * same moment, exactly one of them gets through, so the confirmation email and
+ * the Stayflexi reservation happen once (they used to happen up to 15 times).
+ * Money for a booking cancelled meanwhile is recorded and owed back in full;
+ * the booking stays cancelled.
+ */
+function settle_payment(int $payment_row_id, string $payment_id, array $res, array $extra = []): array {
+    $r = db_tx(function () use ($payment_row_id, $payment_id, $res, $extra) {
+        $pay = q1("SELECT * FROM payments WHERE id = ?" . for_update(), [$payment_row_id]);
+        if (!$pay) return ['ok' => false, 'error' => 'Unknown payment.'];
+        $booking_id = (int) $pay['booking_id'];
+        $b = lock_booking($booking_id);
 
-    // Idempotent: the webhook and the browser often both arrive.
-    if ($pay['status'] === 'paid') {
-        return ['ok' => true, 'already' => true, 'booking_id' => (int) $pay['booking_id']];
-    }
+        $changed = exec_sql("UPDATE payments SET payment_id = ?, method = ?, status = 'paid', raw_response = ?, paid_at = ?"
+                          . ($extra ? ', ' . implode(', ', array_map(fn($k) => "$k = ?", array_keys($extra))) : '')
+                          . " WHERE id = ? AND status IN ('created', 'awaiting_confirmation', 'failed')",
+                            array_merge([$payment_id, $res['method'] ?? null, json_encode($res), now()], array_values($extra), [$payment_row_id]));
+        if (!$changed) {
+            // Already settled by another request, or withdrawn when the booking was cancelled.
+            return $pay['status'] === 'paid'
+                ? ['ok' => true, 'already' => true, 'booking_id' => $booking_id]
+                : ['ok' => false, 'error' => 'This payment request was withdrawn when the booking was cancelled.', 'booking_id' => $booking_id];
+        }
 
-    update('payments', $payment_row_id, [
-        'payment_id'   => $payment_id,
-        'method'       => $res['method'] ?? null,
-        'status'       => 'paid',
-        'raw_response' => json_encode($res),
-        'paid_at'      => now(),
-    ]);
+        // Payments minus any refunds, counted the same way everywhere (refresh_amount_paid).
+        $paid = refresh_amount_paid($booking_id);
+        if (in_array($b['status'], ['cancelled', 'no_show'], true)) {
+            update('bookings', $booking_id, ['refund_amount' => money((float) $b['refund_amount'] + (float) $pay['amount']), 'updated_at' => now()]);
+            audit('payment_after_cancel', 'booking', $booking_id, ['payment' => $payment_id, 'amount' => (float) $pay['amount']]);
+            return ['ok' => false, 'booking_id' => $booking_id, 'after_cancel' => true, 'amount' => (float) $pay['amount'],
+                    'error' => 'This booking was cancelled before the payment arrived. The ₹' . number_format((float) $pay['amount'], 2)
+                             . ' paid is recorded and will be given back — please call us.'];
+        }
+        // Paid after the booking stopped holding its cottage (a card payment finished
+        // after its window, a UPI payment confirmed days later) and someone else has
+        // the cottage now: confirming would sell it twice. The money is recorded and
+        // owed back in full, and the booking is cancelled.
+        if ($b['status'] === 'pending' && !booking_rooms_still_free($b)) {
+            update('bookings', $booking_id, [
+                'status' => 'cancelled', 'cancelled_at' => now(), 'updated_at' => now(),
+                'cancel_reason' => 'Paid after its hold ended; the cottage had been booked by someone else',
+                'refund_amount' => money($paid),
+            ]);
+            exec_sql("UPDATE payments SET status = 'void' WHERE booking_id = ? AND provider = 'upi_qr' AND status = 'awaiting_confirmation'", [$booking_id]);
+            audit('payment_no_room', 'booking', $booking_id, ['payment' => $payment_id, 'paid' => $paid]);
+            return ['ok' => false, 'booking_id' => $booking_id, 'no_room' => true,
+                    'error' => 'Sorry — the cottage was booked by someone else while this payment was being made. The ₹'
+                             . number_format($paid, 2) . ' paid is recorded and will be given back in full — please call us.'];
+        }
+        $newly = $b['status'] === 'pending';
+        if ($newly) update('bookings', $booking_id, ['status' => 'confirmed', 'updated_at' => now()]);
+        audit('payment_settled', 'booking', $booking_id, ['payment' => $payment_id, 'paid' => $paid]);
+        return ['ok' => true, 'booking_id' => $booking_id, 'paid' => $paid, 'newly_confirmed' => $newly];
+    });
+    if (empty($r['newly_confirmed'])) return $r;
 
-    $booking_id = (int) $pay['booking_id'];
-    // Payments minus any refunds, counted the same way everywhere (refresh_amount_paid).
-    $paid = refresh_amount_paid($booking_id);
-    $b = get_booking($booking_id);
-
-    update('bookings', $booking_id, [
-        'status'      => 'confirmed',
-        'updated_at'  => now(),
-    ]);
-    audit('payment_settled', 'booking', $booking_id, ['payment' => $payment_id, 'paid' => $paid]);
-
-    // Now the money is real, close the room on every OTA.
-    $push = channel_push_booking($booking_id);
-
+    // Now the money is real, close the room on every OTA and tell the guest — once.
+    $r['channel'] = channel_push_booking($r['booking_id']);
     require_once __DIR__ . '/mail.php';
-    send_booking_confirmation($booking_id);
-
-    return ['ok' => true, 'booking_id' => $booking_id, 'channel' => $push];
+    send_booking_confirmation($r['booking_id']);
+    return $r;
 }
 
 /** Webhooks are signed over the whole raw body. */
@@ -233,26 +273,32 @@ function test_payments_enabled(): bool {
 function test_payment_settle(int $booking_id, string $manage_token): array {
     if (!test_payments_enabled()) return ['ok' => false, 'error' => 'Test payments are switched off.'];
 
-    $b = get_booking($booking_id);
-    if (!$b || !hash_equals((string) $b['manage_token'], $manage_token)) {
-        return ['ok' => false, 'error' => 'Booking not found.'];
-    }
-    if ($b['status'] === 'cancelled') return ['ok' => false, 'error' => 'This booking was cancelled.'];
-
-    $amount = (float) $b['amount_due_now'];
-    if ($amount <= 0) return ['ok' => false, 'error' => 'Nothing is payable for this booking.'];
-
-    $row = insert('payments', [
-        'booking_id' => $booking_id,
-        'provider'   => 'test',
-        'purpose'    => 'booking',
-        'method'     => 'test',
-        'amount'     => $amount,
-        'status'     => 'created',
-        'created_at' => now(),
-    ]);
-    audit('test_payment', 'booking', $booking_id, ['amount' => $amount]);
-    return settle_payment($row, 'TEST-' . $b['ref'], ['method' => 'test', 'note' => 'Test payment — no money taken']);
+    // Checked and written under the lock: twenty presses at once (or a double click)
+    // record one payment, not twenty. Only a booking still waiting for payment, for
+    // what it still needs.
+    $r = db_tx(function () use ($booking_id, $manage_token) {
+        $b = lock_booking($booking_id);
+        if (!$b || !hash_equals((string) $b['manage_token'], $manage_token)) {
+            return ['ok' => false, 'error' => 'Booking not found.'];
+        }
+        if ($b['status'] === 'cancelled') return ['ok' => false, 'error' => 'This booking was cancelled.'];
+        if ($b['status'] !== 'pending') return ['ok' => false, 'error' => 'This booking is already paid.'];
+        $amount = payable_now($b);
+        if ($amount <= 0) return ['ok' => false, 'error' => 'Nothing is payable for this booking.'];
+        $row = insert('payments', [
+            'booking_id' => $booking_id,
+            'provider'   => 'test',
+            'purpose'    => 'booking',
+            'method'     => 'test',
+            'amount'     => $amount,
+            'status'     => 'created',
+            'created_at' => now(),
+        ]);
+        audit('test_payment', 'booking', $booking_id, ['amount' => $amount]);
+        return ['ok' => true, 'row' => $row, 'ref' => $b['ref']];
+    });
+    if (!$r['ok']) return $r;
+    return settle_payment($r['row'], 'TEST-' . $r['ref'], ['method' => 'test', 'note' => 'Test payment — no money taken']);
 }
 
 function upi_enabled(): bool {
@@ -270,7 +316,7 @@ function upi_payment_request(int $booking_id): array {
     $b = get_booking($booking_id);
     if (!$b) return ['ok' => false, 'error' => 'Booking not found.'];
 
-    $amount = (float) $b['amount_due_now'];
+    $amount = payable_now($b);
     if ($amount <= 0) return ['ok' => false, 'error' => 'Nothing is payable for this booking.'];
 
     // The transaction ref is what ties the bank statement line to the booking.
@@ -315,77 +361,112 @@ function upi_payment_request(int $booking_id): array {
  * This is the only way a direct UPI payment ever becomes 'paid'.
  */
 function upi_mark_received(int $payment_id, string $staff_name, string $bank_ref = ''): array {
-    $pay = q1("SELECT * FROM payments WHERE id = ? AND provider = 'upi_qr'", [$payment_id]);
+    $pay = q1("SELECT p.*, b.status AS booking_status FROM payments p JOIN bookings b ON b.id = p.booking_id
+                WHERE p.id = ? AND p.provider = 'upi_qr'", [$payment_id]);
     if (!$pay) return ['ok' => false, 'error' => 'UPI payment not found.'];
     if ($pay['status'] === 'paid') return ['ok' => false, 'error' => 'Already marked as received.'];
-
-    update('payments', $payment_id, [
-        'status'       => 'paid',
-        'verified_by'  => $staff_name,
-        'raw_response' => json_encode(['bank_reference' => $bank_ref, 'confirmed_by' => $staff_name]),
-        'paid_at'      => now(),
+    // Cancelled meanwhile: confirming it would bring the booking back to life, hold
+    // the cottage again (perhaps resold), tell Stayflexi and email the guest.
+    if ($pay['status'] === 'void' || in_array($pay['booking_status'], ['cancelled', 'no_show'], true)) {
+        return ['ok' => false, 'error' => 'This booking was cancelled, so its UPI request was withdrawn and it was not confirmed. '
+                                       . 'If the money did reach the bank, give it back to the guest.'];
+    }
+    $r = settle_payment($payment_id, (string) ($pay['payment_id'] ?? ''), ['method' => 'upi'], [
+        'verified_by' => $staff_name,
     ]);
-
-    $booking_id = (int) $pay['booking_id'];
-    $paid = refresh_amount_paid($booking_id);   // payments minus any refunds
-    update('bookings', $booking_id, ['status' => 'confirmed', 'updated_at' => now()]);
-
-    audit('upi_confirmed', 'booking', $booking_id, ['payment' => $payment_id, 'bank_ref' => $bank_ref], $staff_name);
-    channel_push_booking($booking_id);
-
-    require_once __DIR__ . '/mail.php';
-    send_booking_confirmation($booking_id);
-
-    return ['ok' => true, 'booking_id' => $booking_id, 'paid' => $paid];
+    if (!empty($r['no_room'])) {
+        return ['ok' => false, 'error' => 'The money is recorded, but the cottage had been booked by someone else after this QR stopped '
+                                       . 'holding it, so the booking was cancelled. Give the guest their money back (open the booking to record the refund).'];
+    }
+    if (!$r['ok'] || !empty($r['already'])) {
+        return !empty($r['already']) ? ['ok' => false, 'error' => 'Already marked as received.'] : $r;
+    }
+    // Keep the bank reference with the payment for the books.
+    exec_sql("UPDATE payments SET raw_response = ? WHERE id = ?",
+             [json_encode(['bank_reference' => $bank_ref, 'confirmed_by' => $staff_name]), $payment_id]);
+    audit('upi_confirmed', 'booking', $r['booking_id'], ['payment' => $payment_id, 'bank_ref' => $bank_ref], $staff_name);
+    return ['ok' => true, 'booking_id' => $r['booking_id'], 'paid' => $r['paid'], 'confirmed' => !empty($r['newly_confirmed'])];
 }
 
-/** Record cash/card taken at the property, or a bank transfer. */
+/**
+ * Record cash/card taken at the property, or a bank transfer. Checked under the
+ * lock: two desk staff recording the same payment at once cannot both get past
+ * "up to the balance due", so the guest is never shown as having overpaid.
+ */
 function record_offline_payment(int $booking_id, float $amount, string $method, string $staff_name, string $note = ''): array {
-    insert('payments', [
-        'booking_id'  => $booking_id,
-        'provider'    => 'offline',
-        'purpose'     => 'balance',
-        'method'      => $method,
-        'amount'      => $amount,
-        'status'      => 'paid',
-        'verified_by' => $staff_name,
-        'raw_response'=> json_encode(['note' => $note]),
-        'created_at'  => now(),
-        'paid_at'     => now(),
-    ]);
-    $paid = refresh_amount_paid($booking_id);
-    audit('offline_payment', 'booking', $booking_id, ['amount' => $amount, 'method' => $method], $staff_name);
-
-    // A booking still waiting for payment is confirmed once what it needs now is paid
-    // (all of it, or the 50% advance) — the same as an online payment: status,
-    // Stayflexi and the confirmation email.
-    $b = get_booking($booking_id);
-    if ($b && $b['status'] === 'pending' && booking_money($b)['due_now'] <= 0.5) {
-        update('bookings', $booking_id, ['status' => 'confirmed', 'updated_at' => now()]);
-        audit('payment_settled', 'booking', $booking_id, ['payment' => 'offline', 'paid' => $paid], $staff_name);
+    $amount = round($amount, 2);
+    $r = db_tx(function () use ($booking_id, $amount, $method, $staff_name, $note) {
+        $b = lock_booking($booking_id);
+        if (!$b) return ['ok' => false, 'error' => 'Booking not found.'];
+        if (in_array($b['status'], ['cancelled', 'no_show'], true)) return ['ok' => false, 'error' => 'This booking is cancelled — no payment can be recorded.'];
+        $due = round((float) $b['total'] - (float) $b['amount_paid'], 2);
+        if ($due <= 0.5) return ['ok' => false, 'error' => 'This booking is already fully paid.'];
+        if ($amount <= 0 || $amount > $due + 0.5) return ['ok' => false, 'error' => 'Enter an amount up to the balance due (₹' . number_format($due, 2) . ').'];
+        if ($b['status'] === 'pending' && !booking_rooms_still_free($b)) {
+            return ['ok' => false, 'error' => 'This unpaid booking stopped holding its cottage and someone else has booked it since. '
+                                            . 'Change the booking to a free cottage first, then record the payment.'];
+        }
+        insert('payments', [
+            'booking_id'  => $booking_id,
+            'provider'    => 'offline',
+            'purpose'     => 'balance',
+            'method'      => $method,
+            'amount'      => $amount,
+            'status'      => 'paid',
+            'verified_by' => $staff_name,
+            'raw_response'=> json_encode(['note' => $note]),
+            'created_at'  => now(),
+            'paid_at'     => now(),
+        ]);
+        $paid = refresh_amount_paid($booking_id);
+        audit('offline_payment', 'booking', $booking_id, ['amount' => $amount, 'method' => $method], $staff_name);
+        // A booking still waiting for payment is confirmed once what it needs now is
+        // paid (all of it, or the 50% advance) — the same as an online payment.
+        $b = lock_booking($booking_id);
+        if ($b['status'] === 'pending' && booking_money($b)['due_now'] <= 0.5) {
+            update('bookings', $booking_id, ['status' => 'confirmed', 'updated_at' => now()]);
+            audit('payment_settled', 'booking', $booking_id, ['payment' => 'offline', 'paid' => $paid], $staff_name);
+            return ['ok' => true, 'paid' => $paid, 'confirmed' => true];
+        }
+        return ['ok' => true, 'paid' => $paid];
+    });
+    if (!empty($r['confirmed'])) {
         channel_push_booking($booking_id);
         require_once __DIR__ . '/mail.php';
         send_booking_confirmation($booking_id);
-        return ['ok' => true, 'paid' => $paid, 'confirmed' => true];
     }
-    return ['ok' => true, 'paid' => $paid];
+    return $r;
 }
 
-/** Money given back at the property after a change made the stay cheaper. */
+/**
+ * Money given back by the desk: after a change made the stay cheaper, or after a
+ * cancellation (up to the refund it left owing). Checked under the lock, so it
+ * can never give back more than is owed.
+ */
 function record_offline_refund(int $booking_id, float $amount, string $method, string $staff_name, string $note = ''): array {
-    insert('payments', [
-        'booking_id'  => $booking_id,
-        'provider'    => 'offline',
-        'purpose'     => 'refund',
-        'method'      => $method,
-        'amount'      => -1 * abs($amount),
-        'status'      => 'refunded',
-        'verified_by' => $staff_name,
-        'raw_response'=> json_encode(['note' => $note]),
-        'created_at'  => now(),
-        'paid_at'     => now(),
-    ]);
-    $paid = refresh_amount_paid($booking_id);
-    audit('offline_refund', 'booking', $booking_id, ['amount' => $amount, 'method' => $method], $staff_name);
-    return ['ok' => true, 'paid' => $paid];
+    $amount = round(abs($amount), 2);
+    return db_tx(function () use ($booking_id, $amount, $method, $staff_name, $note) {
+        $b = lock_booking($booking_id);
+        if (!$b) return ['ok' => false, 'error' => 'Booking not found.'];
+        $owed = $b['status'] === 'cancelled'
+            ? cancellation_money($b)['outstanding']
+            : round((float) $b['amount_paid'] - (float) $b['total'], 2);
+        if ($owed <= 0.5) return ['ok' => false, 'error' => 'Nothing is owed back to the guest.'];
+        if ($amount <= 0 || $amount > $owed + 0.5) return ['ok' => false, 'error' => 'Enter an amount up to what is owed back (₹' . number_format($owed, 2) . ').'];
+        insert('payments', [
+            'booking_id'  => $booking_id,
+            'provider'    => 'offline',
+            'purpose'     => 'refund',
+            'method'      => $method,
+            'amount'      => -1 * $amount,
+            'status'      => 'refunded',
+            'verified_by' => $staff_name,
+            'raw_response'=> json_encode(['note' => $note]),
+            'created_at'  => now(),
+            'paid_at'     => now(),
+        ]);
+        $paid = refresh_amount_paid($booking_id);
+        audit('offline_refund', 'booking', $booking_id, ['amount' => $amount, 'method' => $method], $staff_name);
+        return ['ok' => true, 'paid' => $paid];
+    });
 }

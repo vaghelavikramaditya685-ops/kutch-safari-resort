@@ -347,7 +347,23 @@ CREATE TABLE IF NOT EXISTS audit_log (
   entity_id     VARCHAR(40) DEFAULT NULL,
   detail        TEXT,
   ip            VARCHAR(45) DEFAULT NULL,
-  created_at    DATETIME NOT NULL
+  created_at    DATETIME NOT NULL,
+  KEY idx_audit_rl (action, ip, created_at)   -- the rate limits count rows by these
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------------
+-- One admin at a time: who has the admin panel open (one row, id 1), and when
+-- their tab was last heard from. See admin/_auth.php. (Older databases get this
+-- table, and the rate-limit index below, from db_upgrade() in lib/db.php.)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS admin_lock (
+  id            INT PRIMARY KEY,
+  session_id    VARCHAR(128) DEFAULT NULL,
+  admin_id      INT DEFAULT NULL,
+  admin_name    VARCHAR(120) DEFAULT NULL,
+  since         DATETIME DEFAULT NULL,
+  last_seen     DATETIME DEFAULT NULL,
+  last_beat     DATETIME DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------------

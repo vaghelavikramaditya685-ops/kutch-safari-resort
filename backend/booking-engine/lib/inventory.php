@@ -153,14 +153,22 @@ function availability_ignore_booking(?int $booking_id = null, bool $set = false)
     return $ignore;
 }
 
+/** Hours a UPI payment waiting for the desk keeps holding its cottage (config upi.confirm_hours). */
+function upi_hold_hours(): int {
+    return max(1, (int) cfg('upi.confirm_hours', 48));
+}
+
 function rooms_booked(int $room_type_id, string $date): int {
     // A confirmed booking always holds its rooms. A pending (unpaid) one holds
     // them only while the guest can still pay — the card window (rules.hold_minutes)
     // or the UPI QR window, whichever is longer — or once some money has been
-    // paid, or while a UPI payment waits for the desk to confirm it. After that
-    // an unpaid booking stops blocking rooms, so abandoned checkouts free up.
+    // paid, or while a UPI payment waits for the desk to confirm it, for up to
+    // upi.confirm_hours (it used to hold the cottage for ever if the guest never
+    // paid). After that an unpaid booking stops blocking rooms. No-shows, early
+    // departures and cancellations hold nothing.
     $window = max((int) cfg('rules.hold_minutes', 20), (int) cfg('upi.hold_minutes', 45));
     $since  = date('Y-m-d H:i:s', time() - $window * 60);
+    $upi_since = date('Y-m-d H:i:s', time() - upi_hold_hours() * 3600);
     return (int) qval(
         "SELECT COALESCE(SUM(br.rooms), 0)
            FROM booking_rooms br
@@ -171,9 +179,9 @@ function rooms_booked(int $room_type_id, string $date): int {
                  OR (b.status = 'pending'
                      AND (b.amount_paid > 0 OR b.created_at > ?
                           OR EXISTS (SELECT 1 FROM payments p
-                                      WHERE p.booking_id = b.id AND p.status = 'awaiting_confirmation'))))"
+                                      WHERE p.booking_id = b.id AND p.status = 'awaiting_confirmation' AND p.created_at > ?))))"
             . (availability_ignore_booking() ? " AND b.id <> " . (int) availability_ignore_booking() : ''),
-        [$room_type_id, $date, $date, $since], 0);
+        [$room_type_id, $date, $date, $since, $upi_since], 0);
 }
 
 /** An unpaid booking whose payment window has closed — it no longer holds rooms. */
@@ -181,7 +189,31 @@ function booking_lapsed(array $b): bool {
     if ($b['status'] !== 'pending' || (float) $b['amount_paid'] > 0) return false;
     $window = max((int) cfg('rules.hold_minutes', 20), (int) cfg('upi.hold_minutes', 45));
     if (strtotime($b['created_at']) > time() - $window * 60) return false;
-    return !qval("SELECT 1 FROM payments WHERE booking_id = ? AND status = 'awaiting_confirmation'", [$b['id']]);
+    return !qval("SELECT 1 FROM payments WHERE booking_id = ? AND status = 'awaiting_confirmation' AND created_at > ?",
+                 [$b['id'], date('Y-m-d H:i:s', time() - upi_hold_hours() * 3600)]);
+}
+
+/**
+ * Are this booking's cottages still free for its dates, leaving the booking itself
+ * out? Checked when money arrives for a booking that may have stopped holding them
+ * (a card payment finished after its window, a UPI payment confirmed days later).
+ */
+function booking_rooms_still_free(array $b): bool {
+    $wanted = [];
+    foreach (q("SELECT room_type_id, rooms FROM booking_rooms WHERE booking_id = ?", [(int) $b['id']]) as $l) {
+        $wanted[(int) $l['room_type_id']] = ($wanted[(int) $l['room_type_id']] ?? 0) + (int) $l['rooms'];
+    }
+    $prev = availability_ignore_booking();
+    availability_ignore_booking((int) $b['id'], true);
+    try {
+        foreach ($wanted as $rt_id => $n) {
+            $rt = q1("SELECT * FROM room_types WHERE id = ?", [$rt_id]);
+            if (!$rt || rooms_free_for_stay($rt, max($b['check_in'], date('Y-m-d')), $b['check_out']) < $n) return false;
+        }
+        return true;
+    } finally {
+        availability_ignore_booking($prev, true);
+    }
 }
 
 /** Rooms sitting in someone else's cart right now. */

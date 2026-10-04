@@ -31,11 +31,74 @@ session_set_cookie_params([
 ]);
 session_start();
 
+// The admin panel is never shown inside another site's frame (clickjacking), the
+// browser never guesses file types, and its addresses are not sent to other sites.
+if (PHP_SAPI !== 'cli' && !headers_sent()) {
+    header('X-Frame-Options: DENY');
+    header("Content-Security-Policy: frame-ancestors 'none'");
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: same-origin');
+}
+
+/* ---------------------------------------------------------------------------
+ * One admin at a time (owner's requirement, 30 Sep 2026).
+ * While someone has the admin panel open, nobody else can sign in or use it;
+ * the next person gets in once that tab is closed or signed out. The open tab
+ * checks in every 25 seconds (heartbeat.php); closing it releases the panel
+ * within a few seconds, and a tab that vanishes without saying so (a crash, a
+ * dead battery) releases it ADMIN_LOCK_SECONDS after it was last heard from.
+ * The holder is one sign-in (session), whichever of its tabs is open.
+ * ------------------------------------------------------------------------ */
+const ADMIN_LOCK_SECONDS = 90;
+
+function admin_lock_row(): ?array {
+    return q1("SELECT * FROM admin_lock WHERE id = 1");
+}
+
+/** Someone is in the admin panel right now (heard from within the last 90 seconds). */
+function admin_lock_live(?array $row): bool {
+    if (!$row || !$row['session_id']) return false;
+    $last = max(strtotime((string) $row['last_seen']) ?: 0, strtotime((string) ($row['last_beat'] ?? '')) ?: 0);
+    return $last > time() - ADMIN_LOCK_SECONDS;
+}
+
+/** Take the panel for this sign-in, or refresh it. Returns the other holder's row when someone else has it. */
+function admin_lock_take(array $user, bool $beat = false): ?array {
+    return db_tx(function () use ($user, $beat) {
+        $row = q1("SELECT * FROM admin_lock WHERE id = 1" . for_update());
+        if (admin_lock_live($row) && $row['session_id'] !== session_id()) return $row;
+        $mine = $row && $row['session_id'] === session_id();
+        $data = ['session_id' => session_id(), 'admin_id' => (int) $user['id'], 'admin_name' => $user['name'],
+                 'since' => $mine && admin_lock_live($row) ? $row['since'] : now(), 'last_seen' => now()];
+        if ($beat) $data['last_beat'] = now();
+        if ($row) update('admin_lock', 1, $data);
+        else insert('admin_lock', ['id' => 1] + $data);
+        return null;
+    });
+}
+
+/** Let go of the panel, if this sign-in holds it. $soon: in a few seconds instead of now (the tab may just be moving to another admin page). */
+function admin_lock_release(bool $soon = false): void {
+    try {
+        $when = $soon ? date('Y-m-d H:i:s', time() - ADMIN_LOCK_SECONDS + 5) : null;
+        exec_sql("UPDATE admin_lock SET last_seen = ?, last_beat = ? WHERE id = 1 AND session_id = ?", [$when, $when, session_id()]);
+    } catch (Throwable $e) { /* never stop a sign-out */ }
+}
+
+/** "The admin panel is in use by Manvir since 3:10 pm." */
+function admin_in_use_message(array $row): string {
+    $since = strtotime((string) $row['since']);
+    return 'The admin panel is in use by ' . $row['admin_name'] . ' since '
+         . (date('Y-m-d', $since) === date('Y-m-d') ? date('g:i a', $since) : date('j M, g:i a', $since))
+         . '. Only one person can use it at a time — try again when they close it.';
+}
+
 function current_user(): ?array {
     if (empty($_SESSION['admin_id'])) return null;
     // Signed out after admin.idle_minutes without using the admin panel.
     $idle = 60 * max(1, (int) cfg('admin.idle_minutes', 10));
     if (isset($_SESSION['last_seen']) && time() - (int) $_SESSION['last_seen'] > $idle) {
+        admin_lock_release();
         $_SESSION = [];
         session_destroy();
         return null;
@@ -47,6 +110,15 @@ function current_user(): ?array {
 function require_login(): array {
     $u = current_user();
     if (!$u) { header('Location: login.php?again=1'); exit; }
+    if ($other = admin_lock_take($u)) {
+        // Someone else has the panel: nothing on this page is shown or changed.
+        http_response_code(423);
+        admin_head('In use');
+        echo '<div class="panel" style="max-width:560px;margin:40px auto"><h2>Admin panel in use</h2><p role="alert">'
+           . h(admin_in_use_message($other)) . '</p><p><a class="btn btn--plain btn--sm" href="logout.php">Sign out</a></p></div>';
+        admin_foot();
+        exit;
+    }
     return $u;
 }
 
@@ -88,20 +160,49 @@ function admin_head(string $title, ?array $user = null): void {
       <link rel="stylesheet" href="../assets/engine.css?v=' . filemtime(__DIR__ . '/../assets/engine.css') . '">
       <link rel="stylesheet" href="admin.css?v=' . filemtime(__DIR__ . '/admin.css') . '">';
     if ($user) {
-        // A sign-in only counts in the tab it was made in: a new tab or window has
-        // no mark in sessionStorage, so it is signed out and asked for the password.
+        // A sign-in only counts in the tab it was made in. A new tab or window has no
+        // mark in sessionStorage: it goes to tab.php, which says the panel is already
+        // open in another tab (without signing that tab out), or asks for the password.
+        // The marked tab checks in every 25 s (heartbeat.php) so the panel stays its
+        // own, and lets go when it is closed; if it is signed out meanwhile (idle,
+        // or signed in again elsewhere), it says so instead of failing on the next save.
         echo '<script>(function () { try {
-          var q = new URLSearchParams(location.search);
+          var q = new URLSearchParams(location.search), K = "ksr_admin_tab";
           if (q.get("signed_in") === "1") {
-            sessionStorage.setItem("ksr_admin_tab", "1");
+            sessionStorage.setItem(K, Math.random().toString(36).slice(2));
             q.delete("signed_in");
             history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : "") + location.hash);
-          } else if (!sessionStorage.getItem("ksr_admin_tab")) {
-            location.replace("logout.php?again=1");
+          } else if (!sessionStorage.getItem(K)) {
+            location.replace("tab.php");
+            return;
           }
+          var tab = sessionStorage.getItem(K);
+          function beat(release) {
+            var body = new URLSearchParams({ tab: tab, release: release ? "1" : "" });
+            if (release) { navigator.sendBeacon && navigator.sendBeacon("heartbeat.php", body); return; }
+            fetch("heartbeat.php", { method: "POST", body: body, credentials: "same-origin" })
+              .then(function (r) { return r.json(); })
+              .then(function (r) { if (!r.ok) gone(r.error); })
+              .catch(function () { /* offline for a moment: the next beat tries again */ });
+          }
+          function gone(msg) {
+            clearInterval(timer);
+            if (document.getElementById("adminGone")) return;
+            var d = document.createElement("div");
+            d.id = "adminGone"; d.className = "admin-gone"; d.setAttribute("role", "alert");
+            d.innerHTML = "<p></p><a class=\"btn btn--sm\" href=\"login.php?again=1\">Sign in again</a>";
+            d.firstChild.textContent = msg || "You have been signed out of the admin panel.";
+            document.body.appendChild(d);
+          }
+          var timer = setInterval(beat, 25000);
+          beat(false);
+          addEventListener("pagehide", function () { beat(true); });
+          addEventListener("pageshow", function (e) { if (e.persisted) beat(false); });
         } catch (e) {} })();</script>';
     }
     echo '</head><body class="admin">';
+    // Every admin page has one top-level heading for screen readers; the visible titles stay as they are.
+    echo '<h1 class="sr-only">' . h($title) . ' · Reservations</h1>';
     if ($user) {
         echo '<header class="eng-header"><div class="wrap">
                 <div class="eng-brand"><strong>Reservations</strong></div><nav>';

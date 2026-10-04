@@ -27,7 +27,7 @@ export default function Packages() {
             <img src="/assets/images/new/kutch-destination-road_2.jpg" className="w-full h-48 object-cover" alt="Package" />
             <div className="p-8">
                <span className="text-xs font-bold text-[var(--terracotta)] uppercase tracking-widest mb-2 block">2 Nights · 3 Days</span>
-               <h3 className="text-2xl font-display font-bold mb-4">The Rann Short Break</h3>
+               <h2 className="text-2xl font-display font-bold mb-4">The Rann Short Break</h2>
                <p className="text-zinc-600 mb-6">Banni villages, the White Rann at sunset and Rann Utsav; then Kala Dungar and Dholavira by the Road to Heaven; then Bhuj and Bhujodi.</p>
             </div>
          </div>
@@ -35,7 +35,7 @@ export default function Packages() {
             <img src="/assets/images/new/kutch-destination-mandvi-beach.jpg" className="w-full h-48 object-cover" alt="Package" />
             <div className="p-8">
                <span className="text-xs font-bold text-[var(--terracotta)] uppercase tracking-widest mb-2 block">3 Nights · 4 Days</span>
-               <h3 className="text-2xl font-display font-bold mb-4">The Complete Kutch</h3>
+               <h2 className="text-2xl font-display font-bold mb-4">The Complete Kutch</h2>
                <p className="text-zinc-600 mb-6">Everything above, with a fourth day for Mandvi — the Vijay Vilas Palace, the shipyard and the beach.</p>
             </div>
          </div>

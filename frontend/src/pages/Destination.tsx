@@ -1,11 +1,7 @@
 import { Link } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRoute } from "wouter";
-import {
-  Phone, Mail, MapPin, Menu, X, Facebook, Instagram, Star, Sun, Cloud, Wind,
-  Waves, Heart, UtensilsCrossed, Clock, Car, ArrowLeft, Navigation,
-  Snowflake, Wifi, Coffee, Tv, Lock, Archive, PhoneCall,
-} from "lucide-react";
+import { Clock, Car, ArrowLeft, Navigation } from "lucide-react";
 
 const DESTINATION_DATA: Record<string, {
   title: string;
@@ -128,14 +124,6 @@ const DESTINATION_DATA: Record<string, {
   },
 };
 
-function slugify(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[()&]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 export default function Destination() {
   const [, params] = useRoute("/destination/:slug");

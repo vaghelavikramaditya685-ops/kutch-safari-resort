@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Map of every Markdown file in this repository and what it contains. Updated 30 Sep 2026.
+Map of every Markdown file in this repository and what it contains. Updated 5 Oct 2026.
 
 The project: website (`frontend/`, React 19 + Vite) and booking engine + admin panel (`backend/booking-engine/`, PHP 8, served at `/book/`) for Kutch Safari Resort, Bhuj.
 
@@ -8,6 +8,7 @@ The project: website (`frontend/`, React 19 + Vite) and booking engine + admin p
 * Do not push to GitHub unless the owner asks in that conversation.
 * No invented data in the real database (`backend/booking-engine/data/booking.sqlite`); test on a throwaway copy. The 6 demo bookings are named "Demo …" / @example.com.
 * Never run full `bin/setup.php` on real data (only `--admin`). It now refuses unknown options and refuses when bookings exist unless `--reset` is passed — never pass `--reset` on real data.
+* Test with `bin/test-changes.php`, `bin/test-logic.php` and `bin/test-concurrency.php` (each works on a temporary copy of the database). Any "check, then write" on money or a booking goes inside `db_begin()`/`db_tx()` with `lock_booking()`, or it will break under simultaneous requests.
 * Secrets only in `backend/booking-engine/config.local.php` (git-ignored); never commit, print or copy them.
 * Keep the colours; the owner approves visual changes.
 * When docs change, keep this file and the README tables in sync. All Markdown lives in `README.md`, `BUGS.md` and `docs/01`–`09` (plus this file).
@@ -17,7 +18,7 @@ The project: website (`frontend/`, React 19 + Vite) and booking engine + admin p
 | File | What it contains |
 |---|---|
 | `CLAUDE.md` | This map. |
-| [`BUGS.md`](BUGS.md) | Bugs to fix, with file:line, proof and suggested fix. Covers the 30 Sep 2026 test with the demo data (B1–B17: money, refunds, heavy traffic, admin; the one-admin-at-a-time requirement is B10) the 4 Oct 2026 debug-mode and syntax check (no syntax errors; B18–B19 found; F1 list-instead-of-text input and F2 arrival-wheel JS error fixed) and the 4 Oct 2026 runtime check, every code path executed with Razorpay/Stayflexi/SMTP faked (B20–B26 found; R1 setup.php typo-reset guard, R2 Razorpay refund amount_paid, R3 email encoding/headers/STARTTLS, R4 `pnpm start` on Windows fixed) and the 4 Oct 2026 console check, every console level on every page (browser silent everywhere; C1 lookup 404 console error, C2 favicon.ico 404s, C3 busy-port crash message fixed). B1–B26 are not fixed yet. |
+| [`BUGS.md`](BUGS.md) | What was found and fixed. **B1–B26 were all fixed on 5 Oct 2026**: the table at the top lists each fix and the test that proves it. **Open: O1–O6**, decisions for the owner (GST on the Deluxe triple, contrast, the Home contact form mock, placeholder content, per-page descriptions, when the 50% balance is due). Also the history: the 30 Sep demo-data test (B1–B17); the 4 Oct checks for syntax and debug mode (F1–F2, B18–B19), runtime (R1–R4, B20–B26), the console (C1–C3) and errors outside the console (E1–E12); and how to re-run the tests (`bin/test-changes.php`, `test-logic.php`, `test-concurrency.php`). |
 | [`README.md`](README.md) | Start here. What the project is, the owner's hard rules for anyone changing code, AI instructions and glossary, project overview and current state, quick start (install/run), repository layout, and a table mapping every old doc to its new place. |
 | [`docs/01-ARCHITECTURE-AND-SETUP.md`](docs/01-ARCHITECTURE-AND-SETUP.md) | How the React site and the PHP booking engine fit together, tech stack and why, the full folder tree with entry points, environment/settings/run commands and common setup errors, component and PHP dependency maps. |
 | [`docs/02-WEBSITE.md`](docs/02-WEBSITE.md) | The React site (`frontend/`): every route, the menu (full from 1,320 px), each page (Home, Stay, Experiences from the brochure, Around the Resort, destination guides, content pages), shared components, SEO/titles/sitemap, forms and interactions, visitor journeys. |

@@ -118,9 +118,9 @@ kutch-safari-resort/
 │   │   ├── index.php          ENTRY (guest booking page)   manage.php (check status)
 │   │   ├── document.php, receipt.php, terms.php   PDFs
 │   │   ├── api/               JSON endpoints (_init.php shared)
-│   │   ├── admin/             staff panel (_auth.php shared: session, head, confirm box)
+│   │   ├── admin/             staff panel (_auth.php shared: session, one-admin lock, head, confirm box; heartbeat.php, tab.php)
 │   │   ├── lib/               db, inventory (pricing/availability), booking, payment, channel, mail, pdf, documents, debug (dev-only bar)
-│   │   ├── bin/               CLI: setup, test-changes, check-system, sync/retry (cron), Stayflexi tools
+│   │   ├── bin/               CLI: setup, test-changes / test-logic / test-concurrency, check-system, sync/retry (cron), Stayflexi tools
 │   │   ├── assets/            engine.js, engine.css, icon.svg, img/
 │   │   ├── config.php         all settings;  config.local.php (git-ignored) = secrets + local overrides
 │   │   ├── schema.sql, seed.sql
@@ -130,7 +130,6 @@ kutch-safari-resort/
 ├── README.md                  start here: overview, hard rules, quick start
 ├── docs/                      the 9 project docs (01–09); every other .md was merged into these on 30 Sep 2026
 ├── chaos/EVIDENCE/            scripts from the 29 Sep chaos test (reports are in docs/09)
-├── scripts/legacy/            old one-off *.py edit scripts (unused; do not run)
 └── package.json, vite.config.ts, tsconfig.json, components.json, .gitignore, …
 ```
 
@@ -250,16 +249,15 @@ kutch-safari-resort/
 │   │   ├── index.php, manage.php   # guest booking flow, "Already booked? Check status"
 │   │   ├── document.php, receipt.php, terms.php   # receipt / terms PDFs (shown in the tab with PDF.js)
 │   │   ├── api/                # JSON endpoints used by assets/engine.js
-│   │   ├── admin/              # staff panel: bookings, booking, edit (change), calendar (availability), rates (special prices), enquiries, export
+│   │   ├── admin/              # staff panel: bookings, booking, edit (change), calendar (availability), rates (special prices), enquiries, export; heartbeat + tab (one admin at a time)
 │   │   ├── lib/                # db, inventory/pricing, booking (+ change pricing, money), payment, channel, mail, pdf, documents, debug
-│   │   ├── bin/                # setup, cron, health checks, test-changes.php (CLI only)
+│   │   ├── bin/                # setup, cron, health checks, test-changes/test-logic/test-concurrency.php (CLI only)
 │   │   ├── assets/             # engine.css, engine.js, WebP room photos
 │   │   ├── schema.sql, seed.sql    # database + starting data
 │   │   └── data/               # SQLite file in local dev (git-ignored except .htaccess)
 │   └── server/index.ts         # Express: static files, POST /api/contact, SPA fallback
 ├── api/contact.ts              # Vercel function (logs only); stays at the root because Vercel only reads /api there
 ├── docs/                       # the 9 project docs (01–09)
-├── scripts/legacy/             # the old one-off *.py edit scripts and old_rooms.tsx (unused, kept for history)
 ├── restructure/                # records of the 29 Sep 2026 folder cleanup
 ├── vite.config.ts, tsconfig.json, components.json, package.json
 └── dist/, data/, node_modules/ # build output, Express enquiries, packages (all git-ignored)
@@ -316,9 +314,9 @@ Local `useState` only. There is no global store. `ThemeContext` is fixed to ligh
 ### 5. Security & Performance
 * The engine's `.htaccess` blocks `config*.php`, `*.sql`, `*.sqlite`, `*.md`, `data/` and `bin/`, and forces HTTPS. It only works on Apache. Other hosts need equivalent rules.
 * Real keys go in `backend/booking-engine/config.local.php`, which is git-ignored. Set `debug => false` in production.
-* Admin sign-in: session cookie only (ends when the browser closes), per-tab, 10-minute idle timeout, 6 login attempts per 15 minutes. `bin/` is CLI-only (`test-changes.php` refuses to run from the web).
+* Admin sign-in: session cookie only (ends when the browser closes), per-tab, one admin at a time (`admin_lock`), 10-minute idle timeout, 6 login attempts per 15 minutes. The admin cannot be framed by another site (X-Frame-Options / CSP). `bin/` is CLI-only (the test scripts refuse to run from the web).
 * CORS: the engine only answers origins listed in `allowed_origins` in `config.php`. The kutchsafaribhuj.in domains and localhost:3000 are included.
-* `/api/contact` does not validate or sanitise input.
+* `/api/contact` (Express) checks name, phone or email and message, stores only those fields and logs no personal details; the Vercel `api/contact.ts` stores nothing, so it answers 503 with the phone number rather than "success".
 * Performance: `frontend/public/assets` is about 269 MB of unoptimised media (see [`11-IMAGE-ASSET-INVENTORY.md`](03-DESIGN-AND-ASSETS.md#docs-11)). The engine's own photos are already WebP (3.1 MB in total).
 
 ---
@@ -386,11 +384,11 @@ api/_init.php (CORS, JSON, rate limit) ─► lib/db.php ─► config.php (+ co
 api/quote|availability ─► lib/inventory.php
 api/book|booking-* ─────► lib/booking.php ─► lib/inventory.php, lib/channel.php, lib/mail.php
 api/payment-*|webhook ──► lib/payment.php ─► lib/booking.php
-admin/*.php ─► admin/_auth.php ─► lib/*        (_auth.php also: /admin → /admin/ redirect, per-tab sign-in, on-page confirm box)
+admin/*.php ─► admin/_auth.php ─► lib/*        (_auth.php also: /admin → /admin/ redirect, per-tab sign-in, one-admin lock + heartbeat, security headers, on-page confirm box)
 admin/edit.php ─► lib/booking.php quote_modification → modification_delta, booking_money; modify_booking
 admin/calendar.php ─► lib/inventory.php + lib/booking.php booking_money
 document.php ─► receipt.php / terms.php ─► lib/documents.php ─► lib/pdf.php   (PDF.js from cdnjs shows it in the tab)
-bin/*.php (CLI) ─► lib/*                        (bin/test-changes.php: tests on a temp copy of the database)
+bin/*.php (CLI) ─► lib/*                        (bin/test-*.php: tests on a temp copy of the database)
 ```
 
 Pricing chain: `api/availability` → `search_availability()` → `price_rooms()` → `price_rate_plan()` (`rates` special prices, `pricing_locks()` during a change) → `tax_split()`. The checkout, booking and desk changes all use the same `price_rooms()`.

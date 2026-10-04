@@ -13,7 +13,7 @@ require_once __DIR__ . '/lib/debug.php';
 
 $code = $_GET['property'] ?? 'kutch-safari-resort';
 $property = q1("SELECT * FROM properties WHERE code = ? AND active = 1", [$code]);
-if (!$property) { http_response_code(404); exit('Unknown property.'); }
+if (!$property) guest_error_page(404, 'Not available', 'Bookings for that property are not open online. You can book a cottage at Kutch Safari Resort, or call us.');
 
 $site_url = $property['website_url'] ?: '/';
 $today    = date('Y-m-d');
@@ -106,7 +106,8 @@ $e        = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
     </div>
   </form>
 
-  <div id="alert"></div>
+  <h1 class="sr-only">Book your stay at <?= $e($property['name']) ?></h1>
+  <div id="alert" role="alert"></div>
 
   <div class="layout">
     <main id="stage">

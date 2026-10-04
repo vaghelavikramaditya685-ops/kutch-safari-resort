@@ -41,6 +41,61 @@ _Updated 30 Sep 2026. Newest first._
 #### 30 Sep 2026 (later): docs combined from 70 files into 10
 At the owner's request every Markdown file (docs 01–30, docs/notes, the 20 `context/` files, both engine READMEs and the 29 Sep report folders) was merged into `README.md` + `docs/01`–`09`. Each old file is a section headed "(was `old/path.md`)" with an anchor; the table at the bottom of `README.md` maps every old file to its new place. Older text that says "doc 22" or "docs/30" means those sections. The old files are in git history.
 
+### 5 Oct 2026: every open bug fixed (B1–B26), errors outside the console fixed (E1–E12), logic and race tests added
+* **All of `BUGS.md` B1–B26 fixed.** The table at the top of `BUGS.md` lists each fix and the test that proves it. The main changes:
+  * **Cancellations count whole calendar days** (`days_until()`, `cancellation_percent()`), the same as the guest's table.
+  * **Payments charge what is due now** (`payable_now()`), never the amount stored at checkout.
+  * **Money:**
+    * a refund owed after a cancellation is shown and can be recorded (`cancellation_money()`);
+    * a late cancellation keeps at most what was paid;
+    * after arrival the unpaid part is "Collect at the desk".
+  * **Statuses:** **No-show** and **Left early** for stays that have started (statuses `no_show`, `completed`).
+  * **UPI:**
+    * a waiting UPI payment holds its cottage for 48 hours (`upi.confirm_hours`);
+    * cancelling withdraws a waiting UPI QR;
+    * money that arrives after the cottage was taken is owed back, and the booking is never sold twice.
+  * **Many requests at once:**
+    * SQLite waits instead of failing (`busy_timeout`, WAL, `BEGIN IMMEDIATE`);
+    * every "check, then write" (payments, cancellations, desk payments and refunds, changes, the rate limit) runs under a lock;
+    * a payment is confirmed (and emailed) once, however many requests confirm it.
+  * **One admin at a time** (owner's requirement):
+    * `admin_lock` and `admin/heartbeat.php`: the panel belongs to the open tab;
+    * anyone else is told "in use by … since …";
+    * closing the tab frees it in seconds, a crash in 90 s;
+    * a second tab no longer signs the first out (`admin/tab.php`).
+  * **Other fixes:**
+    * 50% and "free cancellation" are only offered while they apply;
+    * Stayflexi gets the nightly amounts actually charged, and a junk reply from it is "could not confirm";
+    * the rate limit counts the guest's own address behind a proxy (`trusted_proxies`);
+    * the lookup is a POST;
+    * the contact endpoints check their fields and log no personal details;
+    * `setup.php --reset` is all or nothing;
+    * the email switch `mail.enabled`;
+    * `scripts/legacy/` deleted.
+* **Errors outside the console (E1–E12):**
+  * unlabelled form fields (website, booking page, admin);
+  * heading order and a hidden h1 on every engine page;
+  * announced error messages;
+  * admin pages no longer scroll sideways on phones;
+  * the Node server answers 404/400/405 properly and logs no stack traces;
+  * noindex on unknown website addresses, plus canonical addresses;
+  * the admin cannot be framed, and the PHP version is no longer sent;
+  * unused website code removed;
+  * `pnpm-lock.yaml` regenerated (it pinned versions with 39 known advisories; now none).
+* **Database additions** (made by `db_upgrade()` on first use, so an existing database needs no script): the table `admin_lock`, the index `idx_audit_rl`, a `db_version` setting, and WAL mode on SQLite. Nothing existing is changed or removed.
+* **Tests:**
+  * `bin/test-logic.php` (new, 29 checks with made-up bookings and 250 random carts);
+  * `bin/test-concurrency.php` (new, 12 race checks with up to 20 processes at the same instant);
+  * `bin/test-changes.php` (17/17).
+  * All three work on a temporary copy of the database. Live browser checks were made on a throwaway copy; the real database was only read.
+* **For the owner (`BUGS.md` "Open"):**
+  * the GST slab for a ₹8,000 Deluxe triple (O1);
+  * text contrast (O2);
+  * the Home contact form is still a mock (O3);
+  * placeholder content (O4);
+  * per-page descriptions (O5);
+  * when the 50% balance is due (O6).
+
 ### 4 Oct 2026 (latest): console check, every level on every page
 * **Checked:** every console level (errors, warnings, info, logs, debug) and failed network loads.
   * Website: all routes in development (desktop and 375 px, with interactions) and in the production build.
@@ -319,6 +374,8 @@ Never test on the real database (`backend/booking-engine/data/booking.sqlite`); 
 | What | Command | Covers |
 |---|---|---|
 | Change pricing & money | `php backend/booking-engine/bin/test-changes.php` | 17 checks on a temp copy (add/remove, dates, occupancy, special prices, coupons, 50%/full, payments − refunds) [CODE] |
+| Logic & money rules | `php backend/booking-engine/bin/test-logic.php` | 29 checks with made-up bookings on a temp copy: cancellation days and charges, what is payable, refunds, payments after a cancellation, no-shows, UPI waits, the receipt, Stayflexi replies, `setup --reset`, 250 random carts that must add up [CODE] |
+| Races (many at once) | `php backend/booking-engine/bin/test-concurrency.php` | 12 checks, up to 20 processes at the same instant on a temp copy: last cottages, many dates, payments, confirmations, desk payments, cancellations, cancel vs pay, desk changes, rate limits, the one-admin lock [CODE] |
 | System readiness | `php backend/booking-engine/bin/check-system.php` | search, quote, create/lookup/cancel (temp copy), overbooking, payments/Stayflexi config [CODE] |
 | TypeScript | `pnpm check` | website types [CODE] |
 | Build | `pnpm build` | Vite + esbuild bundle [CODE] |
@@ -326,7 +383,7 @@ Never test on the real database (`backend/booking-engine/data/booking.sqlite`); 
 Flow scripts used on 29 Sep (59 guest/admin actions over HTTP) and the chaos scripts live in `chaos/EVIDENCE/` [CODE]; they target a throwaway engine copy on port 8090.
 
 ### Coverage gaps
-No automated browser tests in the repo (browser checks were done by hand/agent on 29 Sep); no CI [CODE: no CI config]; no unit tests for the website [CODE].
+No automated browser tests in the repo (browser checks were done by hand/agent on 29 Sep and 4–5 Oct); no CI [CODE: no CI config]; no unit tests for the website [CODE]. The race tests run on SQLite only; MySQL under load is untested.
 
 ### Environments
 * **Local:** this PC, SQLite, test keys [CODE].
@@ -364,6 +421,8 @@ _Written 26 Sep 2026. How to check the engine safely, what to switch before real
   * payments − refunds.
 
   It exits 1 if anything fails. It needs the SQLite setup, so it runs on a development PC, not the live server.
+* **`php bin/test-logic.php`** (since 5 Oct 2026): 29 checks of every money and state rule with made-up bookings, plus 250 random carts whose sums must add up (and 25 of them saved and compared with their quote). Same temp-copy rule; exits 1 on a failure. It also prints an INFO line about the GST slab of GST-inclusive prices between ₹7,876 and ₹8,850 (a question for the accountant, not a failure).
+* **`php bin/test-concurrency.php`** (since 5 Oct 2026): 12 race checks. Each starts up to 20 PHP processes, each from its own address, that act at the same instant on the same cottage, booking or payment. It then checks the database: nothing sold twice, nothing paid twice, one confirmation and email, one cancellation, nobody's details mixed up, rate limits held, one admin. Same temp-copy rule; takes about 40 seconds.
 * **`php bin/check-system.php`**, **`check-razorpay.php`**, **`check-stayflexi.php`**: health checks (config, database, keys, connections). Since 29 Sep 2026 `check-system.php` tests the property that is on sale and runs its create/look-up/cancel test on a **temporary copy** of the SQLite database (on MySQL it skips that test unless `--write-test` is given).
 * The flow and nonsense-input scripts used on 29 Sep 2026 are kept in `../chaos/EVIDENCE/`. They drive a throwaway engine copy on another port; see [`../chaos/REPORT.md`](#chaos-report).
 * **Screens:** use the browser with test payments on. To look at an admin screen with made-up data, render it against a throwaway copy, never the real file, and delete the copy after.
@@ -389,7 +448,9 @@ pnpm dev          # website on :3000, /book/ proxied to the engine
 - [ ] Remove the six demo bookings (guest names starting "Demo", emails @example.com) — or start the live database fresh
 - [ ] MySQL database from `schema.sql` + `seed.sql` (full setup **once**; never again on live, doc 28 §4). **`config.php` now defaults to SQLite**, so the live `config.local.php` must say `'db' => ['driver' => 'mysql', …]`
 - [ ] `base_url` and `allowed_origins` for the real domain; `properties.website_url` → the live site ("Back to website"). `seed.sql` now sets it to `http://localhost:3000`, so change it in the live database after setup
-- [ ] Mail: SMTP settings and `from_email` on a domain you own (currently `@kutchsafariresort.com`)
+- [ ] Mail: SMTP settings and `from_email` on a domain you own (currently `@kutchsafariresort.com`). Keep `mail.enabled => true` (a development PC may set it to false)
+- [ ] Behind a proxy or CDN (a Vercel rewrite to the engine, Cloudflare)? List its addresses in `trusted_proxies`, so the rate limits see each guest's own address. Leave it empty when guests reach the engine directly
+- [ ] Run `bin/test-logic.php` and `bin/test-concurrency.php` on a development PC before each release (both use a temp copy); on MySQL, run a load test against a copy before launch
 - [ ] Decide how the website reaches the engine: same host `/book/`, `VITE_BOOKING_URL`, or a Vercel rewrite (doc 15)
 
 **Owner to confirm**
@@ -500,10 +561,10 @@ pnpm dev          # vite on :3000, proxies /book/ → :8080
 * On Windows, PHP uses the Windows certificate store for HTTPS (`curl_trust_system_certs()`); without it Razorpay calls fail with HTTP 0.
 * `backend/booking-engine/config.local.php` (git-ignored) switches to SQLite and sets `base_url` to `http://localhost:3000/book`.
 * Admin locally: `http://localhost:3000/book/admin` (the address fills itself in to `…/admin/login.php`).
-* Tests: `php backend/booking-engine/bin/test-changes.php` (works on a temporary copy of the database, doc 30).
+* Tests: `php backend/booking-engine/bin/test-changes.php`, `bin/test-logic.php` and `bin/test-concurrency.php` (each works on a temporary copy of the database, doc 30).
 
 ### 5. Express server (`backend/server/index.ts`)
-Serves `dist/public`, `POST /api/contact` (appends to `/data/enquiries.json`), and a `*` fallback to `index.html`. `pnpm start` runs it with `NODE_ENV=production`. It does not proxy `/book/`. If you host the site with this server, add a proxy or serve the engine from a PHP host.
+Serves `dist/public`, `POST /api/contact` (checks name, phone or email, and message, then appends only those fields to `/data/enquiries.json`; no personal details in the log; other methods 405; bad JSON 400), and a `*` fallback to `index.html` for page addresses (a missing file such as `/assets/x.jpg` is a 404). `pnpm start` runs it in production mode. It does not proxy `/book/`. If you host the site with this server, add a proxy or serve the engine from a PHP host.
 
 ### 6. Secrets and git
 * Ignored: `.env*`, `/data/`, `backend/booking-engine/config.local.php`, `backend/booking-engine/data/*` (except `.htaccess`), `*.sqlite`, `*.log`.

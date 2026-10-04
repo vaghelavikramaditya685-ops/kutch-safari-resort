@@ -2,6 +2,11 @@ import { Link } from "wouter";
 import { Instagram } from "lucide-react";
 import { statusUrl } from "@/lib/booking";
 
+// The column titles are h2 so headings run in order on every page (h4 skipped a
+// level after a page's h2s); the site's base style gives h2 the display font, so
+// they keep the footer's own font and look exactly as before.
+const FOOTER_HEADING = { fontFamily: "inherit" } as const;
+
 export default function Footer() {
   return (
     <footer className="bg-[#f8f5e2] text-zinc-600 border-t border-[#e4d5c7] py-16 text-base font-light">
@@ -28,7 +33,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-zinc-900 font-semibold uppercase tracking-widest text-sm mb-6">Explore</h4>
+            <h2 className="text-zinc-900 font-semibold uppercase tracking-widest text-sm mb-6" style={FOOTER_HEADING}>Explore</h2>
             <ul className="space-y-3 text-sm">
               <li><Link href="/our-journey" className="hover:text-zinc-900 transition-colors">About the Resort</Link></li>
               <li><Link href="/stay" className="hover:text-zinc-900 transition-colors">Rooms & Tariff</Link></li>
@@ -40,7 +45,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-zinc-900 font-semibold uppercase tracking-widest text-sm mb-6">Plan</h4>
+            <h2 className="text-zinc-900 font-semibold uppercase tracking-widest text-sm mb-6" style={FOOTER_HEADING}>Plan</h2>
             <ul className="space-y-3 text-sm">
               <li><Link href="/packages" className="hover:text-zinc-900 transition-colors">Colors of Kutch Packages</Link></li>
               <li><Link href="/plan-your-visit" className="hover:text-zinc-900 transition-colors">How to Reach</Link></li>
@@ -51,7 +56,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-zinc-900 font-semibold uppercase tracking-widest text-sm mb-6">Reservations</h4>
+            <h2 className="text-zinc-900 font-semibold uppercase tracking-widest text-sm mb-6" style={FOOTER_HEADING}>Reservations</h2>
             <ul className="space-y-3 text-sm mb-6">
               <li><a href="tel:+919925238599" className="hover:text-zinc-900 transition-colors">+91 99252 38599</a></li>
               <li><a href={statusUrl()} className="hover:text-zinc-900 transition-colors">Already booked? Check status</a></li>

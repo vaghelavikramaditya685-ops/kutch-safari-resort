@@ -44,7 +44,28 @@ const DESTINATIONS: Record<string, string> = {
   "mandvi-beach-palace": "Mandvi Beach & Palace", "artisan-villages": "Artisan Villages", "kala-dungar": "Kala Dungar",
 };
 
-/** Every page gets its own browser-tab title (for search results and bookmarks). */
+const SITE_URL = "https://kutchsafaribhuj.in";
+// Addresses that show the same page as another: search engines are pointed at one.
+const CANONICAL: Record<string, string> = {
+  "/rann-utsav-package": "/white-rann-camp",
+  "/white-rann-camp/tariff": "/white-rann-camp",
+};
+const NOT_CONTENT = ["/booking", "/book", "/admin"];   // redirects to the booking engine
+
+/** Set or remove one <head> tag. */
+function headTag(selector: string, create: () => HTMLElement, set: ((el: HTMLElement) => void) | null) {
+  let el = document.head.querySelector<HTMLElement>(selector);
+  if (!set) { el?.remove(); return; }
+  if (!el) { el = create(); document.head.appendChild(el); }
+  set(el);
+}
+
+/**
+ * Every page gets its own browser-tab title (for search results and bookmarks),
+ * and a canonical address. An address that is not a page answers with the site
+ * (the host serves index.html for every path), so it is marked noindex: search
+ * engines otherwise report it as a "soft 404" or list it as a real page.
+ */
 function usePageTitle() {
   const [location] = useLocation();
   useEffect(() => {
@@ -52,6 +73,11 @@ function usePageTitle() {
     document.title = TITLES[location]
       ?? (DESTINATIONS[slug] ? `${DESTINATIONS[slug]} | ${SITE}`
       : location.startsWith("/book/") || location.startsWith("/admin/") ? SITE : `Page not found | ${SITE}`);
+    const isPage = (TITLES[location] !== undefined && !NOT_CONTENT.includes(location)) || DESTINATIONS[slug] !== undefined;
+    headTag('link[rel="canonical"]', () => Object.assign(document.createElement("link"), { rel: "canonical" }),
+      isPage ? el => { (el as HTMLLinkElement).href = SITE_URL + (CANONICAL[location] ?? location); } : null);
+    headTag('meta[name="robots"]', () => Object.assign(document.createElement("meta"), { name: "robots" }),
+      isPage ? null : el => { (el as HTMLMetaElement).content = "noindex"; });
   }, [location]);
 }
 

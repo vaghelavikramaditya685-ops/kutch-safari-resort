@@ -125,15 +125,22 @@ $c = $current($id14); $c['addons'][] = ['addon_id' => $innova, 'quantity' => 1];
 $q = quote_modification($id14, $c); $m = $q['money'];
 $check(abs($m['due_now'] - 2100) < 0.02 && $m['later'] == 0, '16 paid in full, add Innova', "collect now {$m['due_now']}, before arrival {$m['later']}");
 
-// 17: amount paid is payments minus refunds, whichever way money comes in.
+// 17: amount paid is payments minus refunds, whichever way money comes in — and the
+// desk can neither take more than the balance nor give back more than is owed.
 $id17 = $book(['check_in' => $in, 'check_out' => date('Y-m-d', strtotime($in . ' +2 days')), 'occupancy' => '2', 'rooms' => [$D]]);
 update('bookings', $id17, ['payment_mode' => 'advance', 'amount_due_now' => 6500]);
-test_payment_settle($id17, get_booking($id17)['manage_token']);
+test_payment_settle($id17, get_booking($id17)['manage_token']);               // 6,500 (50%)
+$over = record_offline_payment($id17, 7000, 'cash', 'test');                  // more than the 6,500 balance
+$none = record_offline_refund($id17, 1000, 'cash', 'test');                   // nothing is owed back yet
+record_offline_payment($id17, 6500, 'cash', 'test');                          // the rest: 13,000 paid
+$c = $current($id17); $c['check_out'] = date('Y-m-d', strtotime($in . ' +1 day'));
+modify_booking($id17, $c, 'test');                                            // one night: total 6,500, 6,500 owed back
 record_offline_refund($id17, 1000, 'cash', 'test');
-record_offline_payment($id17, 500, 'cash', 'test');
+$too_much = record_offline_refund($id17, 9000, 'cash', 'test');               // only 5,500 is still owed
 $b = get_booking($id17); $m = booking_money($b);
-$check(abs($b['amount_paid'] - 6000) < 0.01 && abs($m['due_now'] - 500) < 0.01 && abs($m['later'] - 6500) < 0.01,
-       '17 paid 6,500, gave back 1,000, took 500', "paid {$b['amount_paid']}, due now {$m['due_now']}, later {$m['later']}");
+$check(!$over['ok'] && !$none['ok'] && !$too_much['ok'] && abs($b['amount_paid'] - 12000) < 0.01 && abs($m['refund'] - 5500) < 0.01,
+       '17 paid 6,500 + 6,500, cut to one night, gave back 1,000', "paid {$b['amount_paid']}, still to give back {$m['refund']}; refused: over-payment "
+       . ($over['ok'] ? 'NO' : 'yes') . ', refund with nothing owed ' . ($none['ok'] ? 'NO' : 'yes') . ', refund over what is owed ' . ($too_much['ok'] ? 'NO' : 'yes'));
 
 echo "\n$pass passed, $fail failed\n";
 exit($fail ? 1 : 0);

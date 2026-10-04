@@ -96,17 +96,31 @@ function split_statements(string $sql): array {
     return $out;
 }
 
-function run_script(string $file): int {
+/**
+ * Run a script. $all_or_nothing: inside one transaction, stopping at the first
+ * statement that fails and undoing the ones before it — so reloading seed.sql over
+ * a database with bookings (properties cannot be deleted while bookings point at
+ * them) changes nothing, instead of emptying the rooms and prices and stopping
+ * halfway.
+ */
+function run_script(string $file, bool $all_or_nothing = false): int {
     $sql = file_get_contents($file);
     if (cfg('db.driver') === 'sqlite') $sql = to_sqlite($sql);
     $n = 0;
+    if ($all_or_nothing) db_begin();
     foreach (split_statements($sql) as $stmt) {
         try { db()->exec($stmt); $n++; }
         catch (Throwable $e) {
             $GLOBALS['setup_failed'] = ($GLOBALS['setup_failed'] ?? 0) + 1;
             echo "  ! " . substr(preg_replace('/\s+/', ' ', $stmt), 0, 70) . "\n    " . $e->getMessage() . "\n";
+            if ($all_or_nothing) {
+                db_rollback();
+                echo "  Nothing from this file was kept: the " . $n . " statement(s) before it were undone.\n";
+                return 0;
+            }
         }
     }
+    if ($all_or_nothing) db_commit();
     return $n;
 }
 
@@ -160,7 +174,11 @@ echo "Creating tables ... ";
 echo run_script(__DIR__ . '/../schema.sql') . " statements\n";
 
 echo "Loading starting data ... ";
-echo run_script(__DIR__ . '/../seed.sql') . " statements\n";
+echo run_script(__DIR__ . '/../seed.sql', true) . " statements\n";
+if (!empty($GLOBALS['setup_failed'])) {
+    echo "\nFAILED: the starting data could not be loaded, so none of it was changed (see the line marked ! above).\n";
+    exit(1);
+}
 
 /* --- Peak-date rates for the camp -------------------------------------
  * Only the nights that differ from the base price are stored. Edit the

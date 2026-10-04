@@ -39,7 +39,7 @@ export default function AroundTheResort() {
                 <div className="relative h-64 overflow-hidden rounded-sm mb-4">
                   <img src={place.img} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={place.title} />
                 </div>
-                <h3 className="text-xl font-bold text-zinc-900 mb-2 group-hover:text-[var(--terracotta)] transition-colors">{place.title}</h3>
+                <h2 className="text-xl font-bold text-zinc-900 mb-2 group-hover:text-[var(--terracotta)] transition-colors">{place.title}</h2>
                 <p className="text-zinc-600 text-sm mb-3">{place.desc}</p>
                 <span className="text-[var(--terracotta)] uppercase tracking-widest text-xs font-bold flex items-center gap-1">
                   Discover <ArrowRight className="w-3 h-3" />

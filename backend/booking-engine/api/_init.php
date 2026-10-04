@@ -79,12 +79,26 @@ function require_post(): void {
  * hammering the availability endpoint or brute-forcing a booking reference.
  */
 function rate_limit(string $bucket, int $max, int $per_seconds): void {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'cli';
+    // The guest's own address, also behind a proxy or CDN (config trusted_proxies):
+    // otherwise every guest shares the proxy's address and one busy hour blocks everyone.
+    $ip = client_ip() ?? 'cli';
     $since = date('Y-m-d H:i:s', time() - $per_seconds);
-    $count = (int) qval("SELECT COUNT(*) FROM audit_log WHERE action = ? AND ip = ? AND created_at > ?",
-                        ['rl_' . $bucket, $ip, $since], 0);
-    if ($count >= $max) json_fail('Too many attempts. Please wait a minute and try again.', 429);
-    audit('rl_' . $bucket, null, null, null);
+    // Counted with the (action, ip, created_at) index, so it stays quick however big the
+    // log grows; counted and recorded in one locked step, so twenty requests from one
+    // address at the same moment cannot all slip under the limit together.
+    $allowed = db_tx(function () use ($bucket, $ip, $since, $max) {
+        $count = (int) qval("SELECT COUNT(*) FROM audit_log WHERE action = ? AND ip = ? AND created_at > ?" . for_update(),
+                            ['rl_' . $bucket, $ip, $since], 0);
+        if ($count >= $max) return false;
+        audit('rl_' . $bucket, null, null, null);
+        return true;
+    });
+    if (!$allowed) json_fail('Too many attempts. Please wait a minute and try again.', 429);
+    // The counters are not history: about one request in 500 clears those older than a day.
+    if (random_int(1, 500) === 1) {
+        try { exec_sql("DELETE FROM audit_log WHERE action LIKE 'rl!_%' ESCAPE '!' AND created_at < ?", [date('Y-m-d H:i:s', time() - 86400)]); }
+        catch (Throwable $e) { /* tidying must never break a booking */ }
+    }
 }
 
 /* --- Never leak a stack trace to a guest ------------------------------- */

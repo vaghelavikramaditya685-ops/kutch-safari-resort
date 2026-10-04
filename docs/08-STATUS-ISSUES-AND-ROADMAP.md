@@ -26,7 +26,8 @@ _(was `context/current_status.md`)_
 ### Works (evidence)
 * Full guest booking, payment (test), status, receipts — 24/24 guest flow checks; browser click-through [CODE [`heal/REPORT.md`](09-HISTORY-TESTING-AND-GO-LIVE.md#heal-report)].
 * Admin: bookings, payments/refunds (incl. confirming pending on cash), change booking with difference pricing, cancel, special prices, availability, enquiries, CSV — 35/35 admin checks [CODE].
-* Pricing and money logic — 17/17 `test-changes.php` [CODE].
+* Pricing and money logic — 17/17 `test-changes.php`; every money and state rule 29/29 `test-logic.php` (with 250 random carts); many requests at once 12/12 `test-concurrency.php` (5 Oct 2026) [CODE].
+* `BUGS.md` B1–B26 all fixed (5 Oct 2026); what is left there needs the owner (O1–O6) [CODE `BUGS.md`].
 * Zero console errors/warnings and zero PHP errors on a full pass [CODE [`heal/REPORT.md`](09-HISTORY-TESTING-AND-GO-LIVE.md#heal-report)].
 * Nonsense input: 107 values, 0 wrongly accepted [CODE [`chaos/REPORT.md`](09-HISTORY-TESTING-AND-GO-LIVE.md#chaos-report)].
 * 30 Sep: Experiences (brochure content) and Around the Resort (places) are separate pages, both in the menu; the menu fits on one line from 1,320 px, ☰ below [CODE `Navbar.tsx`, `pages/Experiences.tsx`, `pages/AroundTheResort.tsx`].
@@ -50,7 +51,7 @@ _(was `context/current_status.md`)_
 * Engine not deployed [DOC].
 
 ### Technical debt
-No CI; no automated browser tests; old destination/camp pages use their own header/footer; `scripts/legacy/` to delete; `audit_log` grows with rate-limit rows [CODE].
+No CI; no automated browser tests; old destination/camp pages use their own header/footer; MySQL under load untested (the race tests are SQLite-only) [CODE]. (`scripts/legacy/` deleted and old rate-limit rows cleared automatically, 5 Oct 2026.)
 
 ### Estimated completeness [INFERRED from the above]
 | Area | % |
@@ -103,8 +104,10 @@ Status: `DONE` works and is tested; `PARTIAL` works with gaps; `NOT STARTED`; `B
 | Feature | Priority | Status | Where |
 |---|---|---|---|
 | SHA-256 sign-in, per-tab, idle timeout | High | DONE | [CODE `admin/login.php`, `_auth.php`] |
+| One admin at a time (owner's requirement) | High | DONE (5 Oct) | [CODE `_auth.php` admin lock, `heartbeat.php`, `tab.php`] |
+| No-show / left early for stays that have started | Medium | DONE (5 Oct) | [CODE `end_stay_early`, `admin/booking.php`] |
 | Bookings list, cancel by code, UPI "Money received" | High | DONE | [CODE `admin/index.php`] |
-| Booking page: payments, refunds, notes, cancel | High | DONE | [CODE `admin/booking.php`] |
+| Booking page: payments, refunds (also after a cancellation), notes, cancel | High | DONE | [CODE `admin/booking.php`] |
 | Change a booking (difference pricing) | High | DONE | [CODE `admin/edit.php`, `modification_delta`] |
 | Availability tape chart by cottage + side panel | High | DONE | [CODE `admin/calendar.php`] |
 | Special prices with guard rails | High | DONE | [CODE `admin/rates.php`] |
@@ -254,7 +257,7 @@ _(was `context/decisions_and_assumptions.md`)_
 6. Should new bookings email the owner (and which address)? [UNKNOWN]
 7. Is the cancellation ladder (free 30+, 75% 21–29, 100% < 21) final? [UNKNOWN]
 8. When should the 6 demo bookings be removed? [UNKNOWN]
-9. Delete `scripts/legacy/` (36 old scripts)? [UNKNOWN]
+9. ~~Delete `scripts/legacy/`?~~ Done 5 Oct 2026 (B25; the files are in git history).
 10. What do gallery photos 8–26 show (for alt text)? [UNKNOWN]
 11. Brochure vs website: Ahmedabad 375/350 km, Rajkot 250/240, Mandvi 75/60–65, Dholavira 115/220, 34 vs 35+ years, "Kutchi AC Rooms – 8" vs Deluxe AC – 8. Which are right? Add airport 15 km / railway 14 km to Plan Your Visit? [UNKNOWN]
 12. Can the owner send original (high-resolution) brochure photos? [UNKNOWN]
@@ -298,7 +301,8 @@ Effort: S (hours), M (a day or two), L (several days). All items [PLANNED].
 | Re-enable White Rann Camp with checked prices | M |
 | Gallery lightbox; real alt text for 19 photos | S |
 | Shared header/footer on destination and camp pages | S |
-| CI with typecheck, build, PHP lint and `bin/test-changes.php` | M |
+| CI with typecheck, build, PHP lint and `bin/test-changes.php`, `test-logic.php`, `test-concurrency.php` | M |
+| Run `bin/test-concurrency.php`'s scenarios against a MySQL copy before launch | S |
 | Automated browser tests (Playwright) for the booking flow | L |
 
 Recommended order: host → config switches → payments → Stayflexi decision → emails → contact form → the rest.

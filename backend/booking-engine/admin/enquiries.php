@@ -26,10 +26,10 @@ $rows = $status
 
 admin_head('Enquiries', $user);
 ?>
-<?php if ($flash): ?><div class="notice <?= $flash_bad ? 'notice--err' : 'notice--ok' ?>"><?= h($flash) ?></div><?php endif; ?>
+<?php if ($flash): ?><div class="notice <?= $flash_bad ? 'notice--err' : 'notice--ok' ?>" role="<?= $flash_bad ? 'alert' : 'status' ?>"><?= h($flash) ?></div><?php endif; ?>
 <form class="filters" method="get">
-  <div class="field"><label>Status</label>
-    <select name="status" onchange="this.form.submit()">
+  <div class="field"><label for="f-status">Status</label>
+    <select id="f-status" name="status" onchange="this.form.submit()">
       <option value="">All</option>
       <?php foreach (['new','contacted','converted','closed'] as $s): ?>
         <option value="<?= $s ?>" <?= $status === $s ? 'selected' : '' ?>><?= ucfirst($s) ?></option>
@@ -59,12 +59,12 @@ admin_head('Enquiries', $user);
         <form method="post">
           <?= csrf_field() ?>
           <input type="hidden" name="id" value="<?= (int) $e['id'] ?>">
-          <select name="status" style="padding:5px;border:1px solid var(--line);border-radius:3px;width:100%">
+          <select name="status" aria-label="Status of the enquiry from <?= h($e['name']) ?>" style="padding:5px;border:1px solid var(--line);border-radius:3px;width:100%">
             <?php foreach (['new','contacted','converted','closed'] as $s): ?>
               <option value="<?= $s ?>" <?= $e['status'] === $s ? 'selected' : '' ?>><?= ucfirst($s) ?></option>
             <?php endforeach; ?>
           </select>
-          <input name="staff_note" value="<?= h($e['staff_note']) ?>" placeholder="Note"  maxlength="2000"
+          <input name="staff_note" value="<?= h($e['staff_note']) ?>" placeholder="Note" aria-label="Note on the enquiry from <?= h($e['name']) ?>" maxlength="2000"
                  style="margin-top:5px;padding:5px;border:1px solid var(--line);border-radius:3px;width:100%">
           <button class="btn btn--plain btn--sm btn--block" style="margin-top:5px" type="submit">Save</button>
         </form>
