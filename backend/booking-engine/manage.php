@@ -5,6 +5,7 @@
  *  Reference plus the phone or email on the booking; no account needed.
  * ======================================================================== */
 require_once __DIR__ . '/lib/db.php';
+require_once __DIR__ . '/lib/debug.php';
 $ref = htmlspecialchars($_GET['ref'] ?? '', ENT_QUOTES);
 ?><!DOCTYPE html>
 <html lang="en">
@@ -18,6 +19,7 @@ $ref = htmlspecialchars($_GET['ref'] ?? '', ENT_QUOTES);
 <link rel="stylesheet" href="assets/engine.css?v=<?= filemtime(__DIR__ . '/assets/engine.css') ?>">
 </head>
 <body>
+<?php debug_bar(); /* local only; see lib/debug.php */ ?>
 <header class="eng-header">
   <div class="wrap">
     <div class="eng-brand"><strong>Check your booking</strong></div>

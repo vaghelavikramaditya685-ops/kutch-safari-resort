@@ -40,6 +40,9 @@
   let step = 1;
   let booking = null;     // once created
 
+  // The debug bar (local only, lib/debug.php) watches the cart through this hook.
+  if (window.KSR_DEBUG) window.KSR_DEBUG.cart = () => ({ cart, quote, step, booking });
+
   const rupees = n => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
   /* The receipt opens in a new tab as a page (document.php), never as a download. */
   const receiptUrl = (ref, token) => 'document.php?' + new URLSearchParams({ doc: 'receipt', ref, token });

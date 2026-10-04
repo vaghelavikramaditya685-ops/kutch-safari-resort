@@ -56,6 +56,8 @@ function check_csrf(): void {
 function h($s): string { return htmlspecialchars((string) $s, ENT_QUOTES); }
 function inr($n): string { return '₹' . number_format((float) $n, 2); }
 
+require_once __DIR__ . '/../lib/debug.php';
+
 function admin_head(string $title, ?array $user = null): void {
     $nav = [
         'index.php'    => 'Bookings',
@@ -97,6 +99,7 @@ function admin_head(string $title, ?array $user = null): void {
         echo '</nav></div></header>';
     }
     echo '<div class="wrap" style="padding-block:26px">';
+    debug_bar();   // local only; see lib/debug.php
 }
 
 function admin_foot(): void {

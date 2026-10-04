@@ -119,7 +119,7 @@ kutch-safari-resort/
 │   │   ├── document.php, receipt.php, terms.php   PDFs
 │   │   ├── api/               JSON endpoints (_init.php shared)
 │   │   ├── admin/             staff panel (_auth.php shared: session, head, confirm box)
-│   │   ├── lib/               db, inventory (pricing/availability), booking, payment, channel, mail, pdf, documents
+│   │   ├── lib/               db, inventory (pricing/availability), booking, payment, channel, mail, pdf, documents, debug (dev-only bar)
 │   │   ├── bin/               CLI: setup, test-changes, check-system, sync/retry (cron), Stayflexi tools
 │   │   ├── assets/            engine.js, engine.css, icon.svg, img/
 │   │   ├── config.php         all settings;  config.local.php (git-ignored) = secrets + local overrides
@@ -160,6 +160,15 @@ pnpm dev             # vite on :3000; /book/ → 127.0.0.1:8080
 ```
 Open http://localhost:3000 (site), /book/ (booking), /book/manage.php (status), /book/admin (admin) [CODE].
 Create/reset an admin: `php backend/booking-engine/bin/setup.php --admin USERNAME "Name" "password"` [CODE].
+
+### Debug bar (4 Oct 2026) [CODE `backend/booking-engine/lib/debug.php`]
+A dark strip along the bottom of the booking page, the check-status page and every admin page. Click **⚙ DEBUG** to open it. It shows:
+* **Flags** — sample mode, test payments, Razorpay, UPI, Stayflexi, mail, database driver. The two that are risky to leave on (sample mode, test payments) are highlighted in red.
+* **Cart** — on the booking page: the step, dates, rooms, extras, payment choice and the priced total, updating live as the guest clicks.
+* **API calls** — each call with its status, round-trip time and the PHP time inside it.
+* **PHP notices** — warnings and notices raised while building the page *or* while answering an API call, with `file:line`. Browser JavaScript errors land here too. `@`-silenced errors are ignored.
+
+**It cannot appear on the live site.** `debug_visible()` requires `debug => true` **and** a request from 127.0.0.1/::1, so leaving debug on by mistake on a real server still shows guests nothing. API responses only carry the extra `_debug` key under the same two conditions.
 
 ### Settings (`backend/booking-engine/config.php`, overridden by `config.local.php`)
 | Setting | Purpose | Example (non-secret) |
@@ -242,7 +251,7 @@ kutch-safari-resort/
 │   │   ├── document.php, receipt.php, terms.php   # receipt / terms PDFs (shown in the tab with PDF.js)
 │   │   ├── api/                # JSON endpoints used by assets/engine.js
 │   │   ├── admin/              # staff panel: bookings, booking, edit (change), calendar (availability), rates (special prices), enquiries, export
-│   │   ├── lib/                # db, inventory/pricing, booking (+ change pricing, money), payment, channel, mail, pdf, documents
+│   │   ├── lib/                # db, inventory/pricing, booking (+ change pricing, money), payment, channel, mail, pdf, documents, debug
 │   │   ├── bin/                # setup, cron, health checks, test-changes.php (CLI only)
 │   │   ├── assets/             # engine.css, engine.js, WebP room photos
 │   │   ├── schema.sql, seed.sql    # database + starting data

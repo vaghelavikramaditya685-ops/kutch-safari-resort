@@ -10,6 +10,7 @@ ini_set('log_errors', '1');
 error_reporting(E_ALL);
 
 require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/debug.php';
 
 /* --- Only the sites we know about may call this from a browser ---------- */
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
@@ -28,6 +29,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') { http_response_code(204);
 /** Send JSON and stop. */
 function json_out($data, int $status = 200): void {
     http_response_code($status);
+    // The debug bar reads this; it is only ever added on this machine.
+    if (is_array($data) && debug_visible()) $data['_debug'] = debug_payload();
     echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }

@@ -9,6 +9,7 @@
 
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/inventory.php';
+require_once __DIR__ . '/lib/debug.php';
 
 $code = $_GET['property'] ?? 'kutch-safari-resort';
 $property = q1("SELECT * FROM properties WHERE code = ? AND active = 1", [$code]);
@@ -52,6 +53,7 @@ $e        = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES);
   data-guest-optional="<?= cfg('rules.guest_details_optional') ? '1' : '0' ?>"
   data-checkin="<?= $e($in) ?>" data-checkout="<?= $e($out) ?>"
   data-adults="<?= $adults ?>" data-children="<?= $children ?>" data-rooms="<?= $rooms ?>" data-occupancy="<?= $e(implode(',', $occupancy)) ?>">
+<?php debug_bar(); /* local only; see lib/debug.php */ ?>
 
 <header class="eng-header">
   <div class="wrap">

@@ -41,6 +41,15 @@ _Updated 30 Sep 2026. Newest first._
 #### 30 Sep 2026 (later): docs combined from 70 files into 10
 At the owner's request every Markdown file (docs 01–30, docs/notes, the 20 `context/` files, both engine READMEs and the 29 Sep report folders) was merged into `README.md` + `docs/01`–`09`. Each old file is a section headed "(was `old/path.md`)" with an anchor; the table at the bottom of `README.md` maps every old file to its new place. Older text that says "doc 22" or "docs/30" means those sections. The old files are in git history.
 
+### 4 Oct 2026: debug bar
+* **`lib/debug.php`**: a dev-only bar on the booking page, check-status page and admin pages showing config flags, the live cart, every API call with timings, and PHP notices (plus JS errors). See doc 01 for what it shows.
+* **Local only by construction:** `debug_visible()` = `cfg('debug')` **and** REMOTE_ADDR in 127.0.0.1/::1. The `_debug` key added to API responses follows the same rule, so a server with debug left on still leaks nothing to guests.
+* Hooked in at `index.php`, `manage.php`, `admin/_auth.php` (end of `admin_head`) and `api/_init.php` (`json_out`); `assets/engine.js` publishes the cart through `window.KSR_DEBUG.cart()`. Receipt/terms pages (`document.php`) are deliberately left alone.
+* The bar reserves page space while open, so it never sits on top of the Continue button.
+* `@`-silenced errors are ignored, because the engine silences things it has already handled (`@mkdir`).
+* Debug mode itself was already on locally (`config.local.php` → `debug => true`); nothing about that changed.
+* Checked: booking page through to the payment step, check-status page, admin sign-in page, API `_debug` payload, notice capture, and that a non-localhost address sees nothing. `bin/test-changes.php` still 17/17.
+
 ### 30 Sep 2026: new welcome text, Experiences from the brochure, "Around the Resort" tab, docs refresh
 * **Home welcome** replaced with the owner's text (kicker "Welcome to Kutch Safari Resort", heading "Where Tradition Meets Comfort on the Road to the White Rann", three paragraphs). Doc 05 §2.3.
 * **Experiences rebuilt from the owner's brochure** ("KUTCH SAFARI RESORT 2026 2027.pdf"): Why Visit Kutch?, Guest Experiences, Arrangements on Request, Other Assistance, "Arrange an Experience" on WhatsApp. 11 photos extracted from the PDF into `frontend/public/assets/images/brochure/`. Doc 10.
@@ -330,7 +339,7 @@ pnpm dev          # website on :3000, /book/ proxied to the engine
 **Must do**
 - [ ] `rules.guest_details_optional => false` (sample mode off: name and phone required)
 - [ ] `test_payments.enabled => false` (removes "I've paid (test)")
-- [ ] `debug => false`
+- [ ] `debug => false` (this also hides the debug bar — though the bar is already invisible to anyone who is not on the server itself, doc 01)
 - [ ] Live Razorpay keys in the server's `config.local.php`, **after regenerating the live Key Secret** (it was shared in chat). Add the webhook `<base_url>/api/webhook-razorpay.php` with its secret
 - [ ] UPI id (`upi.vpa`) if QR payments are wanted
 - [ ] Strong admin password: `php bin/setup.php --admin manvir "Manvir" "<long password>"` (the local one is `1234`). The sign-in page sends SHA-256 of username and password; `setup.php --admin` stores bcrypt(SHA-256), so always set passwords with it
