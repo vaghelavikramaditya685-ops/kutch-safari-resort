@@ -151,6 +151,14 @@ function audit(string $action, ?string $entity = null, $entity_id = null, $detai
 
 function now(): string { return date('Y-m-d H:i:s'); }
 
+/* Address values are always text in this engine: no page reads a list from the
+ * query string. A hand-made link such as ?check_in[]=x or ?ref[]=x would otherwise
+ * crash the pages that trim() or match the value, so a list becomes blank and is
+ * refused like a missing value. */
+foreach ($_GET as $k => $v) {
+    if (is_array($v)) $_GET[$k] = '';
+}
+
 /**
  * PHP on Windows ships without a list of trusted certificates, so HTTPS calls
  * (Razorpay, Stayflexi) fail there. Use the Windows certificate store instead.

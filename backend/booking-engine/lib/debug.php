@@ -51,8 +51,9 @@ function debug_watch(): void {
 
 /** "lib/booking.php:412" — the engine folder stripped off, so the bar stays readable. */
 function debug_where(string $file, int $line): string {
-    $root = dirname(__DIR__) . DIRECTORY_SEPARATOR;
-    return str_replace(['\\', $root], ['/', ''], $file) . ':' . $line;
+    // Both sides to forward slashes first, or a Windows path never matches the root.
+    $root = str_replace('\\', '/', dirname(__DIR__)) . '/';
+    return str_replace($root, '', str_replace('\\', '/', $file)) . ':' . $line;
 }
 
 /** The settings that change how the engine behaves, and whether each is risky to leave on. */

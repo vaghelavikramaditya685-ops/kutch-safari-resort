@@ -41,6 +41,21 @@ _Updated 30 Sep 2026. Newest first._
 #### 30 Sep 2026 (later): docs combined from 70 files into 10
 At the owner's request every Markdown file (docs 01–30, docs/notes, the 20 `context/` files, both engine READMEs and the 29 Sep report folders) was merged into `README.md` + `docs/01`–`09`. Each old file is a section headed "(was `old/path.md`)" with an anchor; the table at the bottom of `README.md` maps every old file to its new place. Older text that says "doc 22" or "docs/30" means those sections. The old files are in git history.
 
+### 4 Oct 2026 (later): debug-mode and syntax check of everything
+* **Syntax: no errors in any file.** 260 tracked files were run through a real parser for their type: PHP lint, `tsc` plus the production build, Python compile, `node --check`, JSON/YAML/XML/HTML parsers, lightningcss, SQL loaded into a fresh database, and every image and video opened. Full breakdown in `BUGS.md` → "4 Oct 2026".
+* **Debug mode:**
+  * 143 requests against a throwaway copy, read through the debug bar's notice list, the API `_debug` block and PHP's error log.
+  * All 23 website routes and the full guest booking flow, with the browser console watched.
+* **Fixed:**
+  * **F1, list-instead-of-text input** (21 places): 8 caused HTTP 500 crashes (public booking API, booking page, status page, admin list, CSV export, UPI confirm), and 5 saved the word "Array" as data. Fields are now made text at the boundary: `$_GET` in `lib/db.php`, admin `$_POST` in `admin/_auth.php` (except `room`, `addon`, `plans`), and the cart and guest fields in `quote_cart()` and `create_booking()`.
+  * **F2, the arrival wheel's uncaught JS error** after leaving the details step (`assets/engine.js` `show()` guard).
+  * My own debug bar now shows `lib/db.php:42` rather than full Windows paths.
+* **Found, not fixed:**
+  * **B18:** UPI "Money received" re-confirms a cancelled booking.
+  * **B19:** emails add about 2 s per action on this PC only.
+  * Both are in `BUGS.md`.
+* Pricing tests still 17/17. The real database was only read: 7 bookings, 8 payments, no "Array" values.
+
 ### 4 Oct 2026: debug bar
 * **`lib/debug.php`**: a dev-only bar on the booking page, check-status page and admin pages showing config flags, the live cart, every API call with timings, and PHP notices (plus JS errors). See doc 01 for what it shows.
 * **Local only by construction:** `debug_visible()` = `cfg('debug')` **and** REMOTE_ADDR in 127.0.0.1/::1. The `_debug` key added to API responses follows the same rule, so a server with debug left on still leaks nothing to guests.

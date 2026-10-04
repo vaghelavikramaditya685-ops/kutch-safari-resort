@@ -2,6 +2,19 @@
 /* Admin session handling. Shared by every page in this folder. */
 require_once __DIR__ . '/../lib/db.php';
 
+/* Form fields are text, except the few that are lists by design: the rooms and
+ * extras on Change booking, and the cottages on Special prices. A list anywhere
+ * else (note[]=x, which only a hand-made request sends) would be saved as the word
+ * "Array" or crash a page, so it becomes blank and is refused like an empty field. */
+foreach ($_POST as $k => $v) {
+    if (!is_array($v)) continue;
+    if (!in_array($k, ['room', 'addon', 'plans'], true)) { $_POST[$k] = ''; continue; }
+    foreach ($v as $i => $item) {
+        if ($k === 'room') $_POST[$k][$i] = is_array($item) ? array_map(fn($x) => is_scalar($x) ? $x : '', $item) : [];
+        elseif (!is_scalar($item)) unset($_POST[$k][$i]);
+    }
+}
+
 // Typed as ".../book/admin" (no slash): the folder's links would point one level
 // too high, so go to ".../book/admin/" first — the address fills itself in.
 if (preg_match('~/admin$~', (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH))) {

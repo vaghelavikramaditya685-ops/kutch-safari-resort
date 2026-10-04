@@ -567,8 +567,12 @@
     const pick = {};
     let touched = false, settling = true;
     const show = () => {
+      // A wheel still settling (its 90 ms timer below) can finish after the guest has
+      // moved on to payment, when this step and the wheel are no longer on the page.
+      const out = $('#g-arrival');
+      if (!out) return;
       const v = touched ? `${WHEEL_COLS.h[pick.h]}:${WHEEL_COLS.m[pick.m]} ${WHEEL_COLS.p[pick.p]}` : '';
-      $('#g-arrival').value = v;
+      out.value = v;
       $('#g-arrival-show').textContent = v ? 'Around ' + v : 'Not set — scroll to choose';
       $('#g-arrival-clear').hidden = !v;
       $$('.wheelbox').forEach(b => b.classList.toggle('is-set', !!v));

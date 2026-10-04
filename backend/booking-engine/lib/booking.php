@@ -35,9 +35,15 @@ function make_ref(string $property_code): string {
  * ]
  * ------------------------------------------------------------------------ */
 function quote_cart(array $cart): array {
-    // Anything that is not a list is treated as nothing chosen (never a PHP warning).
-    $cart['rooms']  = is_array($cart['rooms'] ?? null) ? $cart['rooms'] : [];
+    // Anything that is not a list is treated as nothing chosen (never a PHP warning),
+    // and a room line that is not itself a list is dropped.
+    $cart['rooms']  = is_array($cart['rooms'] ?? null) ? array_values(array_filter($cart['rooms'], 'is_array')) : [];
     $cart['addons'] = is_array($cart['addons'] ?? null) ? $cart['addons'] : [];
+    // Fields that are text: a list there (only a hand-made request sends one) is treated
+    // as blank, so it gets a plain refusal instead of a crash.
+    foreach (['property', 'check_in', 'check_out', 'payment_mode', 'coupon'] as $f) {
+        if (isset($cart[$f]) && !is_scalar($cart[$f])) $cart[$f] = '';
+    }
     $property = q1("SELECT * FROM properties WHERE code = ? AND active = 1", [$cart['property'] ?? '']);
     if (!$property) return ['ok' => false, 'error' => 'Unknown property.'];
 
@@ -722,6 +728,12 @@ function refresh_amount_paid(int $booking_id): float {
 function create_booking(array $cart, array $guest): array {
     $quote = quote_cart($cart);
     if (!$quote['ok']) return $quote;
+
+    // Guest details are text. A list in any of them counts as blank, rather than
+    // being saved as the word "Array".
+    foreach (['name', 'phone', 'email', 'city', 'country', 'arrival_time', 'special_requests'] as $f) {
+        if (isset($guest[$f]) && !is_scalar($guest[$f])) $guest[$f] = '';
+    }
 
     // Sample mode (config rules.guest_details_optional): details may be left blank.
     // Nothing is filled in on the guest's behalf — only what was typed is saved.

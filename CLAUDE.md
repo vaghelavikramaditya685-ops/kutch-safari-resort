@@ -17,7 +17,7 @@ The project: website (`frontend/`, React 19 + Vite) and booking engine + admin p
 | File | What it contains |
 |---|---|
 | `CLAUDE.md` | This map. |
-| [`BUGS.md`](BUGS.md) | Every bug found in the 30 Sep 2026 test with the demo data (money, refunds, heavy traffic, admin), with file:line, proof and suggested fix; plus the one-admin-at-a-time requirement (B10). Not fixed yet. |
+| [`BUGS.md`](BUGS.md) | Bugs to fix, with file:line, proof and suggested fix. Covers the 30 Sep 2026 test with the demo data (B1–B17: money, refunds, heavy traffic, admin; the one-admin-at-a-time requirement is B10) and the 4 Oct 2026 debug-mode and syntax check (no syntax errors; B18–B19 found; F1 list-instead-of-text input and F2 arrival-wheel JS error fixed). B1–B19 are not fixed yet. |
 | [`README.md`](README.md) | Start here. What the project is, the owner's hard rules for anyone changing code, AI instructions and glossary, project overview and current state, quick start (install/run), repository layout, and a table mapping every old doc to its new place. |
 | [`docs/01-ARCHITECTURE-AND-SETUP.md`](docs/01-ARCHITECTURE-AND-SETUP.md) | How the React site and the PHP booking engine fit together, tech stack and why, the full folder tree with entry points, environment/settings/run commands and common setup errors, component and PHP dependency maps. |
 | [`docs/02-WEBSITE.md`](docs/02-WEBSITE.md) | The React site (`frontend/`): every route, the menu (full from 1,320 px), each page (Home, Stay, Experiences from the brochure, Around the Resort, destination guides, content pages), shared components, SEO/titles/sitemap, forms and interactions, visitor journeys. |

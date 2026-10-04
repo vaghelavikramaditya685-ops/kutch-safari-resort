@@ -1,6 +1,44 @@
 # BUGS.md: bugs found, to fix later
 
-_Tested 30 Sep 2026 with the demo data (6 "Demo …" bookings + the owner's KSR-GJKQYG). Nothing here has been fixed yet._
+_Tested 30 Sep 2026 with the demo data (6 "Demo …" bookings + the owner's KSR-GJKQYG). B1–B17 are not fixed yet. A second check on 4 Oct 2026 (debug mode + syntax, see the next section) added B18–B19 and fixed two problems on the spot._
+
+## 4 Oct 2026: debug-mode and syntax check
+
+**Syntax: no errors in any file.** Every tracked file was run through a real parser for its type:
+- 47 PHP: `php -l`.
+- 29 TypeScript/TSX: `tsc --noEmit`, plus the production build.
+- 35 Python: compiled. Their byte-order marks are fine for Python.
+- JS: `node --check`.
+- JSON, YAML, XML/SVG, HTML: parsed.
+- 3 CSS: `lightningcss`. The Tailwind `@theme`/`@apply` warnings are expected.
+- `schema.sql` + `seed.sql`: loaded into a fresh database.
+- 106 images and 3 videos: opened, none corrupt.
+- `.htaccess`: read.
+
+**Debug mode:** a throwaway engine copy with debug on.
+- 143 requests across every guest page, API endpoint (good and bad input) and admin screen/action. Each was read through the debug bar's notice list, the `_debug` block on API replies and PHP's error log.
+- Every website route (23) and the full guest booking flow, from choosing a cottage to the confirmation page, with the browser console watched.
+- Admin Availability side panel.
+
+**Fixed on 4 Oct (found by this check):**
+* **F1. Fields sent as a list instead of text: crashes, and "Array" saved as data.** Only hand-made requests send these; the real pages never do. 21 places in all:
+  * **Public booking API** (`quote.php`, `book.php`): `check_in`, `check_out`, a `rooms` entry, `payment_mode` or `coupon` as a list returned **HTTP 500**. A guest name sent as a list was **saved as the word "Array"**.
+  * **Guest pages:** `index.php?check_in[]=` and `manage.php?ref[]=` returned **500**.
+  * **Admin:** the bookings list and the CSV export crashed on `?q[]=`, and UPI **Money received** crashed when `bank_ref` was a list. The payment note, booking note, cancel reason and enquiry note were saved as "Array". Other fields raised warnings but were refused.
+  * **Fix:**
+    * Address parameters are made text once in `lib/db.php`, since no page reads a list from the URL.
+    * Admin form fields are made text in `admin/_auth.php`, except the three real list fields: `room`, `addon`, `plans`.
+    * Cart and guest fields are checked in `quote_cart()` and `create_booking()`.
+  * **Result:** each case now gets a plain refusal, with no warnings, and nothing new is saved as "Array".
+* **F2. Arrival-time wheel: uncaught JavaScript error.** `assets/engine.js` `show()` ran from the wheel's 90 ms settle timer after the details step had been replaced, and `$('#g-arrival')` was null: `Cannot set properties of null (setting 'value')`. Seen live in the browser, then reproduced on purpose. **Fix:** `show()` returns early when the wheel is gone. The wheel still records times ("5:00 PM").
+
+**Checked and fine:**
+- Pricing tests: 17/17.
+- Every input refusal held in the database: no negative payment, no "bitcoin" method, no ₹−1 special price, no made-up enquiry status, bot enquiry not stored.
+- UPI QR returns a correct QR.
+- The website has no console errors and correct titles.
+
+**New open bugs:** B18 and B19 below.
 
 **How it was tested.** All tests ran on **throwaway copies** of the booking engine and its database in a temp folder: one on port 8090 for pages and PDFs, one for the load tests. The real database was only read, never written. Checks covered:
 - the numbers stored for every booking;
@@ -171,6 +209,26 @@ Demo Rohan is staying now (night 2 of 2) with ₹10,100 unpaid. Every screen sti
 * **B15. Bookings list "due" means different things.** The list shows the whole unpaid balance as "due" (Demo Karan: "due ₹14,900"). The booking page splits it into ₹7,450 now + ₹7,450 before arrival.
 * **B16. A finished stay stays "confirmed".** There is no `completed` step (the list calls it "checked out" only by date).
 * **B17. Guests told they owe more than they paid, with nothing collecting it.** Demo Neha's page says cancelling now costs 75% (₹16,875) but only ₹13,000 was paid, and nothing explains or collects the difference.
+* **B19. Emails make three actions take about 2 seconds on this PC (local only).** This affects "I've paid (test)", sending an enquiry and UPI **Money received**. With SMTP off, `lib/mail.php` calls PHP `mail()`. Windows has no local mail server, so each call waits and then fails; it's logged as `mail_failed` in `audit_log`. The debug bar shows the delay, e.g. `payment-test.php 2191ms (php 2169ms)`. cPanel hosts deliver locally, so it is fast live. There is no on/off switch for email. Either point SMTP at a real mailbox in the local `config.local.php`, or add a `mail.enabled` setting that skips sending.
+
+## B18 (4 Oct 2026, medium): "Money received" brings a cancelled booking back to life
+`upi_mark_received()` (`lib/payment.php:316`) sets the booking to **confirmed** without checking whether the desk has cancelled it meanwhile.
+* Nothing stops it from happening:
+  * `cancel_booking()` leaves any UPI payment that's still waiting as it is.
+  * The **UPI payments waiting to be checked** box (`admin/index.php:105`) lists waiting payments for cancelled bookings too.
+
+**Proof (throwaway copy, booking KSR-PKEBBX):**
+1. Booking created and the UPI QR shown.
+2. The desk cancels it.
+3. Someone checks the bank and presses **Money received**.
+4. Status: **confirmed** again, still carrying its cancel reason and a ₹100 refund owed.
+
+In real life, the cottage would be held again (perhaps after being resold), Stayflexi would be told it's booked, and the guest would get a confirmation email for a cancelled booking.
+
+**Fix:**
+* `upi_mark_received()` should refuse (or only record the money, leaving the booking cancelled) when the booking is cancelled.
+* `cancel_booking()` should mark waiting UPI payments as void.
+* The UPI box should leave out cancelled bookings, or flag them.
 
 ---
 
