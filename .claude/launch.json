@@ -11,8 +11,9 @@
     {
       "name": "website",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "--host", "--port", "3000"],
-      "port": 3000
+      "runtimeArgs": ["vite", "--host", "--port", "4321", "--strictPort"],
+      "port": 4321,
+      "autoPort": false
     }
   ]
 }

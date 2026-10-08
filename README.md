@@ -23,6 +23,7 @@ a **React 19 + Vite** marketing site (`frontend/`) and a **PHP 8 booking engine 
 | [`docs/06-ADMIN-AND-SECURITY.md`](docs/06-ADMIN-AND-SECURITY.md) | Every admin screen, and how sign-in (SHA-256), sessions, tokens and input checks work. | context/auth_and_security, docs/24-ADMIN-PANEL-GUIDE |
 | [`docs/07-DATABASE.md`](docs/07-DATABASE.md) | The tables, hidden couplings between them, and the rules for real vs test/demo data. | context/data_models, docs/28-DATABASE-AND-DATA-RULES |
 | [`docs/08-STATUS-ISSUES-AND-ROADMAP.md`](docs/08-STATUS-ISSUES-AND-ROADMAP.md) | What works, what doesn't, every known issue, decisions, open questions for the owner, and what's next. | context/current_status, context/features, docs/16-KNOWN-ISSUES-AND-BUGS, context/decisions_and_assumptions, context/roadmap, docs/notes/todo, docs/notes/ideas |
+| [`docs/10-GO-LIVE-ON-HOSTINGER.md`](docs/10-GO-LIVE-ON-HOSTINGER.md) | The planned live setup on Hostinger (`kutchsafaribhuj.in`, `book.`, `admin.`): local vs live addresses, every URL/setting that changes at upload time, the tested upload recipe, Hostinger and DNS steps. | new, 5 Oct 2026 |
 | [`docs/09-HISTORY-TESTING-AND-GO-LIVE.md`](docs/09-HISTORY-TESTING-AND-GO-LIVE.md) | What changed and why, what broke and what we learned, how to test, how to deploy, and the 29 Sep 2026 check reports. | docs/20-CHANGE-LOG-AND-DESIGN-DECISIONS, docs/29-LESSONS-LEARNED-AND-GOTCHAS, context/testing_and_deployment, docs/30-TESTING-GO-LIVE-AND-HANDOVER, docs/15-DEPLOYMENT-AND-INFRASTRUCTURE, restructure/REPORT, restructure/CHANGELOG, restructure/MOVE_MAP, restructure/CURRENT_TREE, restructure/TARGET_TREE, heal/REPORT, heal/FINDINGS, heal/CHANGELOG, heal/RUN_LOG, heal/STATE, button_audit/REPORT, chaos/REPORT, chaos/FINDINGS, chaos/CHANGELOG, chaos/TARGET_MAP |
 
 ---
@@ -47,7 +48,7 @@ _(was `context/overview.md`)_
 
 **Who it's for.** Guests booking a stay (domestic and international travellers heading to the White Rann) [DOC], and the owner/front desk (admin user `manvir`) [CODE `data/booking.sqlite` admin_users].
 
-**Status (30 Sep 2026).** Works end to end on the owner's PC with test payments; not yet deployed; Razorpay on test keys, Stayflexi not connected, sample mode and test payments still on [CODE `config.php`, `config.local.php`]. See [current_status.md](docs/08-STATUS-ISSUES-AND-ROADMAP.md#context-current-status).
+**Status (5 Oct 2026).** The **website is live on Vercel** (`https://kutch-safari-resort.vercel.app`) **without online booking**: every Book Now is an enquiry (WhatsApp/email). The booking engine and admin run only on the owner's PC, end to end with test payments; not yet deployed; Razorpay on test keys, Stayflexi not connected, sample mode and test payments still on [CODE `config.php`, `config.local.php`]. See [current_status.md](docs/08-STATUS-ISSUES-AND-ROADMAP.md#context-current-status).
 
 **Latest (30 Sep 2026).** Home welcome text replaced with the owner's wording; **Experiences** rebuilt from the owner's 2026–27 brochure (PDF); new menu tab **Around the Resort** (`/around-the-resort`) for places like Mandvi Beach → destination guides; full desktop menu from 1,320 px. Brochure vs website fact differences await the owner [DOC `docs/17`, `docs/20`].
 
@@ -164,7 +165,7 @@ The booking engine is a **separate application**. The React site holds no bookin
 ### 3. Environments
 * **Production domain:** `https://kutchsafaribhuj.in` (Vercel)
 * **Preview:** `https://kutch-safari-resort.vercel.app`
-* **Booking engine:** must run on a PHP host (e.g. cPanel `public_html/book`). Vercel cannot run it. See [`15-DEPLOYMENT-AND-INFRASTRUCTURE.md`](docs/09-HISTORY-TESTING-AND-GO-LIVE.md#docs-15).
+* **Booking engine:** must run on a PHP host (e.g. cPanel `public_html/book`). Vercel cannot run it. See [`15-DEPLOYMENT-AND-INFRASTRUCTURE.md`](docs/09-HISTORY-TESTING-AND-GO-LIVE.md#docs-15). The planned live setup on Hostinger is in [`docs/10-GO-LIVE-ON-HOSTINGER.md`](docs/10-GO-LIVE-ON-HOSTINGER.md).
 * **Old WRC portal:** `https://whiteranncamp.travstack.com` (still linked from the Navbar placeholder button)
 
 ---
@@ -190,10 +191,10 @@ The booking database on this PC has **7 bookings**: the owner's own KSR-GJKQYG a
 **Where to read what:** see [The 10 documents](#the-10-documents) at the top of this file, and [Where each old file went](#where-each-old-file-went) at the bottom.
 
 Outstanding, detailed in [`16-KNOWN-ISSUES-AND-BUGS.md`](docs/08-STATUS-ISSUES-AND-ROADMAP.md#docs-16):
-1. The Home contact form is still a mock (`setTimeout`).
+1. ~~The Home contact form is a mock~~ fixed 5 Oct 2026: enquiries go to WhatsApp/email (not stored by the site).
 2. ~~Broken links~~ fixed 29 Sep 2026. Brochure vs website facts (distances, years, room names) await the owner's answer (doc 17).
-3. Placeholder content: Our Journey (lorem ipsum), Dining and Our Journey placeholder boxes, FAQ, `[WRC LOGO]`.
-4. About 269 MB of unoptimised assets (the 4.5 MB favicon was replaced by a 9 KB `favicon.ico` on 29 Sep 2026).
+3. Placeholder content: Dining placeholder box, FAQ, `[WRC LOGO]`. (The Our Journey page was removed on 5 Oct 2026.)
+4. Assets are ~140 MB, mostly unused files and videos. The photos were compressed on 6 Oct 2026 (136.7 MB → 6.4 MB); the 10.2 MB Home hero video is not. (The 4.5 MB favicon was replaced by a 9 KB `favicon.ico` on 29 Sep 2026.)
 5. The booking engine is not yet deployed. Its rates, GST, the 50% balance date and cancellation terms need the owner's sign-off.
 6. Stayflexi is not connected, and Razorpay is on test keys only.
 7. Six demo bookings to remove before launch; brochure photos are low resolution.
@@ -243,12 +244,12 @@ backend/
   booking-engine/     PHP + MySQL booking engine, served at /book/
   server/index.ts     Express static server + POST /api/contact
 api/contact.ts        Vercel serverless contact handler (stays at the root: Vercel needs /api there)
-docs/                 9 project docs (01–09); all Markdown lives in README.md + docs/
+docs/                 10 project docs (01–10); all Markdown lives in README.md + docs/
 chaos/EVIDENCE/       scripts used by the 29 Sep 2026 chaos test (the reports are in docs/09)
 ```
 
 Routes: `/`, `/stay`, `/experiences` (brochure content), `/around-the-resort`
-(places → guides), `/our-journey`, `/dining`, `/gallery`, `/plan-your-visit`,
+(places → guides), `/dining`, `/gallery`, `/plan-your-visit`,
 `/packages`, `/destination/:slug`, `/rann-utsav-package` (also `/white-rann-camp`
 and `/white-rann-camp/tariff`). `/booking`, `/book` and `/admin` forward to the
 booking engine.
@@ -293,8 +294,10 @@ build the site with `VITE_BOOKING_URL=https://that-host/book/`. Real keys go in
 - Images are referenced by absolute path (`/assets/...`) from `frontend/public`,
   not imported, so unused files are not tree-shaken — check references before
   adding or removing media.
-- `frontend/public/assets` is ~269 MB of unoptimized originals; compressing and
-  converting to WebP/AVIF is the single biggest available win for page weight.
+- The photos in `frontend/public/assets` were compressed on 6 Oct 2026 (resized to
+  at most 1920 px, JPEG quality ~80). New photos from a phone or camera are 5–17 MB
+  each: shrink them the same way before adding them. The 10.2 MB hero video and
+  ~122 MB of unused files are the remaining weight.
 
 ---
 

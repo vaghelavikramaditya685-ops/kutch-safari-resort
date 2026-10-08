@@ -7,6 +7,21 @@
  */
 export const BOOKING_URL: string = import.meta.env.VITE_BOOKING_URL || "/book/";
 
+/**
+ * Online booking is switched on only when the engine is deployed with the site
+ * (VITE_BOOKING_ENABLED=true; docs/10). Until then the website goes live on its
+ * own (Vercel) and every Book Now is an enquiry instead: ReserveButton shows
+ * "Enquire Now" → /enquire, and the engine's links (check status, admin) are hidden.
+ */
+export const BOOKING_ENABLED: boolean = import.meta.env.VITE_BOOKING_ENABLED === "true";
+
+export const ENQUIRY_PATH = "/enquire";
+
+/** The enquiry page, with the room the guest was looking at filled in. */
+export function enquiryUrl(room?: string): string {
+  return room ? `${ENQUIRY_PATH}?${new URLSearchParams({ room })}` : ENQUIRY_PATH;
+}
+
 export type BookingProperty = "kutch-safari-resort" | "white-rann-camp";
 
 export interface BookingLink {

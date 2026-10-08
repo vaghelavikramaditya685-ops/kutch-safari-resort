@@ -1,11 +1,10 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch, useLocation } from "wouter";
+import { Redirect, Route, Switch, useLocation } from "wouter";
 import { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import OurJourney from "./pages/OurJourney";
 import Dining from "./pages/Dining";
 import GalleryPage from "./pages/GalleryPage";
 import PlanYourVisit from "./pages/PlanYourVisit";
@@ -16,8 +15,11 @@ import Destination from "./pages/Destination";
 import RannUtsavPackage from "./pages/RannUtsavPackage";
 import Experiences from "./pages/Experiences";
 import AroundTheResort from "./pages/AroundTheResort";
+import PackageDetail from "./pages/PackageDetail";
+import { packageBySlug } from "./lib/packages";
 import BookingRedirect from "./pages/BookingRedirect";
-import { adminUrl } from "./lib/booking";
+import Enquire from "./pages/Enquire";
+import { BOOKING_ENABLED, ENQUIRY_PATH, adminUrl } from "./lib/booking";
 
 
 
@@ -27,17 +29,20 @@ const TITLES: Record<string, string> = {
   "/stay": `The Stay: Kutchi & Deluxe AC Cottages | ${SITE}`,
   "/experiences": `Experiences | ${SITE}`,
   "/around-the-resort": `Around the Resort: Places to Explore in Kutch | ${SITE}`,
-  "/our-journey": `Our Journey | ${SITE}`,
   "/dining": `Dining at The Banni | ${SITE}`,
   "/gallery": `Gallery | ${SITE}`,
   "/plan-your-visit": `Plan Your Visit | ${SITE}`,
-  "/packages": `Colors of Kutch Packages | ${SITE}`,
+  "/packages": `Kutch Tour Packages | ${SITE}`,
+  "/enquire": `Send an Enquiry | ${SITE}`,
   "/rann-utsav-package": `White Rann Camp & Rann Utsav | ${SITE}`,
   "/white-rann-camp": `White Rann Camp & Rann Utsav | ${SITE}`,
   "/white-rann-camp/tariff": `White Rann Camp Tariff 2026–27 | ${SITE}`,
-  "/booking": `Book your stay | ${SITE}`,
-  "/book": `Book your stay | ${SITE}`,
-  "/admin": `Reservations | ${SITE}`,
+  // Only while online booking is on; otherwise /book redirects to /enquire and /admin is not found.
+  ...(BOOKING_ENABLED ? {
+    "/booking": `Book your stay | ${SITE}`,
+    "/book": `Book your stay | ${SITE}`,
+    "/admin": `Reservations | ${SITE}`,
+  } : {}),
 };
 const DESTINATIONS: Record<string, string> = {
   dholavira: "Dholavira", "road-to-heaven": "Road to Heaven", "the-great-white-rann": "The Great White Rann",
@@ -70,10 +75,12 @@ function usePageTitle() {
   const [location] = useLocation();
   useEffect(() => {
     const slug = location.startsWith("/destination/") ? location.slice("/destination/".length) : "";
+    const pkg = location.startsWith("/packages/") ? packageBySlug(location.slice("/packages/".length)) : undefined;
     document.title = TITLES[location]
-      ?? (DESTINATIONS[slug] ? `${DESTINATIONS[slug]} | ${SITE}`
+      ?? (pkg ? `${pkg.title} (${pkg.nights} Nights / ${pkg.days} Days) | ${SITE}`
+      : DESTINATIONS[slug] ? `${DESTINATIONS[slug]} | ${SITE}`
       : location.startsWith("/book/") || location.startsWith("/admin/") ? SITE : `Page not found | ${SITE}`);
-    const isPage = (TITLES[location] !== undefined && !NOT_CONTENT.includes(location)) || DESTINATIONS[slug] !== undefined;
+    const isPage = (TITLES[location] !== undefined && !NOT_CONTENT.includes(location)) || DESTINATIONS[slug] !== undefined || pkg !== undefined;
     headTag('link[rel="canonical"]', () => Object.assign(document.createElement("link"), { rel: "canonical" }),
       isPage ? el => { (el as HTMLLinkElement).href = SITE_URL + (CANONICAL[location] ?? location); } : null);
     headTag('meta[name="robots"]', () => Object.assign(document.createElement("meta"), { name: "robots" }),
@@ -86,20 +93,34 @@ function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
-      <Route path={"/booking"}>{() => <BookingRedirect />}</Route>
-      <Route path={"/book"}>{() => <BookingRedirect />}</Route>
-      <Route path={"/book/*"}>{() => <BookingRedirect />}</Route>
-      {/* Short address for the staff panel: /admin → the booking engine's admin. */}
-      <Route path={"/admin"}>{() => <BookingRedirect to={adminUrl()} label="Opening the admin panel…" />}</Route>
-      <Route path={"/admin/*"}>{() => <BookingRedirect to={adminUrl()} label="Opening the admin panel…" />}</Route>
+      <Route path={"/enquire"} component={Enquire} />
+      {BOOKING_ENABLED ? (
+        <>
+          <Route path={"/booking"}>{() => <BookingRedirect />}</Route>
+          <Route path={"/book"}>{() => <BookingRedirect />}</Route>
+          <Route path={"/book/*"}>{() => <BookingRedirect />}</Route>
+          {/* Short address for the staff panel: /admin → the booking engine's admin. */}
+          <Route path={"/admin"}>{() => <BookingRedirect to={adminUrl()} label="Opening the admin panel…" />}</Route>
+          <Route path={"/admin/*"}>{() => <BookingRedirect to={adminUrl()} label="Opening the admin panel…" />}</Route>
+        </>
+      ) : (
+        <>
+          {/* Online booking is off (website deployed on its own): old booking links become the enquiry page; /admin is not found. */}
+          <Route path={"/booking"}>{() => <Redirect to={ENQUIRY_PATH} replace />}</Route>
+          <Route path={"/book"}>{() => <Redirect to={ENQUIRY_PATH} replace />}</Route>
+          <Route path={"/book/*"}>{() => <Redirect to={ENQUIRY_PATH} replace />}</Route>
+        </>
+      )}
       <Route path={"/stay"} component={Stay} />
       <Route path={"/experiences"} component={Experiences} />
       <Route path={"/around-the-resort"} component={AroundTheResort} />
-      <Route path={"/our-journey"} component={OurJourney} />
+      {/* The Our Journey page was removed; send old links home. */}
+      <Route path={"/our-journey"}>{() => <Redirect to="/" replace />}</Route>
       <Route path={"/dining"} component={Dining} />
       <Route path={"/gallery"} component={GalleryPage} />
       <Route path={"/plan-your-visit"} component={PlanYourVisit} />
       <Route path={"/packages"} component={Packages} />
+      <Route path={"/packages/:slug"} component={PackageDetail} />
 
       <Route path={"/destination/:slug"} component={Destination} />
       <Route path={"/rann-utsav-package"} component={RannUtsavPackage} />

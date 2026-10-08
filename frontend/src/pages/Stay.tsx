@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { Snowflake, Wifi, Coffee, Tv, Lock, Wind } from "lucide-react";
-import { bookingUrl } from "@/lib/booking";
+import ReserveButton from "../components/ReserveButton";
 
-function RoomTemplate({ title, exteriorTitle, interiorTitle, extImgs, intImgs, subtitle, description }: any) {
+function RoomTemplate({ title, room, exteriorTitle, interiorTitle, extImgs, intImgs, subtitle, description }: any) {
   const [lightbox, setLightbox] = useState<string | null>(null);
 
   return (
@@ -51,9 +51,7 @@ function RoomTemplate({ title, exteriorTitle, interiorTitle, extImgs, intImgs, s
             <p className="text-zinc-600 text-base md:text-lg leading-relaxed font-light mb-8">
               {description}
             </p>
-            <a href={bookingUrl()} className="bg-[var(--terracotta)] text-white px-8 py-3 w-fit uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition-opacity rounded-sm shadow-md">
-              Book Now
-            </a>
+            <ReserveButton room={room} className="bg-[var(--terracotta)] text-white px-8 py-3 w-fit uppercase tracking-widest text-sm font-semibold hover:opacity-90 transition-opacity rounded-sm shadow-md" />
           </div>
         </div>
       </div>
@@ -135,6 +133,7 @@ export default function Stay() {
         <div className="container px-4 mt-8">
             <RoomTemplate 
               title="Kutch AC Cottage"
+              room="Kutchi AC Cottage"
               exteriorTitle="Exterior"
               interiorTitle="Interior"
               extImgs={[
@@ -151,6 +150,7 @@ export default function Stay() {
 
             <RoomTemplate 
               title="Deluxe AC Cottage"
+              room="Deluxe AC Cottage"
               exteriorTitle="Exterior"
               interiorTitle="Interior"
               extImgs={[

@@ -1,10 +1,11 @@
 import { Link } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Phone, Mail, CheckCircle2, ArrowRight } from "lucide-react";
-import { toast } from "sonner";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { bookingUrl, statusUrl } from "@/lib/booking";
+import { BOOKING_ENABLED, statusUrl } from "@/lib/booking";
+import ReserveButton from "../components/ReserveButton";
+import EnquiryForm from "../components/EnquiryForm";
 
 function TrustStrip() {
   return (
@@ -88,22 +89,6 @@ function AmenitiesGrid() {
 }
 
 function ContactSection() {
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', dates: '', message: '' });
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: any) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      setSubmitted(true);
-      toast.success("Message sent successfully!");
-      setFormData({ name: '', email: '', phone: '', dates: '', message: '' });
-      setTimeout(() => setSubmitted(false), 5000);
-    }, 1500);
-  };
-
   return (
     <section id="contact" className="relative bg-[#f8f5e2] py-24 border-t border-[#e4d5c7]">
       <div className="container mx-auto px-6">
@@ -111,7 +96,7 @@ function ContactSection() {
           <p className="text-sm font-semibold tracking-[0.2em] uppercase text-[var(--terracotta)] mb-4">Plan Your Stay</p>
           <h2 className="text-4xl md:text-5xl font-display text-zinc-900 font-bold mb-6">Get in Touch</h2>
         </div>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 max-w-7xl mx-auto">
           {/* Left Column */}
           <div className="lg:col-span-5 flex flex-col gap-10 lg:pr-8">
@@ -137,36 +122,10 @@ function ContactSection() {
             </div>
           </div>
 
-          {/* Right Column */}
+          {/* Right Column: the enquiry goes to the desk on WhatsApp (or email); nothing is faked as "sent". */}
           <div className="lg:col-span-7">
             <div className="bg-white border border-[#e4d5c7] p-8 shadow-sm rounded-sm">
-              {submitted ? (
-                <div className="py-12 text-center">
-                  <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                  <h4 className="text-2xl font-display font-semibold mb-2">Message Sent!</h4>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Each field has a label for screen readers and a name/autocomplete for the browser (the placeholders are what shows). */}
-                    <div>
-                      <label htmlFor="contact-name" className="sr-only">Full name</label>
-                      <input required id="contact-name" name="name" autoComplete="name" type="text" placeholder="Full Name" className="w-full p-4 bg-[#f8f5e2] border border-[#e4d5c7] rounded-sm text-sm" onChange={(e) => setFormData({...formData, name: e.target.value})} />
-                    </div>
-                    <div>
-                      <label htmlFor="contact-email" className="sr-only">Email address</label>
-                      <input required id="contact-email" name="email" autoComplete="email" type="email" placeholder="Email Address" className="w-full p-4 bg-[#f8f5e2] border border-[#e4d5c7] rounded-sm text-sm" onChange={(e) => setFormData({...formData, email: e.target.value})} />
-                    </div>
-                  </div>
-                  <label htmlFor="contact-phone" className="sr-only">Phone number</label>
-                  <input required id="contact-phone" name="phone" autoComplete="tel" type="tel" placeholder="Phone Number" className="w-full p-4 bg-[#f8f5e2] border border-[#e4d5c7] rounded-sm text-sm" onChange={(e) => setFormData({...formData, phone: e.target.value})} />
-                  <label htmlFor="contact-message" className="sr-only">Your message</label>
-                  <textarea required id="contact-message" name="message" rows={4} placeholder="Your Message..." className="w-full p-4 bg-[#f8f5e2] border border-[#e4d5c7] rounded-sm text-sm resize-none" onChange={(e) => setFormData({...formData, message: e.target.value})}></textarea>
-                  <button type="submit" disabled={submitting} className="w-full bg-[var(--terracotta)] text-white py-4 uppercase tracking-[0.15em] text-sm font-semibold rounded-sm">
-                    {submitting ? 'Sending...' : 'Submit Inquiry'}
-                  </button>
-                </form>
-              )}
+              <EnquiryForm />
             </div>
           </div>
         </div>
@@ -204,16 +163,16 @@ export default function Home() {
             Where the Lake Meets the Desert
           </h1>
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            <a href={bookingUrl()} className="bg-[var(--terracotta)] text-white px-8 py-4 uppercase tracking-widest text-sm font-semibold hover:bg-[#b04838] transition-colors rounded-sm shadow-md">
-              Check Availability & Book
-            </a>
+            <ReserveButton bookLabel="Check Availability & Book" enquireLabel="Enquire Now" className="bg-[var(--terracotta)] text-white px-8 py-4 uppercase tracking-widest text-sm font-semibold hover:bg-[#b04838] transition-colors rounded-sm shadow-md" />
             <Link href="/around-the-resort" className="bg-white/10 backdrop-blur-md border border-white/30 text-white px-8 py-4 uppercase tracking-widest text-sm font-semibold hover:bg-white hover:text-black transition-colors rounded-sm shadow-md">
               Explore Kutch
             </Link>
           </div>
-          <a href={statusUrl()} className="mt-6 text-white/90 text-sm tracking-wide underline underline-offset-4 decoration-white/40 hover:decoration-white transition-colors">
-            Already booked? Check status
-          </a>
+          {BOOKING_ENABLED && (
+            <a href={statusUrl()} className="mt-6 text-white/90 text-sm tracking-wide underline underline-offset-4 decoration-white/40 hover:decoration-white transition-colors">
+              Already booked? Check status
+            </a>
+          )}
         </div>
       </section>
 
@@ -223,9 +182,10 @@ export default function Home() {
       <section className="py-24 bg-[#f8f5e2] text-zinc-900">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="grid grid-cols-2 gap-4">
-              <img src="/assets/images/new/kutchi-ac-room-_-deluxe-ac-cottage-deluxe-ac-cottage.jpg" className="w-full h-[300px] object-cover rounded-sm shadow-xl" alt="Lake View" />
-              <img src="/assets/images/new/kutch-ac-cottage-_dsc9435.jpg" className="w-full h-[300px] object-cover rounded-sm translate-y-8 shadow-xl" alt="Cottage Exterior" />
+            {/* Both photos fit on one screen together: each about 42% of the screen tall, trimmed from the bottom (lawn, water). */}
+            <div className="flex flex-col gap-4">
+              <img src="/assets/images/new/kutch-safari-cottages-lawn.jpg" className="w-full h-[42vh] min-h-[220px] object-cover object-top rounded-sm shadow-xl" alt="Thatched bhunga cottages along the lawn at Kutch Safari Resort" />
+              <img src="/assets/images/new/kutch-safari-aerial-lake.jpg" className="w-full h-[42vh] min-h-[220px] object-cover object-top rounded-sm shadow-xl" alt="The resort's cottages above the Rudramata Dam lake, seen from the air" />
             </div>
             <div>
               <p className="text-sm font-semibold tracking-[0.2em] uppercase text-[var(--terracotta)] mb-4">Welcome to Kutch Safari Resort</p>
@@ -241,9 +201,6 @@ export default function Home() {
                   Whether you're a textile enthusiast, a culture lover or simply looking for a peaceful getaway, you'll find scenic views, fresh desert air and personalised hospitality here. We've welcomed travellers for more than three decades. That experience, and where we stand, is what makes this one of the finest places to stay in Bhuj and the Rann of Kutch.
                 </p>
               </div>
-              <Link href="/our-journey" className="inline-flex items-center gap-2 mt-8 text-[var(--terracotta)] uppercase tracking-widest text-sm font-semibold hover:text-zinc-900 transition-colors">
-                Our Story <ArrowRight className="w-4 h-4" />
-              </Link>
             </div>
           </div>
         </div>
@@ -277,9 +234,7 @@ export default function Home() {
                   <span className="text-xs bg-zinc-100 text-zinc-600 px-3 py-1 rounded-sm">Air conditioned</span>
                   <span className="text-xs bg-zinc-100 text-zinc-600 px-3 py-1 rounded-sm">Free Wi-Fi</span>
                 </div>
-                <a href={bookingUrl()} className="text-center border border-[var(--terracotta)] text-[var(--terracotta)] py-3 uppercase tracking-widest text-sm font-semibold hover:bg-[var(--terracotta)] hover:text-white transition-colors rounded-sm block">
-                  Book Now
-                </a>
+                <ReserveButton room="Kutchi AC Cottage" className="text-center border border-[var(--terracotta)] text-[var(--terracotta)] py-3 uppercase tracking-widest text-sm font-semibold hover:bg-[var(--terracotta)] hover:text-white transition-colors rounded-sm block" />
               </div>
             </div>
 
@@ -299,9 +254,7 @@ export default function Home() {
                   <span className="text-xs bg-zinc-100 text-zinc-600 px-3 py-1 rounded-sm">Air conditioned</span>
                   <span className="text-xs bg-zinc-100 text-zinc-600 px-3 py-1 rounded-sm">Free Wi-Fi</span>
                 </div>
-                <a href={bookingUrl()} className="text-center border border-[var(--terracotta)] text-[var(--terracotta)] py-3 uppercase tracking-widest text-sm font-semibold hover:bg-[var(--terracotta)] hover:text-white transition-colors rounded-sm block">
-                  Book Now
-                </a>
+                <ReserveButton room="Deluxe AC Cottage" className="text-center border border-[var(--terracotta)] text-[var(--terracotta)] py-3 uppercase tracking-widest text-sm font-semibold hover:bg-[var(--terracotta)] hover:text-white transition-colors rounded-sm block" />
               </div>
             </div>
           </div>

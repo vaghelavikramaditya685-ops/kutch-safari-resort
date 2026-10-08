@@ -11,7 +11,7 @@ The project: website (`frontend/`, React 19 + Vite) and booking engine + admin p
 * Test with `bin/test-changes.php`, `bin/test-logic.php` and `bin/test-concurrency.php` (each works on a temporary copy of the database). Any "check, then write" on money or a booking goes inside `db_begin()`/`db_tx()` with `lock_booking()`, or it will break under simultaneous requests.
 * Secrets only in `backend/booking-engine/config.local.php` (git-ignored); never commit, print or copy them.
 * Keep the colours; the owner approves visual changes.
-* When docs change, keep this file and the README tables in sync. All Markdown lives in `README.md`, `BUGS.md` and `docs/01`–`09` (plus this file).
+* When docs change, keep this file and the README tables in sync. All Markdown lives in `README.md`, `BUGS.md` and `docs/01`–`10` (plus this file).
 
 ## Every .md file
 
@@ -28,6 +28,7 @@ The project: website (`frontend/`, React 19 + Vite) and booking engine + admin p
 | [`docs/06-ADMIN-AND-SECURITY.md`](docs/06-ADMIN-AND-SECURITY.md) | Admin panel screen by screen, and security: SHA-256 sign-in, sessions, CSRF, tokens, input checks, risks. |
 | [`docs/07-DATABASE.md`](docs/07-DATABASE.md) | The database tables and fields, hidden couplings, sample records, and the rules for real vs test/demo data (never re-run full setup on real data). |
 | [`docs/08-STATUS-ISSUES-AND-ROADMAP.md`](docs/08-STATUS-ISSUES-AND-ROADMAP.md) | Current status and % complete, every feature with status, all known issues, decisions and assumptions, open questions for the owner, roadmap, todo and ideas notes. |
+| [`docs/10-GO-LIVE-ON-HOSTINGER.md`](docs/10-GO-LIVE-ON-HOSTINGER.md) | The planned live setup on Hostinger (website `kutchsafaribhuj.in`, booking `book.kutchsafaribhuj.in`, admin `admin.kutchsafaribhuj.in`, one plan): local vs live addresses, every URL and setting that changes at upload time (`VITE_BOOKING_ENABLED`, `VITE_BOOKING_URL`, both `.htaccess` files, live `config.local.php`, `website_url`), the tested upload recipe, Hostinger and DNS steps, never-do list. Not applied yet; the site runs locally. |
 | [`docs/09-HISTORY-TESTING-AND-GO-LIVE.md`](docs/09-HISTORY-TESTING-AND-GO-LIVE.md) | Change log (newest first) and design decisions, lessons learned and gotchas, how to test, go-live checklist and handover, deployment/infrastructure, and the 29 Sep 2026 reports (folder cleanup, self-healing, button audit, chaos test). |
 
 ## Sections inside each file
@@ -133,4 +134,5 @@ Each section is an older doc merged in on 30 Sep 2026; its heading says "(was `o
 * Tables and data rules → `docs/07-DATABASE.md`
 * Bugs to fix next → `BUGS.md`; everything open → `docs/08-STATUS-ISSUES-AND-ROADMAP.md`
 * What changed, tests, go-live → `docs/09-HISTORY-TESTING-AND-GO-LIVE.md`
+* Uploading to Hostinger, live URLs and DNS → `docs/10-GO-LIVE-ON-HOSTINGER.md`
 * Install/run, folder layout → `docs/01-ARCHITECTURE-AND-SETUP.md` and `README.md`

@@ -95,7 +95,7 @@ All from [CODE `backend/booking-engine/api/*.php`].
 * Admin pages are HTML forms with CSRF tokens (see [auth_and_security.md](06-ADMIN-AND-SECURITY.md#context-auth-and-security)) [CODE `admin/`].
 
 ### Express (optional)
-`POST /api/contact` → appends to `/data/enquiries.json` [CODE `backend/server/index.ts`]; the website does not call it yet [CODE `Home.tsx` mock].
+`POST /api/contact` → appends to `/data/enquiries.json` [CODE `backend/server/index.ts`]; the website does not call it (since 5 Oct 2026 the site's enquiry form hands enquiries to WhatsApp/email instead) [CODE `components/EnquiryForm.tsx`].
 
 ---
 

@@ -97,7 +97,7 @@ The facts used across the site and the booking engine. When one changes, update 
 
 ### Identity
 * **Kutch Safari Resort**, Near Rudramata Dam, Bhuj–Khavda Road, Bhuj, Kutch, Gujarat 370001. About 15 km from Bhuj.
-* Founder: Mike Vaghela. Hosting for 35+ years (Our Journey timeline starts in 1992).
+* Founder: Mike Vaghela. Hosting for 35+ years (since 1992).
 * Directions: take the Khavda road out of Bhuj, go 14 km, pass the bus stop to the LORIYA 7 KM milestone, turn right and go up the hill.
 * Tagline (Home hero): "Where the Lake Meets the Desert". Brochure tagline: "Where Tradition Meets Comfort" (used in the Home welcome heading).
 * Home welcome text: the owner's own wording (30 Sep 2026), see [`05-HOME-PAGE.md`](02-WEBSITE.md#docs-05) §2.3. Do not reword it.
@@ -159,7 +159,7 @@ The owner's printed brochure. Used for the **Experiences** page (doc 10) and the
 | Airport / railway | 15 km / 14 km | not on the site |
 
 ### Content still owed by the owner
-Our Journey story, awards and timeline. Food photos. FAQ. WRC logo (transparent PNG). Confirmed resort rates, GST and cancellation terms. Real guest reviews. Resort Diwali and Christmas supplement dates. Original (high-resolution) brochure photos. Answers to the brochure/website differences above.
+Food photos. FAQ. WRC logo (transparent PNG). Confirmed resort rates, GST and cancellation terms. Real guest reviews. Resort Diwali and Christmas supplement dates. Original (high-resolution) brochure photos. Answers to the brochure/website differences above.
 
 ---
 

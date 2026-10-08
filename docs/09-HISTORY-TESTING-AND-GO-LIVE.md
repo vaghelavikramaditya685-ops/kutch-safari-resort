@@ -41,6 +41,29 @@ _Updated 30 Sep 2026. Newest first._
 #### 30 Sep 2026 (later): docs combined from 70 files into 10
 At the owner's request every Markdown file (docs 01–30, docs/notes, the 20 `context/` files, both engine READMEs and the 29 Sep report folders) was merged into `README.md` + `docs/01`–`09`. Each old file is a section headed "(was `old/path.md`)" with an anchor; the table at the bottom of `README.md` maps every old file to its new place. Older text that says "doc 22" or "docs/30" means those sections. The old files are in git history.
 
+### 6 Oct 2026: photos compressed, site redeployed
+* **32 photos resized and re-encoded in place** (136.7 MB → 6.4 MB; same names and paths, no code changes). Home images 16.9 MB → 1.65 MB, Stay 44.3 MB → 1.5 MB, Gallery 82.2 MB → 3.96 MB. Details and settings: [docs/03, Image and Asset Inventory](03-DESIGN-AND-ASSETS.md#docs-11). `logo-mark.png` is now 128 px (34 KB) and the `og:image` file is 180 KB.
+* Deployed to Vercel with the §2.2 prebuilt method; the live domains `kutchsafariresort.in` and `www.kutchsafariresort.in` serve the new files (both were added to the Vercel project on 5 Oct 2026).
+* Not touched: the 10.2 MB Home hero video (now the heaviest download) and the unused files (~122 MB, still in `public/` and uploaded with every deploy). Originals are in git history.
+
+### 5 Oct 2026: website live on Vercel, enquiry instead of Book Now
+* **Deployed the website only** to Vercel (project `kutch-safari-resort`, `https://kutch-safari-resort.vercel.app`) with the tested prebuilt method in §2.2. Booking engine and admin not deployed.
+* **One switch for online booking:** `BOOKING_ENABLED` in `frontend/src/lib/booking.ts` (`VITE_BOOKING_ENABLED=true` at build time). Off by default: every Book Now / Check Availability is a `ReserveButton` showing **Enquire Now** → `/enquire?room=…`; "Already booked? Check status" links are hidden; `/booking`, `/book`, `/book/*` → `/enquire`; `/admin` → not found. On: everything as before.
+* **New `/enquire` page** and **new enquiry form** (`components/EnquiryForm.tsx`, also on the Home contact section): opens WhatsApp (or email) with the enquiry written out. Replaces the Home mock form, which showed "Message sent" and sent nothing (O3).
+* Tested locally and on the live URL: buttons, room pre-fill, validation (name, phone, dates), the WhatsApp text, `/book/` → `/enquire`, `/admin` not found, direct loads of `/stay` and `/enquire`.
+
+### 5 Oct 2026: live setup planned, site stays local for now
+* Live setup chosen: Hostinger, one plan and one domain: website `kutchsafaribhuj.in`, booking `book.kutchsafaribhuj.in`, admin `admin.kutchsafaribhuj.in` (both subdomains point at the engine folder `public_html/book`). No Vercel.
+* **Not applied yet:** the site runs only on the owner's PC, so the code keeps the local `/book/` links. Everything that changes at upload time (build setting `VITE_BOOKING_URL`, the website `.htaccess`, the engine's subdomain rules, the live `config.local.php`, the database link, DNS) is written up in the new [`docs/10-GO-LIVE-ON-HOSTINGER.md`](10-GO-LIVE-ON-HOSTINGER.md). The upload recipe was tested in a scratch folder.
+* (Same day, tried and reverted: live URLs in the code, a website `.htaccess`, subdomain rules in the engine `.htaccess`, a root `vercel.json` for a Vercel + Hostinger split.)
+
+### 5 Oct 2026: "Why Visit Kutch?" moved to Around the Resort
+* The brochure intro ("Experience Kutch, Where Tradition Meets Wonder", "Why Visit Kutch?" and its four photos) moved from `Experiences.tsx` to `AroundTheResort.tsx`, under "Kutch, from Our Doorstep". Experiences now has the plain title "Experiences". The four photos were then removed at the owner's request (image files kept in `brochure/`).
+* The navbar items are spread evenly between the logo and the buttons (`justify-evenly`).
+
+### 5 Oct 2026: Our Journey page removed
+* Removed `frontend/src/pages/OurJourney.tsx` (placeholder content only), its route and title, the menu item, the footer "About the Resort" link, the Home "Our Story" link and the sitemap entry. `/our-journey` redirects to `/`.
+
 ### 5 Oct 2026: every open bug fixed (B1–B26), errors outside the console fixed (E1–E12), logic and race tests added
 * **All of `BUGS.md` B1–B26 fixed.** The table at the top of `BUGS.md` lists each fix and the test that proves it. The main changes:
   * **Cancellations count whole calendar days** (`days_until()`, `cancellation_percent()`), the same as the guest's table.
@@ -510,14 +533,21 @@ Production domain: `kutchsafaribhuj.in`. Vercel project: `kutch-safari-resort` (
 ```bash
 pnpm build     # vite build → dist/public ; esbuild backend/server/index.ts → dist/index.js
 ```
-Set `VITE_BOOKING_URL` at build time if the engine is **not** served from `/book/` on the same domain, e.g. `VITE_BOOKING_URL=https://book.kutchsafaribhuj.in/`. The value must end with `/`.
+Set `VITE_BOOKING_URL` at build time when the engine is **not** served from `/book/` on the same domain; for the planned live setup that is `https://book.kutchsafaribhuj.in/` (docs/10 §3.1). The value must end with `/`.
 
-#### 2.2 Vercel
-Deployed with the CLI from `dist/public` (Windows: use `cmd.exe /c` to get round PowerShell's script policy):
-```powershell
-cmd.exe /c "vercel --prod --yes"
+#### 2.2 Vercel (the live website since 5 Oct 2026, enquiry only)
+Project **kutch-safari-resort** (owner `vsmsmsv`), linked in the root `.vercel/project.json`; live at `https://kutch-safari-resort.vercel.app`. The site goes up **without** the booking engine (`VITE_BOOKING_ENABLED` unset): Book Now is Enquire Now, `/book` → `/enquire`, `/admin` not found.
+
+Deploy the way it was done on 5 Oct 2026: build here, then upload the finished files ("prebuilt"), because the project's Vercel settings (Vite preset, output `dist`) would not build this repo (output is `dist/public`, and `pnpm build` also needs `backend/`, which `.vercelignore` leaves out). From the project root, in Git Bash:
+```bash
+pnpm exec vite build
+rm -rf .vercel/output && mkdir -p .vercel/output/static
+cp -r dist/public/. .vercel/output/static/ && rm -f .vercel/output/static/vercel.json .vercel/output/static/.gitkeep
+printf '{"version":3,"routes":[{"handle":"filesystem"},{"src":"/(.*)","dest":"/index.html"}]}' > .vercel/output/config.json
+cmd.exe //c "vercel deploy --prebuilt --prod --yes"
+rm -rf .vercel/output
 ```
-`frontend/public/vercel.json` rewrites every path to `/index.html`. `.vercelignore` excludes `dist/`, `node_modules/`, `.vercel/` and `backend/booking-engine/`.
+The route sends every address that isn't a file to `index.html` (so `/stay` opened directly works). Check afterwards: `/`, `/stay`, `/enquire` answer 200; Book Now says Enquire Now. **Don't** run `vercel --prod` from `dist/public`: that folder isn't linked, and the CLI links it to a new project (that is how a stray project "public" was made earlier). `frontend/public/vercel.json` (rewrites to `/index.html`) only matters for that older method.
 
 On Vercel, `/book/` is answered by the SPA, so `BookingRedirect` shows "call/WhatsApp us". **To make booking work while the site stays on Vercel**, pick one:
 * Build with `VITE_BOOKING_URL` pointing at the engine on the PHP host, **or**
@@ -529,7 +559,10 @@ On Vercel, `/book/` is answered by the SPA, so `BookingRedirect` shows "call/Wha
   ```
 
 #### 2.3 Everything on cPanel (simplest)
-Upload `dist/public/*` to `public_html/` and `backend/booking-engine/*` to `public_html/book/`. The default `/book/` link then works with no environment variable. SPA routing needs an `.htaccess` fallback to `index.html` in `public_html`, with `book/` excluded.
+Upload `dist/public/*` to `public_html/` and `backend/booking-engine/*` to `public_html/book/`. The default `/book/` link then works with no environment variable. SPA routing needs an `.htaccess` fallback to `index.html` with `book/` excluded; its full text is in [docs/10 §3.2](10-GO-LIVE-ON-HOSTINGER.md#32-website-htaccess-new-file).
+
+#### 2.4 Hostinger (planned live setup, 5 Oct 2026)
+The owner's chosen live setup (one Hostinger plan: `kutchsafaribhuj.in`, `book.kutchsafaribhuj.in`, `admin.kutchsafaribhuj.in`) and every step and URL change for it are in [`docs/10-GO-LIVE-ON-HOSTINGER.md`](10-GO-LIVE-ON-HOSTINGER.md). Until then the site runs only on the owner's PC with the local `/book/` links.
 
 ---
 

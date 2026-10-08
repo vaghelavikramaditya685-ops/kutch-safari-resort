@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X } from "lucide-react";
-import { bookingUrl, statusUrl } from "@/lib/booking";
+import { BOOKING_ENABLED, statusUrl } from "@/lib/booking";
+import ReserveButton from "./ReserveButton";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -9,7 +10,6 @@ export default function Navbar() {
 
   const NAV_LINKS = [
     { label: "Home", href: "/" },
-    { label: "Our Journey", href: "/our-journey" },
     { label: "Stay", href: "/stay" },
     { label: "Dining", href: "/dining" },
     { label: "Experiences", href: "/experiences" },
@@ -26,7 +26,7 @@ export default function Navbar() {
           <div className="flex gap-6">
             <a href="tel:+919925238599" className="hover:text-[var(--terracotta)] transition-colors">+91 99252 38599</a>
             <a href="mailto:kutchsafaribhuj@yahoo.com" className="hover:text-[var(--terracotta)] transition-colors">kutchsafaribhuj@yahoo.com</a>
-            <a href={statusUrl()} className="font-semibold text-[var(--terracotta)] hover:underline underline-offset-2">Already booked? Check status</a>
+            {BOOKING_ENABLED && <a href={statusUrl()} className="font-semibold text-[var(--terracotta)] hover:underline underline-offset-2">Already booked? Check status</a>}
           </div>
           <div className="flex gap-6 items-center">
             <span>Near Rudramata Dam, Bhuj–Khavda Road</span>
@@ -45,8 +45,9 @@ export default function Navbar() {
             />
           </Link>
           
-          {/* Full menu from 1320px, every item on one line. Narrower screens use the menu button. */}
-          <nav className="hidden min-[1320px]:flex flex-1 justify-center items-center gap-3 min-[1500px]:gap-6 text-[11px] font-semibold text-zinc-900 uppercase tracking-wider px-4 whitespace-nowrap">
+          {/* Full menu from 1320px, every item on one line, spread evenly between logo and buttons.
+              Narrower screens use the menu button. */}
+          <nav className="hidden min-[1320px]:flex flex-1 justify-evenly items-center gap-3 text-[11px] font-semibold text-zinc-900 uppercase tracking-wider px-6 whitespace-nowrap">
             {NAV_LINKS.map((link) => (
               <Link 
                 key={link.href} 
@@ -65,9 +66,7 @@ export default function Navbar() {
             <a href="https://whiteranncamp.travstack.com/" target="_blank" rel="noreferrer" className="hidden md:flex items-center justify-center gap-2 border border-[#e4d5c7] px-4 py-2 uppercase text-[10px] tracking-widest font-semibold text-zinc-700 hover:border-zinc-300 transition-colors rounded-sm bg-white shadow-sm">
               [WRC LOGO]
             </a>
-            <a href={bookingUrl()} className="hidden md:inline-flex bg-[var(--terracotta)] text-white px-6 py-2.5 uppercase text-xs tracking-widest hover:bg-[#b04838] transition-colors shadow-sm font-semibold rounded-sm whitespace-nowrap">
-              Book Now
-            </a>
+            <ReserveButton className="hidden md:inline-flex bg-[var(--terracotta)] text-white px-6 py-2.5 uppercase text-xs tracking-widest hover:bg-[#b04838] transition-colors shadow-sm font-semibold rounded-sm whitespace-nowrap" />
             <button 
               className="min-[1320px]:hidden text-zinc-900 p-2" 
               onClick={() => setOpen(!open)}
@@ -102,12 +101,12 @@ export default function Navbar() {
               White Rann Camp <span>→</span>
             </Link>
             
-            <a href={bookingUrl()} onClick={() => setOpen(false)} className="bg-[var(--terracotta)] text-white px-6 py-3 uppercase text-sm tracking-widest text-center mt-4 rounded-sm">
-              Book Now
-            </a>
-            <a href={statusUrl()} onClick={() => setOpen(false)} className="border border-[var(--terracotta)] text-[var(--terracotta)] bg-white px-6 py-3 uppercase text-sm tracking-widest text-center rounded-sm">
-              Already booked? Check status
-            </a>
+            <ReserveButton onClick={() => setOpen(false)} className="bg-[var(--terracotta)] text-white px-6 py-3 uppercase text-sm tracking-widest text-center mt-4 rounded-sm" />
+            {BOOKING_ENABLED && (
+              <a href={statusUrl()} onClick={() => setOpen(false)} className="border border-[var(--terracotta)] text-[var(--terracotta)] bg-white px-6 py-3 uppercase text-sm tracking-widest text-center rounded-sm">
+                Already booked? Check status
+              </a>
+            )}
           </nav>
         </div>
       )}

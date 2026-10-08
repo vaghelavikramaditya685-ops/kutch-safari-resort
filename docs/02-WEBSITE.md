@@ -27,11 +27,12 @@ _(was `context/frontend_spec.md`)_
 ### Website routes (`frontend/src/App.tsx`) [CODE]
 | Route | Page | Purpose |
 |---|---|---|
-| `/` | Home | hero, stay, sister property, experiences (link to guides), contact (mock form) |
+| `/` | Home | hero, stay, sister property, experiences (link to guides), contact (enquiry form → WhatsApp/email) |
 | `/stay` | Stay | the two cottage types (masonry photos, lightbox) |
-| `/experiences` | Experiences | brochure content: Why Visit Kutch?, guest experiences, on request, assistance |
-| `/around-the-resort` | AroundTheResort | 6 places → destination guides (menu item "Around the Resort") |
-| `/our-journey`, `/dining`, `/gallery`, `/plan-your-visit` (`#faq`), `/packages` | content pages |
+| `/experiences` | Experiences | brochure content: guest experiences, on request, assistance |
+| `/around-the-resort` | AroundTheResort | brochure intro (Why Visit Kutch?) + 6 places → destination guides (menu item "Around the Resort") |
+| `/dining`, `/gallery`, `/plan-your-visit` (`#faq`), `/packages` | content pages |
+| `/our-journey` | — | redirects to `/` (page removed 5 Oct 2026) |
 | `/destination/:slug` | Destination | 6 guides (own old header/footer) |
 | `/rann-utsav-package`, `/white-rann-camp`, `/white-rann-camp/tariff` | RannUtsavPackage | camp + tariffs (tariff route scrolls to the table) |
 | `/booking`, `/book`, `/book/*`, `/admin`, `/admin/*` | BookingRedirect | full-page redirect to the engine |
@@ -66,18 +67,19 @@ wouter `<Switch>`: the first match wins.
 |---|---|---|
 | `/` | `Home.tsx` | Landing page |
 | `/stay` | `Stay.tsx` | Cottages |
-| `/experiences` | `Experiences.tsx` | Content from the 2026–27 resort brochure: Why Visit Kutch?, guest experiences, arrangements on request, assistance (30 Sep 2026) |
+| `/experiences` | `Experiences.tsx` | Content from the 2026–27 resort brochure: guest experiences, arrangements on request, assistance (30 Sep 2026; Why Visit Kutch? moved to Around the Resort 5 Oct 2026) |
 | `/around-the-resort` | `AroundTheResort.tsx` | "Around the Resort" menu item: 6 places (White Rann, Road to Heaven, Banni, Kala Dungar, Mandvi, Bhuj) linking to destination guides |
-| `/our-journey` | `OurJourney.tsx` | Placeholder content |
 | `/dining` | `Dining.tsx` | The Banni |
 | `/gallery` | `GalleryPage.tsx` | 26 photos, no lightbox |
 | `/plan-your-visit` | `PlanYourVisit.tsx` | Directions, distances, FAQ stub (`#faq`) |
-| `/packages` | `Packages.tsx` | Colors of Kutch overview |
+| `/packages` | `Packages.tsx` | the three tour packages, with More Details |
+| `/packages/:slug` | `PackageDetail.tsx` | one package in the tariff layout |
 | `/destination/:slug` | `Destination.tsx` | 6 slugs, see [`07-DESTINATION-SYSTEM.md`](#docs-07) |
 | `/rann-utsav-package` | `RannUtsavPackage.tsx` | White Rann Camp + package tariffs |
 | `/white-rann-camp` | `RannUtsavPackage.tsx` | Alias |
-| `/booking`, `/book`, `/book/*` | `BookingRedirect.tsx` | Full-page redirect to the PHP booking engine |
-| `/admin`, `/admin/*` | `BookingRedirect.tsx` | Short address for staff: redirects to the engine's admin panel (`adminUrl()`). Typing `/book/admin` (no slash) also works: the engine redirects to `/book/admin/` and on to `login.php`, so the address fills itself in |
+| `/enquire` | `Enquire.tsx` | **Send an Enquiry** (5 Oct 2026): where every Enquire Now goes while online booking is off; `?room=…` fills in the room |
+| `/booking`, `/book`, `/book/*` | `BookingRedirect.tsx` / redirect | Booking **on** (`VITE_BOOKING_ENABLED=true`): full-page redirect to the PHP booking engine. Booking **off** (the live Vercel site since 5 Oct 2026): redirect to `/enquire` |
+| `/admin`, `/admin/*` | `BookingRedirect.tsx` / not found | Booking on: short address for staff, redirects to the engine's admin panel (`adminUrl()`); typing `/book/admin` (no slash) also works. Booking off: **not found** (no staff page on the public site) |
 | `/404`, anything else | `NotFound.tsx` | Stock template styling |
 
 #### 1.1 Booking engine URLs
@@ -97,7 +99,7 @@ bookingUrl({ checkIn: "2026-12-20", checkOut: "2026-12-22", adults: 2, rooms: 1 
 | `/book/document.php?doc=terms&property=` | Terms and conditions as a PDF in a new tab |
 | `/book/admin/` | Staff panel (login required): `index.php` bookings, `booking.php?id=` one booking, `edit.php?id=` change it, `calendar.php` Availability, `rates.php` Special prices, `enquiries.php`, `export.php`. See [`24-ADMIN-PANEL-GUIDE.md`](06-ADMIN-AND-SECURITY.md#docs-24) |
 
-`BOOKING_URL` defaults to `/book/`. You can override it at build time with `VITE_BOOKING_URL`. `statusUrl()` → `manage.php` and `adminUrl()` → `admin/` are built from it too.
+`BOOKING_URL` defaults to `/book/` (in dev Vite proxies it to the engine). You can override it at build time with `VITE_BOOKING_URL`; the planned live build uses `https://book.kutchsafaribhuj.in/` ([docs/10 §3.1](10-GO-LIVE-ON-HOSTINGER.md#31-booking-and-admin-links--two-build-settings-no-code-edit)). `statusUrl()` → `manage.php` and `adminUrl()` → `admin/` are built from it too.
 
 #### 1.2 Broken links
 | Link | Where | Result |
@@ -113,16 +115,16 @@ Used by every page except `Destination` and `RannUtsavPackage`, which have their
 
 * **Top bar** (hidden below `md`): phone, email, address, Instagram, and **Already booked? Check status** (`statusUrl()`).
 * **Sticky header:** logo `logo-main.jpg` with `mix-blend-darken`.
-* **`NAV_LINKS`:** Home, Our Journey, Stay, Dining, Experiences, Around the Resort, Packages, Gallery, Plan Your Visit, followed by a terracotta **White Rann Camp →** link (`/white-rann-camp`).
+* **`NAV_LINKS`:** Home, Stay, Dining, Experiences, Around the Resort, Packages, Gallery, Plan Your Visit, followed by a terracotta **White Rann Camp →** link (`/white-rann-camp`).
 * **`[WRC LOGO]` button:** placeholder text. It opens `https://whiteranncamp.travstack.com` in a new tab.
 * **Book Now** (desktop and mobile menu): a plain `<a href={bookingUrl()}>`, which loads the engine.
-* **Menu breakpoint (30 Sep 2026):** the full menu shows from 1,320 px wide, every item on one line (header box up to 1,440 px, slightly tighter letter spacing). Below that, the menu button opens the full-screen menu. With 10 items the menu no longer fits at 1,024–1,280 px without wrapping.
+* **Menu breakpoint (30 Sep 2026):** the full menu shows from 1,320 px wide, every item on one line (header box up to 1,440 px, slightly tighter letter spacing). Below that, the menu button opens the full-screen menu. With 9 items the menu no longer fits at 1,024–1,280 px without wrapping.
 * **Mobile menu:** full-screen overlay toggled by `open` state. It includes Book Now and Already booked? Check status. Book Now never wraps (`whitespace-nowrap`).
 
 ### 3. Footer (`components/Footer.tsx`)
 Four columns:
 * **Brand:** text logo, short description, Instagram.
-* **Explore:** About the Resort (`/our-journey`), Rooms & Tariff (`/stay`), Dining, Experiences, Around the Resort, Gallery.
+* **Explore:** Rooms & Tariff (`/stay`), Dining, Experiences, Around the Resort, Gallery.
 * **Plan:** Colors of Kutch Packages (`/packages`), How to Reach (`/plan-your-visit`), FAQs (`/plan-your-visit#faq`), White Rann Camp (`/white-rann-camp`), Rann Utsav 2026–27 (`/white-rann-camp/tariff`, **broken**), Already booked? Check status (`statusUrl()`).
 * **Reservations:** phone, email, address.
 
@@ -164,14 +166,13 @@ Browser title: "Kutch Safari Resort | Bhunga Cottages by the Lake, Bhuj" (set pe
 "4.6/5 on Google Reviews", "4.5/5 on TripAdvisor", "MakeMyTrip Assured". Hard-coded; confirm against the live listings.
 
 #### 2.3 Welcome (text replaced by the owner on 30 Sep 2026)
-Two staggered photos (Deluxe exterior, Kutchi interior), then:
+Two staggered photos, replaced by the owner's on 5 Oct 2026: the thatched cottages along the lawn (`images/new/kutch-safari-cottages-lawn.jpg`, anchored left so the cottages stay in the square crop) and the resort above the lake from the air (`images/new/kutch-safari-aerial-lake.jpg`, scaled to 1,200 px). Then:
 * Kicker: **Welcome to Kutch Safari Resort**
 * Heading (`h2`): **Where Tradition Meets Comfort on the Road to the White Rann** (from the 2026–27 brochure's tagline "Where Tradition Meets Comfort")
 * Three paragraphs (owner's exact wording):
   1. One of Bhuj's hidden gems: a thoughtfully designed resort on a rise overlooking the Rudramata Dam, authentic Kutchi charm with modern comfort; 15 km (about 20 minutes) from Bhuj on the Khavda road to Dhordo, the White Rann and Dholavira; an ideal base for exploring Kutch.
   2. Twenty cottages face the water, traditional architecture plus comfortable bedding, free Wi-Fi, flat-screen TV, room service, private balcony; The Banni restaurant: Kutchi, Gujarati, Punjabi, Chinese and Continental.
   3. For textile enthusiasts, culture lovers or a peaceful getaway: scenic views, fresh desert air, personalised hospitality; more than three decades of welcoming travellers.
-* Link: **Our Story** → `/our-journey`.
 
 #### 2.4 StatsBand
 20 Lake View Cottages · 35+ Years of Hosting · 15 Km from Bhuj. (The brochure says "34 years": owner to confirm, doc 17.)
@@ -193,8 +194,7 @@ Six cards (White Rann & Rann Utsav, Road to Heaven & Dholavira, Banni Villages, 
 
 #### 2.9 ContactSection (`id="contact"`)
 * Shows WhatsApp and email.
-* Form fields: name, email, phone, message. Each has an id, a name, an `autoComplete` hint and a label for screen readers (`sr-only`; the placeholders are what shows), since 5 Oct 2026.
-* **Still a mock:** `setTimeout(1500)`, then a success toast. Nothing is sent. See [`13-FORMS-AND-INTERACTIONS.md`](#docs-13) for wiring it to the engine's `api/enquiry.php` (which now validates phone, email, dates and length).
+* Since 5 Oct 2026: the enquiry form (`components/EnquiryForm.tsx`): name and phone required; email, arrival/departure, adults, children, room and a message optional. **Send Enquiry on WhatsApp** opens WhatsApp to +91 99252 38599 with everything written out; "Send it by email" opens a mail to kutchsafaribhuj@yahoo.com instead. It never says "sent" by itself: the next screen says "press Send in WhatsApp", with "Open WhatsApp again" and "Email it instead". Nothing is stored on a server (the site is static on Vercel). (Before, it was a mock: `setTimeout(1500)` and a "Message sent" toast, and nothing was sent.)
 
 ---
 
@@ -309,21 +309,16 @@ _Updated 30 Sep 2026. Paths are under `frontend/src/pages/`._
 
 All of these use the shared Navbar and Footer, the beige background, a centred header band, and `window.scrollTo(0, 0)` on mount (except where noted). Most wrap their content in `prose prose-zinc`. Every page has its own browser title (`usePageTitle()` in `App.tsx`). **There is no Weddings page.** It was removed, along with its route and links.
 
-### `OurJourney.tsx` — `/our-journey`
-* Header: "Our Journey" / "The visionary behind it all: Mike Vaghela".
-* "Why We Started": aerial photo + **lorem ipsum placeholder**.
-* "Awards & Recognition": one line of copy + **"Award Photo Placeholder" grey box**.
-* "Timeline": just `1992 ——— 2026` with no events.
-* **Needs:** founder story, awards photo, timeline entries from the owner. (The 2026–27 brochure says the resort has hosted guests for 34 years.)
+### Our Journey — removed 5 Oct 2026
+The page (`OurJourney.tsx`) held only placeholder content, so it was removed with its menu, footer and Home "Our Story" links and its sitemap entry. `/our-journey` now redirects to `/`.
 
 ### `Dining.tsx` — `/dining`
 * "Dining at The Banni". "A Taste of Kutch": multi-cuisine (Kutchi, Gujarati, Punjabi, Chinese, Continental), recommends the Kutchi thali and the gala dinner (a day's notice).
-* Images: `restaurant-kutch-safari-ab-vision-11.jpg` (**16.7 MB**) + **"Food Image Placeholder" box**.
+* Images: `restaurant-kutch-safari-ab-vision-11.jpg` (426 KB since 6 Oct 2026; was 16.7 MB) + **"Food Image Placeholder" box**.
 * The booking engine has food photos (`backend/booking-engine/assets/img/ksr/cuisine-plate.webp`, `buffet-service.webp`, `gala-dinner.webp`, `restaurant-table.webp`) that could fill this. The brochure adds: "one of the few restaurants in Kutch that serve non-vegetarian meals", multi-cuisine "overlooking the dam".
 
 ### `Experiences.tsx` — `/experiences` (rebuilt 30 Sep 2026 from the resort brochure)
-Everything on this page comes from **"KUTCH SAFARI RESORT 2026 2027.pdf"** (the owner's brochure). Header: kicker "Experiences", title **"Experience Kutch, Where Tradition Meets Wonder"**.
-1. **Why Visit Kutch?** Brochure text (lightly cleaned): contrasts of the White Rann and untouched beaches, textiles and colourful communities, the 5,000-year-old UNESCO site at Dholavira, palaces; visitors from the UK, France, Italy, Japan, the USA, Australia and all of India; most come for textile and cultural tours. Tagline: "Experience Kutch, where tradition meets wonder. Come explore Kutch." Four photos: Colourful Communities, White Rann of Kutch, Textiles of Kutch, UNESCO Site Dholavira.
+Everything on this page comes from **"KUTCH SAFARI RESORT 2026 2027.pdf"** (the owner's brochure). Header (5 Oct 2026): kicker "Kutch Safari Resort", title **"Experiences"**, line "Guest experiences, arrangements on request, and help with everything else." The brochure intro ("Experience Kutch, Where Tradition Meets Wonder" and **Why Visit Kutch?**) moved to Around the Resort on 5 Oct 2026.
 2. **Guest Experiences** ("At Kutch Safari Resort"): Morning Yoga for Groups, Lake-View Gala Dinner, Sunrise Breakfast, Candlelight Dinner (photos).
 3. **Arrangements on Request** ("Tell us when you book, or ask at the front desk."): Gala Dinner, Folk Music, Camel Cart Welcome (photos).
 4. **Other Assistance & Experiences:** Jeep Safari, Walking Trails, Travel Assistance, Laundry Services, Doctor on Call, Tourist Guides, Wi-Fi, Pet Friendly (lucide icons).
@@ -332,7 +327,10 @@ Everything on this page comes from **"KUTCH SAFARI RESORT 2026 2027.pdf"** (the 
 Photos were extracted from the PDF into `public/assets/images/brochure/` (11 JPGs, 4–23 KB, 200–590 px wide: fine at card size, would blur larger; the owner may send originals). The places around the resort are **not** on this page any more (see below).
 
 ### `AroundTheResort.tsx` — `/around-the-resort` (new, 30 Sep 2026)
-Menu item **"Around the Resort"**. Kicker "Around the Resort", title "Kutch, from Our Doorstep". Six cards → destination guides: White Rann & Rann Utsav, Road to Heaven & Dholavira, Banni Villages, Kala Dungar & Birding, Mandvi Beach, Bhuj & Bhujodi. See [`07-DESTINATION-SYSTEM.md`](#docs-07). Home's **Explore Kutch** and the guides' **Back to Beyond Bhuj** link here.
+Menu item **"Around the Resort"**. Kicker "Around the Resort", title "Kutch, from Our Doorstep". Under the header (moved from Experiences, 5 Oct 2026): the brochure intro "Experience Kutch, Where Tradition Meets Wonder" / "What we arrange for our guests, at the resort and beyond.", then **Why Visit Kutch?** — brochure text (lightly cleaned): contrasts of the White Rann and untouched beaches, textiles and colourful communities, the 5,000-year-old UNESCO site at Dholavira, palaces; visitors from the UK, France, Italy, Japan, the USA, Australia and all of India; most come for textile and cultural tours; tagline "Experience Kutch, where tradition meets wonder. Come explore Kutch." (Its four photos were removed on 5 Oct 2026.) Then six cards → destination guides: White Rann & Rann Utsav, Road to Heaven & Dholavira, Banni Villages, Kala Dungar & Birding, Mandvi Beach, Bhuj & Bhujodi. See [`07-DESTINATION-SYSTEM.md`](#docs-07). Home's **Explore Kutch** and the guides' **Back to Beyond Bhuj** link here.
+
+### `Enquire.tsx` — `/enquire` (new, 5 Oct 2026)
+Kicker "Plan Your Stay", title **"Send an Enquiry"**, line "Tell us your dates and who's coming. Our reservations desk will confirm availability and rates." Left: phone/WhatsApp, email, address. Right: the enquiry form (`components/EnquiryForm.tsx`): name and phone required; email, arrival/departure, adults, children, room and a message optional. **Send Enquiry on WhatsApp** opens WhatsApp to +91 99252 38599 with everything written out; "Send it by email" opens a mail to kutchsafaribhuj@yahoo.com instead. It never says "sent" by itself: the next screen says "press Send in WhatsApp", with "Open WhatsApp again" and "Email it instead". Nothing is stored on a server (the site is static on Vercel). `?room=Kutchi AC Cottage` (from a room's Enquire Now) pre-selects the room. In the sitemap.
 
 ### `GalleryPage.tsx` — `/gallery`
 * 26 hard-coded `<img>` tags, `loading="lazy"`. Alt text (29 Sep 2026): 7 described from their file names ("Inside a Kutchi AC cottage", "Bhunga cottages at sunrise", "The Banni restaurant", …); the 19 camera-numbered ones say "Kutch Safari Resort, photo N of 26" until someone describes them.
@@ -346,8 +344,20 @@ Menu item **"Around the Resort"**. Kicker "Around the Resort", title "Kutch, fro
 * `#faq`: **"Frequently asked questions will be populated here."** `/plan-your-visit#faq` jumps straight to it (instant scroll, clears the sticky header).
 * No map embed, and no air or rail information on the page yet.
 
-### `Packages.tsx` — `/packages`
-Two package cards with no prices or CTA. See [`08-PACKAGES-AND-PRICING.md`](04-BUSINESS-CONTENT-AND-PRICES.md#docs-08).
+### `Packages.tsx` — `/packages` and `PackageDetail.tsx` — `/packages/:slug` (5 Oct 2026)
+The owner's three brochure packages, from `frontend/src/lib/packages.ts` (one place for all their text and prices):
+* `enchanting-rann-of-kutch`: Enchanting Rann of Kutch – Rann Utsav, 2N/3D, Bhuj to Bhuj, from ₹11,000 per person.
+* `colors-of-kutch`: Colors of Kutch – Rann Utsav, 3N/4D, Bhuj to Bhuj, from ₹15,750.
+* `showcasing-kutch`: Showcasing Kutch, Wild Life & Culture Tour, 5N/6D, Ahmedabad to Ahmedabad, from ₹22,000.
+
+`/packages` shows a card for each: the brochure's four photos (cut from the PDFs into `public/assets/images/packages/`), duration, route, stays, the lowest price, and **More Details**. The detail page uses the White Rann Camp tariff layout:
+* its own header with **All packages**;
+* the title, tour line and route, then the four photos;
+* left card: Itinerary (day by day), Package Includes (Hotels, Meals, Transport, Sightseeing), Not Included (entry tickets, tips, personal expenses);
+* right card: Tour Cost Per Person (INR) for 2 / 4 / 6 / 10 pax and an extra person, plus the stays;
+* **Book this Package**: one **Send Inquiry on WhatsApp** button. WhatsApp opens on +91 99252 38599 with the package name and nights filled in, and blank lines for travel dates, number of people and name. Packages are booked by inquiry, not through the booking engine.
+
+An unknown slug shows the 404 page. Titles, canonical links and the sitemap (19 URLs) include the three pages.
 
 ### `RannUtsavPackage.tsx` — `/rann-utsav-package`, `/white-rann-camp`, `/white-rann-camp/tariff`
 Own header and footer (`logo-mark.png`), WRC tariffs (`id="tariff"`, the `/tariff` route jumps there), Colors of Kutch tariffs and itinerary, WhatsApp CTA. Header "Back" → `/`. See [`08-PACKAGES-AND-PRICING.md`](04-BUSINESS-CONTENT-AND-PRICES.md#docs-08).
@@ -371,8 +381,8 @@ _Updated 30 Sep 2026. Paths are under `frontend/src/`._
 #### 1.1 `components/Navbar.tsx`
 * **Top info bar** (`hidden md:block`): phone, email, address, Instagram, and **Already booked? Check status** (`statusUrl()`).
 * **Sticky header** (`sticky top-0 z-50`, `bg-[#f8f5e2]`), box up to 1,440 px wide: `logo-main.jpg` with `mix-blend-darken`.
-* **Desktop menu** from `NAV_LINKS`: Home, Our Journey, Stay, Dining, Experiences, **Around the Resort**, Packages, Gallery, Plan Your Visit, then a terracotta **White Rann Camp →** link. The active link turns terracotta.
-  * Shown from **1,320 px** wide (`min-[1320px]:flex`), every item on one line (`whitespace-nowrap`, `tracking-wider`, gap 12 px, 24 px from 1,500 px). Below 1,320 px the ☰ button is used. With 10 items the menu cannot fit on one line at 1,024–1,280 px (measured 30 Sep 2026).
+* **Desktop menu** from `NAV_LINKS`: Home, Stay, Dining, Experiences, **Around the Resort**, Packages, Gallery, Plan Your Visit, then a terracotta **White Rann Camp →** link. The active link turns terracotta.
+  * Shown from **1,320 px** wide (`min-[1320px]:flex`), every item on one line (`whitespace-nowrap`, `tracking-wider`), spread evenly between the logo and the buttons (`justify-evenly`, at least 12 px apart; 5 Oct 2026). Below 1,320 px the ☰ button is used. With 9 items the menu cannot fit on one line at 1,024–1,280 px (measured 30 Sep 2026).
 * `[WRC LOGO]` placeholder button → `whiteranncamp.travstack.com` (new tab, `rel="noreferrer"`).
 * **Book Now** → `bookingUrl()` (plain `<a>`, loads the PHP engine).
 * **Menu button** (below 1,320 px): `Menu`/`X`, `aria-label` "Open menu"/"Close menu", `aria-expanded`; opens a full-screen overlay at `top-[116px]` with every menu item, Book Now and Already booked? Check status. Tapping an item closes it.
@@ -380,11 +390,11 @@ _Updated 30 Sep 2026. Paths are under `frontend/src/`._
 #### 1.2 `components/Footer.tsx`
 Four columns:
 * **Brand:** "KUTCH SAFARI" (a `<p>` styled as display text; not a heading, so each page has one `h1`), description, Instagram icon link (`aria-label` "Kutch Safari Resort on Instagram").
-* **Explore:** About the Resort (`/our-journey`), Rooms & Tariff (`/stay`), Dining, **Experiences**, **Around the Resort**, Gallery.
+* **Explore:** Rooms & Tariff (`/stay`), Dining, **Experiences**, **Around the Resort**, Gallery.
 * **Plan:** Colors of Kutch Packages, How to Reach, FAQs (`/plan-your-visit#faq`, jumps to the FAQ), White Rann Camp, Rann Utsav 2026–27 (`/white-rann-camp/tariff`, opens at the tariff).
 * **Reservations:** phone, Already booked? Check status, email, address.
 
-Used by: Home, Stay, Experiences, AroundTheResort, OurJourney, Dining, Gallery, PlanYourVisit, Packages, BookingRedirect. **Not** used by Destination or RannUtsavPackage (own header and footer).
+Used by: Home, Stay, Experiences, AroundTheResort, Dining, Gallery, PlanYourVisit, Packages, BookingRedirect. **Not** used by Destination or RannUtsavPackage (own header and footer).
 
 ---
 
@@ -421,7 +431,7 @@ Sets `document.title` per route (`TITLES` map, `DESTINATIONS` map for guides, "P
 Only four remain:
 * `button.tsx`, `card.tsx`: used only by `NotFound.tsx`.
 * `tooltip.tsx`: `TooltipProvider` wraps the app; no tooltips are rendered.
-* `sonner.tsx`: `<Toaster />` in `App.tsx`; `toast.success` is used by the Home mock form.
+* `sonner.tsx`: `<Toaster />` in `App.tsx`. (The Home form no longer uses a toast since 5 Oct 2026.)
 
 Pages mostly use raw Tailwind classes, not these components.
 
@@ -447,7 +457,7 @@ The old 4.5 MB `logo-mark.png` favicon (wrong MIME type) and the unused 12.8 MB 
 #### Open Graph / Twitter
 * `og:type` website, `og:url` `https://kutchsafaribhuj.in/`
 * `og:title` / `og:description`: same as the title and description
-* `og:image`: `https://kutchsafaribhuj.in/assets/LAKEVIEW%20KUTCH%20SAFARI1.jpeg` (**6.6 MB, spaces in the filename**; many scrapers reject images over 5–8 MB). Still to fix.
+* `og:image`: `https://kutchsafaribhuj.in/assets/LAKEVIEW%20KUTCH%20SAFARI1.jpeg` (180 KB since 6 Oct 2026, was 6.6 MB; the filename still has spaces, so renaming it to use hyphens is still to do). The domain in this URL is still `kutchsafaribhuj.in`.
 * `twitter:card` summary_large_image, plus title and description. There is no `twitter:image`.
 
 #### Fonts
@@ -471,7 +481,7 @@ Sitemap: https://kutchsafaribhuj.in/sitemap.xml
 The booking engine also sends `<meta name="robots" content="noindex">`. The admin panel, check-status page and PDFs are for guests and staff only.
 
 ### `frontend/public/sitemap.xml`
-16 URLs: `/`, `/stay`, `/our-journey`, `/dining`, `/experiences`, `/around-the-resort`, `/gallery`, `/plan-your-visit`, `/packages`, `/white-rann-camp`, and the six `/destination/*` guides.
+18 URLs: `/`, `/stay`, `/dining`, `/experiences`, `/around-the-resort`, `/gallery`, `/plan-your-visit`, `/packages`, the three `/packages/*` tours, `/white-rann-camp`, and the six `/destination/*` guides.
 
 ### Canonical address and unknown addresses (5 Oct 2026)
 `usePageTitle()` in `App.tsx` also sets `<link rel="canonical">` on every real page: `https://kutchsafaribhuj.in` + the path, with `/rann-utsav-package` and `/white-rann-camp/tariff` pointing at `/white-rann-camp`. Any other address answers with the site (the host serves `index.html` for every path), so it gets `<meta name="robots" content="noindex">`. Search engines would otherwise list it or report a "soft 404". The Express server answers a missing *file* (e.g. `/assets/x.jpg`) with a real 404.
@@ -523,18 +533,10 @@ Direct booking is handled by `backend/booking-engine/`, not the React site.
 **Protections:** per-IP rate limits (stored in `audit_log`: availability 120/min, quote 90/min, book 12 per 5 min, lookup 15 per 5 min, payments 30 per 5 min, enquiry 8 per 10 min), CORS allow-list, row locking during booking (MySQL `FOR UPDATE`), Razorpay HMAC checks, an audit log of every money or inventory action, and `fail_closed` for Stayflexi.
 
 ### 2. Site links into the engine
-Every Book Now / Check Availability button uses `bookingUrl()` with a plain `<a>`: Navbar (desktop + mobile), Home hero, Home room cards, and Stay's `RoomTemplate`.
+Every Book Now / Check Availability button is a `ReserveButton` (`components/ReserveButton.tsx`): Navbar (desktop + mobile), Home hero, Home room cards, and Stay's `RoomTemplate`. With online booking on (`VITE_BOOKING_ENABLED=true` at build time) it is a plain `<a href={bookingUrl()}>` "Book Now". **Off (the default, and the live Vercel site since 5 Oct 2026):** "Enquire Now" → `/enquire?room=…`, and every "Already booked? Check status" link is hidden.
 
-### 3. Home contact form (still a mock)
-`Home.tsx` → `ContactSection`:
-```ts
-const handleSubmit = (e: any) => {
-  e.preventDefault();
-  setSubmitting(true);
-  setTimeout(() => { setSubmitting(false); setSubmitted(true); toast.success("Message sent successfully!"); … }, 1500);
-};
-```
-Nothing is sent. The inputs are write-only (no `value`), so the "reset" doesn't clear them.
+### 3. Enquiry form (Home contact section and `/enquire`)
+Since 5 Oct 2026 both use the enquiry form (`components/EnquiryForm.tsx`): name and phone required; email, arrival/departure, adults, children, room and a message optional. **Send Enquiry on WhatsApp** opens WhatsApp to +91 99252 38599 with everything written out; "Send it by email" opens a mail to kutchsafaribhuj@yahoo.com instead. It never says "sent" by itself: the next screen says "press Send in WhatsApp", with "Open WhatsApp again" and "Email it instead". Nothing is stored on a server (the site is static on Vercel). The old Home form was a mock (`setTimeout`, then "Message sent"), so every enquiry was lost.
 
 Two backends are available. Pick one:
 * **Recommended:** POST to the engine's `api/enquiry.php` (at `BOOKING_URL + "api/enquiry.php"`). Enquiries then appear in the same admin panel as bookings. It takes JSON `{ name*, phone*, email, property, check_in, check_out, guests, interest, message, website }` (* required; `website` is a honeypot, leave it empty). It emails the office and returns `{ ok, id, message }`. Rate limit: 8 per 10 min per IP. The form already collects name, email, phone (required) and message, which map straight across.
@@ -574,7 +576,7 @@ Friction:
 Navbar "White Rann Camp →" → `/white-rann-camp` → tariffs → **WhatsApp only**. The camp is **switched off** in the booking engine for now, on purpose.
 
 ### Journey 3: Enquire
-* Home contact form → **fake success** (nothing is sent). This is the biggest leak.
+* Enquire Now (menu, Home, Stay) or the Home contact section → enquiry form → WhatsApp (or email) with the details written out (since 5 Oct 2026; before, the Home form faked "sent").
 * Phone or email links (top bar, footer) and WhatsApp buttons work.
 * Inside the engine, "Call" and "Enquire on WhatsApp" stay visible at every step.
 
@@ -582,7 +584,7 @@ Navbar "White Rann Camp →" → `/white-rann-camp` → tariffs → **WhatsApp o
 Home "Explore Kutch" (or the menu's **Around the Resort**, or a Home Experiences card) → `/around-the-resort` → card → `/destination/:slug` → WhatsApp "plan a visit". Destination pages still have their own header without the site menu; their **Back to Beyond Bhuj** link returns to `/around-the-resort`.
 
 ### Journey 4a: What can I do at the resort?
-Menu **Experiences** → `/experiences` (from the owner's brochure: Why Visit Kutch?, guest experiences, arrangements on request, other assistance) → **Arrange an Experience** → WhatsApp with a pre-filled message. (Since 30 Sep 2026 Experiences = things the resort offers; Around the Resort = places to visit.)
+Menu **Experiences** → `/experiences` (from the owner's brochure: guest experiences, arrangements on request, other assistance) → **Arrange an Experience** → WhatsApp with a pre-filled message. (Since 30 Sep 2026 Experiences = things the resort offers; Around the Resort = places to visit.)
 
 ### Journey 5: Photos
 * `/stay`: click a photo to open the lightbox (no next/previous).

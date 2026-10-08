@@ -42,8 +42,8 @@ _(was `context/current_status.md`)_
 * White Rann Camp: switched off [CODE].
 
 ### Broken / missing
-* Home contact form is a mock [CODE `Home.tsx`].
-* ~269 MB unoptimised images [DOC `docs/11`].
+* Enquiries are not stored: the enquiry form hands them to WhatsApp/email (5 Oct 2026; before, the Home form was a mock) [CODE `components/EnquiryForm.tsx`].
+* Home hero video 10.2 MB; ~122 MB of unused files in `public/` (the photos were compressed on 6 Oct 2026) [DOC `docs/11`].
 * No screen to close cottages by hand [DOC `docs/23`].
 * No owner alert for new bookings [DOC].
 * Brochure vs website facts disagree (distances, 34 vs 35+ years, room names); not changed, owner to confirm [DOC `docs/17`].
@@ -56,7 +56,7 @@ No CI; no automated browser tests; old destination/camp pages use their own head
 ### Estimated completeness [INFERRED from the above]
 | Area | % |
 |---|---|
-| Website pages | 85% (contact form, images, content placeholders) |
+| Website pages | 90% (images, content placeholders) |
 | Booking engine (guest) | 90% (live payments, UPI id, email) |
 | Admin panel | 90% (close rooms, notifications) |
 | Integrations | 30% (Stayflexi, SMTP, live Razorpay) |
@@ -85,9 +85,9 @@ Status: `DONE` works and is tested; `PARTIAL` works with gaps; `NOT STARTED`; `B
 | Experiences page from the owner's brochure (why visit, guest experiences, on request, assistance, WhatsApp) | High | DONE (30 Sep) | [CODE `pages/Experiences.tsx`, `public/assets/images/brochure/`] |
 | Around the Resort page (6 places → guides), menu tab | High | DONE (30 Sep) | [CODE `pages/AroundTheResort.tsx`, `Navbar.tsx`] |
 | Home welcome text (owner's wording) | Medium | DONE (30 Sep) | [CODE `pages/Home.tsx`] |
-| Home contact form | High | BROKEN (mock: shows "sent", sends nothing) | [CODE `pages/Home.tsx ContactSection`] |
+| Enquiry form (Home + `/enquire`; every Book Now while booking is off) | High | DONE (5 Oct): hands off to WhatsApp/email, not stored | [CODE `components/EnquiryForm.tsx`, `pages/Enquire.tsx`] |
 | Gallery lightbox | Low | NOT STARTED | [CODE `pages/GalleryPage.tsx`] |
-| Optimised images (~269 MB originals) | Medium | NOT STARTED | [DOC `docs/11`] |
+| Optimised images (was ~269 MB of originals) | Medium | PHOTOS DONE 6 Oct 2026; hero video and unused files open | [DOC `docs/11`] |
 
 ### Booking engine — guest (`backend/booking-engine/`)
 | Feature | Priority | Status | Where |
@@ -140,8 +140,8 @@ _Re-checked against the code on 30 Sep 2026. Resolved items are at the bottom. B
 
 **Also before launch:** the local admin login is username `manvir` with the test password `1234`. Set a long password on the live server with `php bin/setup.php --admin manvir "Manvir" "<long password>"`. The admin panel controls bookings, refunds and prices.
 
-#### 1. Home contact form is a mock
-`Home.tsx` `ContactSection` uses `setTimeout` and a success toast. Nothing is sent, so leads are lost. **Fix:** POST to the engine's `api/enquiry.php` (see [`13-FORMS-AND-INTERACTIONS.md`](02-WEBSITE.md#docs-13)).
+#### 1. Enquiries are not stored
+Fixed on 5 Oct 2026 as far as a static site allows: the form (Home and `/enquire`) opens WhatsApp or email with the enquiry written out; nothing is faked as "sent". They still aren't kept anywhere by the site: an enquiry reaches the desk only if the guest presses Send. **Later:** once the engine is deployed, POST to its `api/enquiry.php` (stored, visible in admin).
 
 #### 2. Booking engine not deployed
 The PHP engine needs a PHP + MySQL host. Until then, every Book Now button on Vercel lands on the "call/WhatsApp us" fallback. **Fix:** see [`15-DEPLOYMENT-AND-INFRASTRUCTURE.md`](09-HISTORY-TESTING-AND-GO-LIVE.md#docs-15).
@@ -151,8 +151,8 @@ The PHP engine needs a PHP + MySQL host. Until then, every Book Now button on Ve
 * GST slabs (5% / 18%) and the ₹7,875–₹8,850 edge case (Deluxe triple) need the accountant's confirmation. See [`08-PACKAGES-AND-PRICING.md`](04-BUSINESS-CONTENT-AND-PRICES.md#docs-08) §5.
 * The cancellation ladder (free 30+ days, 75% at 21–29, 100% under 21) and pay-at-property rules need confirming.
 
-#### 4. Asset weight (~269 MB)
-10–17 MB photos, 109 MB of unused files. See [`11-IMAGE-ASSET-INVENTORY.md`](03-DESIGN-AND-ASSETS.md#docs-11). (The 4.5 MB favicon and the 12.8 MB unused video preload were fixed on 29 Sep 2026.)
+#### 4. Asset weight (~140 MB, was ~269 MB)
+Photos were compressed on 6 Oct 2026 (136.7 MB → 6.4 MB; Home images now 1.65 MB). Still open: the 10.2 MB Home hero video (no poster image) and about 122 MB of unused files in `public/`. See [`11-IMAGE-ASSET-INVENTORY.md`](03-DESIGN-AND-ASSETS.md#docs-11). (The 4.5 MB favicon and the 12.8 MB unused video preload were fixed on 29 Sep 2026.)
 
 #### 50% plan: when is the balance due?
 Guests are told "Balance due 30 days before arrival" (`payment_modes.advance.note`), and the admin, check-status page and receipt say "Due before arrival". Nothing reminds the guest or collects it automatically: the desk collects it. If it should be at check-in instead, change the note and the labels together (doc 22 §3).
@@ -168,7 +168,7 @@ Set `properties.active` back to 1 for `white-rann-camp` when the camp should be 
 Fixed 29 Sep 2026 (see Resolved).
 
 #### 7. Placeholder content
-Our Journey (lorem ipsum, award photo box, empty timeline), Dining (food photo box), Plan Your Visit FAQ stub, Navbar `[WRC LOGO]`.
+Dining (food photo box), Plan Your Visit FAQ stub, Navbar `[WRC LOGO]`.
 
 #### 8. Destination and RannUtsavPackage use old headers and footers
 They have their own header (4.5 MB `logo-mark.png`), their own footer and no site navigation (so no "Around the Resort" menu or "Check status" link). The nested `<Link><a>` anchors were fixed on 29 Sep 2026.
@@ -287,7 +287,7 @@ Effort: S (hours), M (a day or two), L (several days). All items [PLANNED].
 ### Next
 | Item | Effort |
 |---|---|
-| Wire the Home contact form to `api/enquiry.php` | S |
+| Store enquiries via `api/enquiry.php` once the engine is deployed | S |
 | Owner email alert on new booking | S |
 | UPI id for QR payments | S |
 | Screen to close cottages for maintenance (rooms on sale) | M |

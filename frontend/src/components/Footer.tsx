@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Instagram } from "lucide-react";
-import { statusUrl } from "@/lib/booking";
+import { BOOKING_ENABLED, statusUrl } from "@/lib/booking";
 
 // The column titles are h2 so headings run in order on every page (h4 skipped a
 // level after a page's h2s); the site's base style gives h2 the display font, so
@@ -35,7 +35,6 @@ export default function Footer() {
           <div>
             <h2 className="text-zinc-900 font-semibold uppercase tracking-widest text-sm mb-6" style={FOOTER_HEADING}>Explore</h2>
             <ul className="space-y-3 text-sm">
-              <li><Link href="/our-journey" className="hover:text-zinc-900 transition-colors">About the Resort</Link></li>
               <li><Link href="/stay" className="hover:text-zinc-900 transition-colors">Rooms & Tariff</Link></li>
               <li><Link href="/dining" className="hover:text-zinc-900 transition-colors">Dining</Link></li>
               <li><Link href="/experiences" className="hover:text-zinc-900 transition-colors">Experiences</Link></li>
@@ -59,7 +58,7 @@ export default function Footer() {
             <h2 className="text-zinc-900 font-semibold uppercase tracking-widest text-sm mb-6" style={FOOTER_HEADING}>Reservations</h2>
             <ul className="space-y-3 text-sm mb-6">
               <li><a href="tel:+919925238599" className="hover:text-zinc-900 transition-colors">+91 99252 38599</a></li>
-              <li><a href={statusUrl()} className="hover:text-zinc-900 transition-colors">Already booked? Check status</a></li>
+              {BOOKING_ENABLED && <li><a href={statusUrl()} className="hover:text-zinc-900 transition-colors">Already booked? Check status</a></li>}
               <li><a href="mailto:kutchsafaribhuj@yahoo.com" className="hover:text-zinc-900 transition-colors break-all">kutchsafaribhuj@yahoo.com</a></li>
               <li className="leading-relaxed">Near Rudramata Dam,<br/>Bhuj–Khavda Road, Bhuj,<br/>Kutch, Gujarat 370001</li>
             </ul>

@@ -61,8 +61,8 @@ They were followed by live checks in the browser on a copy (booking flow, check-
 ## Open: decisions for the owner (not code bugs)
 - **O1. GST on Deluxe triples.** A ₹8,000 Deluxe triple (₹6,500 + ₹1,500 extra bed, GST included) cannot be put in one slab. At 5% the room value is ₹7,619, over ₹7,500. At 18% (what the engine charges) it is ₹6,780, under ₹7,500. GST-inclusive prices between ₹7,876 and ₹8,850 all have this problem. Ask the accountant which applies. `bin/test-logic.php` prints this as INFO.
 - **O2. Text contrast** below the WCAG AA guideline (4.5:1), listed in "E-sweep" below. Fixing it means darker colours, so it needs the owner's approval.
-- **O3. Home contact form is still a mock.** It shows "Message sent!" and sends nothing. Wire it to the engine's `api/enquiry.php`? Its fields now have proper labels and names (E1).
-- **O4. Placeholder content** shows on the site: "Award Photo Placeholder" (Our Journey), "Food Image Placeholder" (Dining).
+- ~~**O3. Home contact form is still a mock.**~~ **Fixed 5 Oct 2026:** the form (Home and the new `/enquire` page) opens WhatsApp, or email, with the enquiry written out, and no longer fakes "sent". Enquiries are still not stored by the site; storing them needs the engine's `api/enquiry.php`.
+- **O4. Placeholder content** shows on the site: "Food Image Placeholder" (Dining). (The Our Journey page and its award placeholder were removed on 5 Oct 2026.)
 - **O5. Every page has the same meta description.** Per-page descriptions need text from the owner.
 - **O6. 50% plan balance:** due 30 days before arrival (current wording) or at check-in? (Unchanged question, docs/08.)
 - **Not tested, needs the live setup:** MySQL under load (the code uses row locks there; `bin/test-concurrency.php` is SQLite-only), real Razorpay, real email delivery.
@@ -405,7 +405,7 @@ In real life, the cottage would be held again (perhaps after being resold), Stay
 * **B24 (low). Both contact endpoints accept empty posts and report success.**
   * `backend/server/index.ts` `POST /api/contact` stores *anything*, even a form post with no JSON, as an "enquiry" in `data/enquiries.json` inside the project folder, and replies "Enquiry saved successfully".
   * `api/contact.ts` (Vercel) only logs, and also says success with no body.
-  * The site doesn't use either today (the Home form is still the mock), but don't wire them up as they are. The engine's `api/enquiry.php` already validates and stores enquiries properly.
+  * The site doesn't use either (the enquiry form hands off to WhatsApp/email since 5 Oct 2026), but don't wire them up as they are. The engine's `api/enquiry.php` already validates and stores enquiries properly.
   * Both also write the whole enquiry (name, email, phone, message) to the server console with `console.log`, so personal details end up in server and Vercel logs.
 * **B25 (tidy-up). The 35 legacy Python scripts can't run.** Every one opens files under `client/…`, the folder renamed to `frontend/` on 29 Sep, so each would fail at its first file. 29 of them rewrite project files. They compile and have no undefined names or missing imports. **Fix:** delete `scripts/legacy/` (already marked "delete once confirmed").
 * **B26 (low). `setup.php --reset` on a database with bookings still half-applies.** `seed.sql` deletes properties, which bookings point at, so 3 statements fail; this is now reported as FAILED (R1). Only ever use `--reset` on a test copy.
@@ -425,9 +425,9 @@ In real life, the cottage would be held again (perhaps after being resold), Stay
   * a long admin password is needed;
   * the live Razorpay secret must be regenerated;
   * the six demo bookings must be removed.
-* Home contact form is a mock (sends nothing) — O3 above.
+* ~~Home contact form is a mock~~ — fixed 5 Oct 2026 (O3).
 * Stayflexi not connected; SMTP not set; no owner email on new bookings.
-* ~269 MB of unoptimised images; placeholder content (Our Journey, Dining, FAQ, `[WRC LOGO]`).
+* Photos were compressed on 6 Oct 2026 (the 10.2 MB hero video and ~122 MB of unused files remain); placeholder content (Dining, FAQ, `[WRC LOGO]`).
 * Brochure vs website facts await the owner (distances, years, room names).
 
 ## How to re-run these tests

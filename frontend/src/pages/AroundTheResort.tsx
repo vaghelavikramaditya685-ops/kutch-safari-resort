@@ -31,6 +31,33 @@ export default function AroundTheResort() {
         </div>
       </div>
 
+      {/* Brochure copy (2026–27). */}
+      <section className="pt-20 pb-4">
+        <div className="container mx-auto px-6 max-w-4xl">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-zinc-900 mb-4">Experience Kutch, Where Tradition Meets Wonder</h2>
+            <p className="text-lg text-zinc-600">What we arrange for our guests, at the resort and beyond.</p>
+          </div>
+          <h3 className="text-2xl md:text-3xl font-display font-bold text-zinc-900 mb-6 text-center">Why Visit Kutch?</h3>
+          <div className="space-y-4 text-zinc-900/80 text-lg leading-relaxed">
+            <p>
+              Kutch is a land of stunning contrasts and timeless charm. It is the only place in India where you can experience
+              both the surreal White Rann desert and untouched beaches, a variety of textile art and colourful communities
+              showcasing their culture, a connection to a 5,000-year-old past at the UNESCO site of Dholavira, and beautiful
+              palaces, all in one unforgettable journey.
+            </p>
+            <p>
+              Kutch welcomes travellers from across the world, from the UK, France, Italy, Japan, the USA, Australia and many
+              other countries, and from every part of India. Most come for special-interest tours, such as textile tours and
+              cultural tours.
+            </p>
+            <p className="font-display text-2xl text-[var(--terracotta)] text-center pt-2">
+              Experience Kutch, where tradition meets wonder. Come explore Kutch.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section className="py-24">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

@@ -180,29 +180,29 @@ _Measured 25 Sep 2026; updated 30 Sep 2026 (brochure images, favicons, preload r
 ### Summary
 | Location | Size | Notes |
 |---|---|---|
-| `frontend/public/assets/` | **~269 MB** | Unoptimised originals, served as-is at `/assets/...` |
+| `frontend/public/assets/` | **~140 MB** (was ~269 MB) | Photos compressed 6 Oct 2026 (same names and paths, so no code changes), served as-is at `/assets/...`. About 122 MB of the rest is **unused** files and videos that no page loads (list below) |
 | `backend/booking-engine/assets/img/` | 3.1 MB | Already WebP, used only by the booking engine |
 
 Images are referenced by absolute path strings, not imports, so Vite never removes unused files. Before deleting anything, grep for the path in `frontend/src` and `frontend/index.html`.
 
-### Largest files (`frontend/public`)
-| Size | File | Used by |
+### Photos compressed (6 Oct 2026)
+The photos came straight from the cameras (up to 6016×4016 px, 17 MB each) but show at 40–1440 px. 32 used files were resized and re-encoded **in place** (same file names and paths, JPEG stays JPEG, PNG stays PNG): longest side 1920 px (1280 px for `new/gallery/*`, which the Gallery grid shows 256 px tall), JPEG quality 80 (lowered to as low as 62 only where a photo stayed above 450 KB; two went to 76), camera metadata (EXIF, including any GPS) stripped, rotation baked in. Files under 100 KB, or that would shrink by under 15%, were left alone. Checked at 1:1 against the originals with no visible difference; `/`, `/stay` and `/gallery` load every image. **136.7 MB → 6.4 MB** for those 32 files.
+
+| Before → now | File | Used by |
 |---|---|---|
-| 71.1 MB | `images/new/guest-feedback-video-guest-feedback-mr-parekh.mov` | **Unused** |
-| 16.7 MB | `images/new/restaurant-kutch-safari-ab-vision-11.jpg` | Dining, Gallery |
-| 14.0 MB | `images/new/kutchi-ac-room-_-deluxe-ac-cottage-kutch-safari-ab-vision-17.jpg` | Stay |
-| 12.8 MB | `images/new/KSR_VIDEO.mp4` | **Unused** (its preload was removed from `index.html` on 29 Sep 2026) |
-| 11.5 MB | `images/new/kutch-ac-cottage-_dsc9435.jpg` | Home, Stay |
-| 11.2 MB | `images/new/gallery/_DSC9412.JPG` | Gallery |
-| 10.6 MB | `images/new/gallery/_DSC9408.JPG` | Gallery |
-| 10.2 MB | `images/new/kutch-safari-resort-website-hero.mp4` | Home hero |
-| 9.4 MB | `…deluxe-ac-cottage-interior.jpg` | Stay |
-| 8.8 MB | `…deluxe-ac-cottage-interior-02.jpg` | Home, Stay |
-| 6.6 MB | `LAKEVIEW KUTCH SAFARI1.jpeg` | `og:image` (the filename has spaces) |
-| 6.5 MB | `images/new/kutch-destination-road_2.jpg` | Home, Around the Resort, Packages, Destination |
-| 4.5 MB | `images/logo-mark.png` | Destination and RannUtsavPackage headers (no longer the favicon) |
-| 5–6 MB each | `images/new/gallery/2018…`, `IMG_20190310…` | Gallery |
-| 37 KB | `images/new/logo-main.jpg` | Navbar |
+| 17.1 MB → 426 KB | `images/new/restaurant-kutch-safari-ab-vision-11.jpg` | Dining, Gallery |
+| 14.3 MB → 429 KB | `images/new/kutchi-ac-room-_-deluxe-ac-cottage-kutch-safari-ab-vision-17.jpg` | Stay |
+| 11.7 MB → 319 KB | `images/new/kutch-ac-cottage-_dsc9435.jpg` | Stay, Gallery |
+| 11.5 / 10.8 MB → 155 / 136 KB | `images/new/gallery/_DSC9412.JPG`, `_DSC9408.JPG` | Gallery |
+| 9.6 / 9.0 MB → 280 / 235 KB | `…deluxe-ac-cottage-interior.jpg`, `…-interior-02.jpg` | Stay, Home |
+| 6.7 MB → 258 KB | `images/new/kutch-destination-road_2.jpg` | Home, Around the Resort, Packages, Destination |
+| 6.8 MB → 180 KB | `LAKEVIEW KUTCH SAFARI1.jpeg` (now 1600×686) | `og:image` (the filename still has spaces) |
+| 4.6 MB → 34 KB | `images/logo-mark.png` (now 128×128, shown at 40×40, transparency kept) | Destination, PackageDetail, RannUtsavPackage headers |
+| 5–6 MB each → ~200–270 KB | `images/new/gallery/2018…`, `IMG_20190310…` | Gallery |
+
+Page weight of the images (measured in the browser): Home **16.9 MB → 1.65 MB**, Stay 44.3 MB → 1.5 MB, Gallery 82.2 MB → 3.96 MB (all 27 photos). The **biggest remaining download is the Home hero video, 10.2 MB** (`images/new/kutch-safari-resort-website-hero.mp4`, autoplays, no poster image). It is a video, so it was not touched.
+
+Do this again whenever new photos are added: phone and camera originals are 5–17 MB. The throwaway script used (Pillow, resize + re-encode in place) was not kept in the repo.
 
 ### Small files added 29–30 Sep 2026
 | File | Used by |
@@ -210,7 +210,7 @@ Images are referenced by absolute path strings, not imports, so Vite never remov
 | `favicon.ico` (9 KB), `apple-touch-icon.png` | Site icon (`index.html`) |
 | `assets/images/brochure/*.jpg`: 11 photos, 4–23 KB, 200–590 px, extracted from "KUTCH SAFARI RESORT 2026 2027.pdf" | Experiences page |
 
-Brochure files: `kutch-colourful-communities`, `white-rann-of-kutch`, `kutch-textiles`, `dholavira-unesco-site` (Why Visit Kutch?); `morning-yoga`, `lake-view-gala-dinner`, `sunrise-breakfast`, `candlelight-dinner` (Guest Experiences); `gala-dinner-campfire`, `folk-music-evening`, `camel-cart-welcome` (Arrangements on Request). They are low resolution because that is what the PDF contains: fine at card size; ask the owner for originals before showing them larger.
+Brochure files: `kutch-colourful-communities`, `white-rann-of-kutch`, `kutch-textiles`, `dholavira-unesco-site` (not shown anywhere since 5 Oct 2026; were the Why Visit Kutch? photos); `morning-yoga`, `lake-view-gala-dinner`, `sunrise-breakfast`, `candlelight-dinner` (Guest Experiences); `gala-dinner-campfire`, `folk-music-evening`, `camel-cart-welcome` (Arrangements on Request). They are low resolution because that is what the PDF contains: fine at card size; ask the owner for originals before showing them larger.
 
 The booking engine has its own icon: `backend/booking-engine/assets/icon.svg`.
 
@@ -226,8 +226,8 @@ These are the right format and size. They could also be reused on the main site 
 _Re-checked 26 Sep 2026: no images were added or removed by the booking-engine work. Receipts and terms are PDFs built on the fly (`lib/pdf.php`) with no images, so nothing is stored for them._
 
 ### Optimisation plan
-1. Delete or move the unused files (about 109 MB).
-2. Convert JPG and PNG to WebP/AVIF at max 1920 px (hero) and 800 px (grid).
+1. Delete or move the unused files (about 109 MB, plus the unused 12.8 MB `KSR_VIDEO.mp4`). They are not loaded by any page, but they are still uploaded with every deploy.
+2. ~~Resize and compress the photos~~ done 6 Oct 2026 (JPEG/PNG kept, see above). Optional next step: WebP/AVIF would save roughly another 25–30%, but needs the paths in the code changed.
 3. Re-encode the hero video to 720p MP4 + WebM (target under 3 MB). (The unused `KSR_VIDEO.mp4` preload is already gone.)
-4. ~~Favicon~~ done 29 Sep 2026. Still to do: a small logo PNG to replace the 4.5 MB `logo-mark.png` in the Destination and RannUtsav headers.
-5. Rename `LAKEVIEW KUTCH SAFARI1.jpeg` to use hyphens and a small size, then update `og:image`.
+4. ~~Favicon~~ done 29 Sep 2026. ~~Small logo~~ done 6 Oct 2026 (`logo-mark.png` is 34 KB).
+5. ~~Small `og:image`~~ done 6 Oct 2026 (180 KB). Still to do: rename `LAKEVIEW KUTCH SAFARI1.jpeg` to use hyphens, then update `og:image`.
