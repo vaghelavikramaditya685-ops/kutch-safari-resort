@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Map of every Markdown file in this repository and what it contains. Updated 5 Oct 2026.
+Map of every Markdown file in this repository and what it contains. Updated 8 Oct 2026.
 
 The project: website (`frontend/`, React 19 + Vite) and booking engine + admin panel (`backend/booking-engine/`, PHP 8, served at `/book/`) for Kutch Safari Resort, Bhuj.
 
@@ -28,7 +28,7 @@ The project: website (`frontend/`, React 19 + Vite) and booking engine + admin p
 | [`docs/06-ADMIN-AND-SECURITY.md`](docs/06-ADMIN-AND-SECURITY.md) | Admin panel screen by screen, and security: SHA-256 sign-in, sessions, CSRF, tokens, input checks, risks. |
 | [`docs/07-DATABASE.md`](docs/07-DATABASE.md) | The database tables and fields, hidden couplings, sample records, and the rules for real vs test/demo data (never re-run full setup on real data). |
 | [`docs/08-STATUS-ISSUES-AND-ROADMAP.md`](docs/08-STATUS-ISSUES-AND-ROADMAP.md) | Current status and % complete, every feature with status, all known issues, decisions and assumptions, open questions for the owner, roadmap, todo and ideas notes. |
-| [`docs/10-GO-LIVE-ON-HOSTINGER.md`](docs/10-GO-LIVE-ON-HOSTINGER.md) | The planned live setup on Hostinger (website `kutchsafaribhuj.in`, booking `book.kutchsafaribhuj.in`, admin `admin.kutchsafaribhuj.in`, one plan): local vs live addresses, every URL and setting that changes at upload time (`VITE_BOOKING_ENABLED`, `VITE_BOOKING_URL`, both `.htaccess` files, live `config.local.php`, `website_url`), the tested upload recipe, Hostinger and DNS steps, never-do list. Not applied yet; the site runs locally. |
+| [`docs/10-GO-LIVE-ON-HOSTINGER.md`](docs/10-GO-LIVE-ON-HOSTINGER.md) | The planned live setup on Hostinger, written for `kutchsafaribhuj.in` (since 8 Oct 2026 the main domain is `kutchsafariresort.in`, website on Vercel; booking and admin would be its `book.` and `admin.`; read the note at its top first): local vs live addresses, every URL and setting that changes at upload time (`VITE_BOOKING_ENABLED`, `VITE_BOOKING_URL`, both `.htaccess` files, live `config.local.php`, `website_url`), the tested upload recipe, Hostinger and DNS steps, never-do list. Not applied yet: the website is live on Vercel, the booking engine is not deployed. |
 | [`docs/09-HISTORY-TESTING-AND-GO-LIVE.md`](docs/09-HISTORY-TESTING-AND-GO-LIVE.md) | Change log (newest first) and design decisions, lessons learned and gotchas, how to test, go-live checklist and handover, deployment/infrastructure, and the 29 Sep 2026 reports (folder cleanup, self-healing, button audit, chaos test). |
 
 ## Sections inside each file

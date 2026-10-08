@@ -29,7 +29,7 @@ export default function Dining() {
          </div>
          <div className="grid grid-cols-2 gap-4">
             <img src="/assets/images/new/restaurant-kutch-safari-ab-vision-11.jpg" alt="Restaurant" className="w-full h-48 object-cover rounded-sm" />
-            <div className="bg-zinc-100 h-48 flex items-center justify-center text-xs text-zinc-400">Food Image Placeholder</div>
+            <img src="/assets/images/new/restaurant-lake-view-table.webp" alt="A table laid for a meal under the canopy, looking out over the lake" className="w-full h-48 object-cover rounded-sm" />
          </div>
       </div>
     

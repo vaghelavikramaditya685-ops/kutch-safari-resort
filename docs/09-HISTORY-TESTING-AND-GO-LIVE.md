@@ -41,6 +41,12 @@ _Updated 30 Sep 2026. Newest first._
 #### 30 Sep 2026 (later): docs combined from 70 files into 10
 At the owner's request every Markdown file (docs 01–30, docs/notes, the 20 `context/` files, both engine READMEs and the 29 Sep report folders) was merged into `README.md` + `docs/01`–`09`. Each old file is a section headed "(was `old/path.md`)" with an anchor; the table at the bottom of `README.md` maps every old file to its new place. Older text that says "doc 22" or "docs/30" means those sections. The old files are in git history.
 
+### 8 Oct 2026: one main domain, placeholders fixed, www redirect
+* **Main domain decided: `kutchsafariresort.in`.** Until now every page's canonical address (`SITE_URL` in `App.tsx`), `og:url`, `og:image`, the sitemap (19 URLs) and `robots.txt` named `kutchsafaribhuj.in`, which is the resort's **old** website (GoDaddy, still live). Search engines were told the old site was the real one, and shared links showed no picture (the image doesn't exist there). All now name `kutchsafariresort.in`; the engine's `allowed_origins` lists it too (and `www.`).
+* **`www.kutchsafariresort.in` redirects (308) to `kutchsafariresort.in`**, by the first route in the deploy's `config.json` (§2.2).
+* **Placeholders:** the header's `[WRC LOGO]` is a "White Rann Camp" button (same link); Dining's "Food Image Placeholder" box is the resort's lake-view table photo (`restaurant-lake-view-table.webp`, from the engine's photos). Still open: the Plan Your Visit FAQ text.
+* Checked first on the live site: all 24 routes load, no broken images or console errors, no sideways scroll at 375 px. Then deployed with §2.2 and checked live (both domains, the redirect, the preview image, the sitemap).
+
 ### 6 Oct 2026: photos compressed, site redeployed
 * **32 photos resized and re-encoded in place** (136.7 MB → 6.4 MB; same names and paths, no code changes). Home images 16.9 MB → 1.65 MB, Stay 44.3 MB → 1.5 MB, Gallery 82.2 MB → 3.96 MB. Details and settings: [docs/03, Image and Asset Inventory](03-DESIGN-AND-ASSETS.md#docs-11). `logo-mark.png` is now 128 px (34 KB) and the `og:image` file is 180 KB.
 * Deployed to Vercel with the §2.2 prebuilt method; the live domains `kutchsafariresort.in` and `www.kutchsafariresort.in` serve the new files (both were added to the Vercel project on 5 Oct 2026).
@@ -410,7 +416,7 @@ No automated browser tests in the repo (browser checks were done by hand/agent o
 
 ### Environments
 * **Local:** this PC, SQLite, test keys [CODE].
-* **Website live:** Vercel `kutchsafaribhuj.in` [DOC].
+* **Website live:** Vercel, `https://kutchsafariresort.in` [DOC].
 * **Engine live:** [PLANNED] a PHP + MySQL host at `/book/`.
 
 ### Deployment (short; full list in docs/30)
@@ -523,7 +529,7 @@ _(was `docs/15-DEPLOYMENT-AND-INFRASTRUCTURE.md`)_
 | Express server (`dist/index.js`) | Node 18+ | Any Node host. Optional; only needed for `/api/contact` |
 | **Booking engine (`backend/booking-engine/`)** | **PHP 8 + MySQL** | **PHP host with MySQL (cPanel). Not Vercel.** |
 
-Production domain: `kutchsafaribhuj.in`. Vercel project: `kutch-safari-resort` (`.vercel/project.json`).
+Production domain: `kutchsafariresort.in` (since 8 Oct 2026; `www.` redirects to it). Vercel project: `kutch-safari-resort` (`.vercel/project.json`).
 
 ---
 
@@ -533,21 +539,21 @@ Production domain: `kutchsafaribhuj.in`. Vercel project: `kutch-safari-resort` (
 ```bash
 pnpm build     # vite build → dist/public ; esbuild backend/server/index.ts → dist/index.js
 ```
-Set `VITE_BOOKING_URL` at build time when the engine is **not** served from `/book/` on the same domain; for the planned live setup that is `https://book.kutchsafaribhuj.in/` (docs/10 §3.1). The value must end with `/`.
+Set `VITE_BOOKING_URL` at build time when the engine is **not** served from `/book/` on the same domain; for the planned live setup that is `https://book.kutchsafariresort.in/` (docs/10 §3.1). The value must end with `/`.
 
 #### 2.2 Vercel (the live website since 5 Oct 2026, enquiry only)
-Project **kutch-safari-resort** (owner `vsmsmsv`), linked in the root `.vercel/project.json`; live at `https://kutch-safari-resort.vercel.app`. The site goes up **without** the booking engine (`VITE_BOOKING_ENABLED` unset): Book Now is Enquire Now, `/book` → `/enquire`, `/admin` not found.
+Project **kutch-safari-resort** (owner `vsmsmsv`), linked in the root `.vercel/project.json`; live at `https://kutchsafariresort.in` (also `https://kutch-safari-resort.vercel.app`; `www.` redirects to the main address). The site goes up **without** the booking engine (`VITE_BOOKING_ENABLED` unset): Book Now is Enquire Now, `/book` → `/enquire`, `/admin` not found.
 
 Deploy the way it was done on 5 Oct 2026: build here, then upload the finished files ("prebuilt"), because the project's Vercel settings (Vite preset, output `dist`) would not build this repo (output is `dist/public`, and `pnpm build` also needs `backend/`, which `.vercelignore` leaves out). From the project root, in Git Bash:
 ```bash
 pnpm exec vite build
 rm -rf .vercel/output && mkdir -p .vercel/output/static
 cp -r dist/public/. .vercel/output/static/ && rm -f .vercel/output/static/vercel.json .vercel/output/static/.gitkeep
-printf '{"version":3,"routes":[{"handle":"filesystem"},{"src":"/(.*)","dest":"/index.html"}]}' > .vercel/output/config.json
+printf '{"version":3,"routes":[{"src":"/(.*)","has":[{"type":"host","value":"www.kutchsafariresort.in"}],"status":308,"headers":{"Location":"https://kutchsafariresort.in/$1"}},{"handle":"filesystem"},{"src":"/(.*)","dest":"/index.html"}]}' > .vercel/output/config.json
 cmd.exe //c "vercel deploy --prebuilt --prod --yes"
 rm -rf .vercel/output
 ```
-The route sends every address that isn't a file to `index.html` (so `/stay` opened directly works). Check afterwards: `/`, `/stay`, `/enquire` answer 200; Book Now says Enquire Now. **Don't** run `vercel --prod` from `dist/public`: that folder isn't linked, and the CLI links it to a new project (that is how a stray project "public" was made earlier). `frontend/public/vercel.json` (rewrites to `/index.html`) only matters for that older method.
+The first route sends `www.kutchsafariresort.in/…` to `https://kutchsafariresort.in/…` (308, added 8 Oct 2026); the last sends every address that isn't a file to `index.html` (so `/stay` opened directly works). Check afterwards: `/`, `/stay`, `/enquire` answer 200; Book Now says Enquire Now. **Don't** run `vercel --prod` from `dist/public`: that folder isn't linked, and the CLI links it to a new project (that is how a stray project "public" was made earlier). `frontend/public/vercel.json` (rewrites to `/index.html`) only matters for that older method.
 
 On Vercel, `/book/` is answered by the SPA, so `BookingRedirect` shows "call/WhatsApp us". **To make booking work while the site stays on Vercel**, pick one:
 * Build with `VITE_BOOKING_URL` pointing at the engine on the PHP host, **or**
@@ -575,7 +581,7 @@ Full steps are in [`backend/booking-engine/README.md`](05-BOOKING-ENGINE.md#engi
    **Never run full `php bin/setup.php` again on the live database.** It reloads `seed.sql`, which empties the rooms, prices, special prices and extras first (doc 28 §4).
 5. Razorpay: test keys first, then a webhook to `<base_url>/api/webhook-razorpay.php` (payment.captured, payment.failed, refund.processed).
 6. Cron (once Stayflexi is connected): `bin/sync-inventory.php` every 10 min, `bin/retry-failed-sync.php` hourly.
-7. Make sure the site's domain is in `allowed_origins` (`config.php`). The kutchsafaribhuj.in domains and the Vercel preview are already listed.
+7. Make sure the site's domain is in `allowed_origins` (`config.php`). The kutchsafariresort.in and kutchsafaribhuj.in domains and the Vercel preview are already listed.
 8. Health check: `php bin/check-system.php`, `bin/check-razorpay.php`, `bin/check-stayflexi.php`.
 
 **Seed data to adjust for this domain:** `properties.website_url` is `http://localhost:3000` (KSR, set for local testing) and `https://www.whiterann.com` (WRC). **`config.php` defaults to SQLite**; the live `config.local.php` must set `'driver' => 'mysql'`. This is the engine's "Back to website" link. Change it to `https://kutchsafaribhuj.in` if that's the live site. Mail settings in `config.php` also assume `@kutchsafariresort.com`.

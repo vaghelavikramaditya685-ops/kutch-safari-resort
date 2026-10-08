@@ -63,8 +63,8 @@ export default function Navbar() {
           </nav>
           
           <div className="flex items-center justify-end gap-4 shrink-0">
-            <a href="https://whiteranncamp.travstack.com/" target="_blank" rel="noreferrer" className="hidden md:flex items-center justify-center gap-2 border border-[#e4d5c7] px-4 py-2 uppercase text-[10px] tracking-widest font-semibold text-zinc-700 hover:border-zinc-300 transition-colors rounded-sm bg-white shadow-sm">
-              [WRC LOGO]
+            <a href="https://whiteranncamp.travstack.com/" target="_blank" rel="noreferrer" aria-label="White Rann Camp website (opens in a new tab)" className="hidden md:flex items-center justify-center gap-2 border border-[#e4d5c7] px-4 py-2 uppercase text-[10px] tracking-widest font-semibold text-zinc-700 hover:border-zinc-300 transition-colors rounded-sm bg-white shadow-sm">
+              White Rann Camp
             </a>
             <ReserveButton className="hidden md:inline-flex bg-[var(--terracotta)] text-white px-6 py-2.5 uppercase text-xs tracking-widest hover:bg-[#b04838] transition-colors shadow-sm font-semibold rounded-sm whitespace-nowrap" />
             <button 

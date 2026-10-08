@@ -23,7 +23,7 @@ a **React 19 + Vite** marketing site (`frontend/`) and a **PHP 8 booking engine 
 | [`docs/06-ADMIN-AND-SECURITY.md`](docs/06-ADMIN-AND-SECURITY.md) | Every admin screen, and how sign-in (SHA-256), sessions, tokens and input checks work. | context/auth_and_security, docs/24-ADMIN-PANEL-GUIDE |
 | [`docs/07-DATABASE.md`](docs/07-DATABASE.md) | The tables, hidden couplings between them, and the rules for real vs test/demo data. | context/data_models, docs/28-DATABASE-AND-DATA-RULES |
 | [`docs/08-STATUS-ISSUES-AND-ROADMAP.md`](docs/08-STATUS-ISSUES-AND-ROADMAP.md) | What works, what doesn't, every known issue, decisions, open questions for the owner, and what's next. | context/current_status, context/features, docs/16-KNOWN-ISSUES-AND-BUGS, context/decisions_and_assumptions, context/roadmap, docs/notes/todo, docs/notes/ideas |
-| [`docs/10-GO-LIVE-ON-HOSTINGER.md`](docs/10-GO-LIVE-ON-HOSTINGER.md) | The planned live setup on Hostinger (`kutchsafaribhuj.in`, `book.`, `admin.`): local vs live addresses, every URL/setting that changes at upload time, the tested upload recipe, Hostinger and DNS steps. | new, 5 Oct 2026 |
+| [`docs/10-GO-LIVE-ON-HOSTINGER.md`](docs/10-GO-LIVE-ON-HOSTINGER.md) | The planned live setup on Hostinger, written for `kutchsafaribhuj.in` (the main domain is `kutchsafariresort.in` since 8 Oct 2026; see its top note), with `book.` and `admin.`: local vs live addresses, every URL/setting that changes at upload time, the tested upload recipe, Hostinger and DNS steps. | new, 5 Oct 2026 |
 | [`docs/09-HISTORY-TESTING-AND-GO-LIVE.md`](docs/09-HISTORY-TESTING-AND-GO-LIVE.md) | What changed and why, what broke and what we learned, how to test, how to deploy, and the 29 Sep 2026 check reports. | docs/20-CHANGE-LOG-AND-DESIGN-DECISIONS, docs/29-LESSONS-LEARNED-AND-GOTCHAS, context/testing_and_deployment, docs/30-TESTING-GO-LIVE-AND-HANDOVER, docs/15-DEPLOYMENT-AND-INFRASTRUCTURE, restructure/REPORT, restructure/CHANGELOG, restructure/MOVE_MAP, restructure/CURRENT_TREE, restructure/TARGET_TREE, heal/REPORT, heal/FINDINGS, heal/CHANGELOG, heal/RUN_LOG, heal/STATE, button_audit/REPORT, chaos/REPORT, chaos/FINDINGS, chaos/CHANGELOG, chaos/TARGET_MAP |
 
 ---
@@ -163,7 +163,7 @@ The booking engine is a **separate application**. The React site holds no bookin
 ---
 
 ### 3. Environments
-* **Production domain:** `https://kutchsafaribhuj.in` (Vercel)
+* **Production domain:** `https://kutchsafariresort.in` (Vercel; `www.` redirects to it). The resort's old website is still live on `kutchsafaribhuj.in` (GoDaddy), separately.
 * **Preview:** `https://kutch-safari-resort.vercel.app`
 * **Booking engine:** must run on a PHP host (e.g. cPanel `public_html/book`). Vercel cannot run it. See [`15-DEPLOYMENT-AND-INFRASTRUCTURE.md`](docs/09-HISTORY-TESTING-AND-GO-LIVE.md#docs-15). The planned live setup on Hostinger is in [`docs/10-GO-LIVE-ON-HOSTINGER.md`](docs/10-GO-LIVE-ON-HOSTINGER.md).
 * **Old WRC portal:** `https://whiteranncamp.travstack.com` (still linked from the Navbar placeholder button)
@@ -193,7 +193,7 @@ The booking database on this PC has **7 bookings**: the owner's own KSR-GJKQYG a
 Outstanding, detailed in [`16-KNOWN-ISSUES-AND-BUGS.md`](docs/08-STATUS-ISSUES-AND-ROADMAP.md#docs-16):
 1. ~~The Home contact form is a mock~~ fixed 5 Oct 2026: enquiries go to WhatsApp/email (not stored by the site).
 2. ~~Broken links~~ fixed 29 Sep 2026. Brochure vs website facts (distances, years, room names) await the owner's answer (doc 17).
-3. Placeholder content: Dining placeholder box, FAQ, `[WRC LOGO]`. (The Our Journey page was removed on 5 Oct 2026.)
+3. Placeholder content: the Plan Your Visit FAQ ("Frequently asked questions will be populated here"). The Dining photo and the `[WRC LOGO]` button were fixed on 8 Oct 2026; the Our Journey page was removed on 5 Oct 2026.
 4. Assets are ~140 MB, mostly unused files and videos. The photos were compressed on 6 Oct 2026 (136.7 MB → 6.4 MB); the 10.2 MB Home hero video is not. (The 4.5 MB favicon was replaced by a 9 KB `favicon.ico` on 29 Sep 2026.)
 5. The booking engine is not yet deployed. Its rates, GST, the 50% balance date and cancellation terms need the owner's sign-off.
 6. Stayflexi is not connected, and Razorpay is on test keys only.

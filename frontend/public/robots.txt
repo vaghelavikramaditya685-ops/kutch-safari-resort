@@ -4,4 +4,4 @@ Allow: /
 Disallow: /book/
 Disallow: /admin
 
-Sitemap: https://kutchsafaribhuj.in/sitemap.xml
+Sitemap: https://kutchsafariresort.in/sitemap.xml

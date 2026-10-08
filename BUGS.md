@@ -62,7 +62,7 @@ They were followed by live checks in the browser on a copy (booking flow, check-
 - **O1. GST on Deluxe triples.** A ₹8,000 Deluxe triple (₹6,500 + ₹1,500 extra bed, GST included) cannot be put in one slab. At 5% the room value is ₹7,619, over ₹7,500. At 18% (what the engine charges) it is ₹6,780, under ₹7,500. GST-inclusive prices between ₹7,876 and ₹8,850 all have this problem. Ask the accountant which applies. `bin/test-logic.php` prints this as INFO.
 - **O2. Text contrast** below the WCAG AA guideline (4.5:1), listed in "E-sweep" below. Fixing it means darker colours, so it needs the owner's approval.
 - ~~**O3. Home contact form is still a mock.**~~ **Fixed 5 Oct 2026:** the form (Home and the new `/enquire` page) opens WhatsApp, or email, with the enquiry written out, and no longer fakes "sent". Enquiries are still not stored by the site; storing them needs the engine's `api/enquiry.php`.
-- **O4. Placeholder content** shows on the site: "Food Image Placeholder" (Dining). (The Our Journey page and its award placeholder were removed on 5 Oct 2026.)
+- **O4. Placeholder content.** Fixed 8 Oct 2026: Dining shows the resort's lake-view table photo instead of "Food Image Placeholder", and the header's `[WRC LOGO]` is a "White Rann Camp" button. **Still open:** the Plan Your Visit FAQ only says "Frequently asked questions will be populated here" (the Footer's "FAQs" link opens it); it needs the owner's questions and answers. (The Our Journey page and its award placeholder were removed on 5 Oct 2026.)
 - **O5. Every page has the same meta description.** Per-page descriptions need text from the owner.
 - **O6. 50% plan balance:** due 30 days before arrival (current wording) or at check-in? (Unchanged question, docs/08.)
 - **Not tested, needs the live setup:** MySQL under load (the code uses row locks there; `bin/test-concurrency.php` is SQLite-only), real Razorpay, real email delivery.
@@ -427,7 +427,7 @@ In real life, the cottage would be held again (perhaps after being resold), Stay
   * the six demo bookings must be removed.
 * ~~Home contact form is a mock~~ — fixed 5 Oct 2026 (O3).
 * Stayflexi not connected; SMTP not set; no owner email on new bookings.
-* Photos were compressed on 6 Oct 2026 (the 10.2 MB hero video and ~122 MB of unused files remain); placeholder content (Dining, FAQ, `[WRC LOGO]`).
+* Photos were compressed on 6 Oct 2026 (the 10.2 MB hero video and ~122 MB of unused files remain); placeholder content (the Plan Your Visit FAQ; Dining and `[WRC LOGO]` fixed 8 Oct 2026).
 * Brochure vs website facts await the owner (distances, years, room names).
 
 ## How to re-run these tests

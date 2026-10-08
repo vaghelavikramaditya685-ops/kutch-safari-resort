@@ -204,11 +204,12 @@ Page weight of the images (measured in the browser): Home **16.9 MB → 1.65 MB*
 
 Do this again whenever new photos are added: phone and camera originals are 5–17 MB. The throwaway script used (Pillow, resize + re-encode in place) was not kept in the repo.
 
-### Small files added 29–30 Sep 2026
+### Small files added since 29 Sep 2026
 | File | Used by |
 |---|---|
 | `favicon.ico` (9 KB), `apple-touch-icon.png` | Site icon (`index.html`) |
 | `assets/images/brochure/*.jpg`: 11 photos, 4–23 KB, 200–590 px, extracted from "KUTCH SAFARI RESORT 2026 2027.pdf" | Experiences page |
+| `assets/images/new/restaurant-lake-view-table.webp` (74 KB, 1000×666), copied 8 Oct 2026 from the engine's `ksr/restaurant-table.webp` | Dining (in place of the placeholder box) |
 
 Brochure files: `kutch-colourful-communities`, `white-rann-of-kutch`, `kutch-textiles`, `dholavira-unesco-site` (not shown anywhere since 5 Oct 2026; were the Why Visit Kutch? photos); `morning-yoga`, `lake-view-gala-dinner`, `sunrise-breakfast`, `candlelight-dinner` (Guest Experiences); `gala-dinner-campfire`, `folk-music-evening`, `camel-cart-welcome` (Arrangements on Request). They are low resolution because that is what the PDF contains: fine at card size; ask the owner for originals before showing them larger.
 
@@ -221,7 +222,7 @@ The booking engine has its own icon: `backend/booking-engine/assets/icon.svg`.
 * `ksr/`: 22 WebP files (cottage exterior and interior, bathroom, lake dusk, gazebo, restaurant, cuisine, gala dinner, road to heaven, Mandvi, etc.)
 * `wrc/`: 20 WebP files (tents inside and out, washrooms, camp, full moon Rann, etc.)
 
-These are the right format and size. They could also be reused on the main site (e.g. Dining). The `wrc/` photos are kept although White Rann Camp is switched off in the engine.
+These are the right format and size; `restaurant-table.webp` is on the website's Dining page since 8 Oct 2026. **`ksr/cuisine-plate.webp` is not the resort's photo:** it carries a food blog's watermark ("Cooking from Heart"). Nothing uses it; delete it rather than show it anywhere. The `wrc/` photos are kept although White Rann Camp is switched off in the engine.
 
 _Re-checked 26 Sep 2026: no images were added or removed by the booking-engine work. Receipts and terms are PDFs built on the fly (`lib/pdf.php`) with no images, so nothing is stored for them._
 

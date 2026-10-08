@@ -58,7 +58,7 @@ _(was `docs/24-ADMIN-PANEL-GUIDE.md`)_
 _Written 26 Sep 2026. Every screen in `backend/booking-engine/admin/`, what it does, and the rules behind it._
 
 ### 1. Getting in
-* **Planned live address: `https://admin.kutchsafaribhuj.in`**, a subdomain pointing at the engine folder (same panel, same database as `book.kutchsafaribhuj.in`). Not set up yet; see [`docs/10-GO-LIVE-ON-HOSTINGER.md`](10-GO-LIVE-ON-HOSTINGER.md).
+* **Planned live address: `https://admin.kutchsafariresort.in`**, a subdomain pointing at the engine folder (same panel, same database as `book.kutchsafariresort.in`; `kutchsafariresort.in` is the main domain since 8 Oct 2026). Not set up yet; see [`docs/10-GO-LIVE-ON-HOSTINGER.md`](10-GO-LIVE-ON-HOSTINGER.md).
 * Address: `/book/admin/`. Typing **`/book/admin`** (no slash) or the website's **`/admin`** also works. The address fills itself in to `/book/admin/login.php`.
   > Why the redirect exists: without the trailing slash the panel's relative links pointed one folder too high (`/book/login.php`), so the page broke. `admin/_auth.php` now redirects `…/admin` → `…/admin/` first.
 * Sign in with a **username** (not case-sensitive). The local test login is `manvir` / `1234`. **Change it before going live** (doc 30).

@@ -99,7 +99,7 @@ bookingUrl({ checkIn: "2026-12-20", checkOut: "2026-12-22", adults: 2, rooms: 1 
 | `/book/document.php?doc=terms&property=` | Terms and conditions as a PDF in a new tab |
 | `/book/admin/` | Staff panel (login required): `index.php` bookings, `booking.php?id=` one booking, `edit.php?id=` change it, `calendar.php` Availability, `rates.php` Special prices, `enquiries.php`, `export.php`. See [`24-ADMIN-PANEL-GUIDE.md`](06-ADMIN-AND-SECURITY.md#docs-24) |
 
-`BOOKING_URL` defaults to `/book/` (in dev Vite proxies it to the engine). You can override it at build time with `VITE_BOOKING_URL`; the planned live build uses `https://book.kutchsafaribhuj.in/` ([docs/10 §3.1](10-GO-LIVE-ON-HOSTINGER.md#31-booking-and-admin-links--two-build-settings-no-code-edit)). `statusUrl()` → `manage.php` and `adminUrl()` → `admin/` are built from it too.
+`BOOKING_URL` defaults to `/book/` (in dev Vite proxies it to the engine). You can override it at build time with `VITE_BOOKING_URL`; the planned live build uses `https://book.kutchsafariresort.in/` ([docs/10 §3.1](10-GO-LIVE-ON-HOSTINGER.md#31-booking-and-admin-links--two-build-settings-no-code-edit)). `statusUrl()` → `manage.php` and `adminUrl()` → `admin/` are built from it too.
 
 #### 1.2 Broken links
 | Link | Where | Result |
@@ -116,7 +116,7 @@ Used by every page except `Destination` and `RannUtsavPackage`, which have their
 * **Top bar** (hidden below `md`): phone, email, address, Instagram, and **Already booked? Check status** (`statusUrl()`).
 * **Sticky header:** logo `logo-main.jpg` with `mix-blend-darken`.
 * **`NAV_LINKS`:** Home, Stay, Dining, Experiences, Around the Resort, Packages, Gallery, Plan Your Visit, followed by a terracotta **White Rann Camp →** link (`/white-rann-camp`).
-* **`[WRC LOGO]` button:** placeholder text. It opens `https://whiteranncamp.travstack.com` in a new tab.
+* **White Rann Camp button** (the placeholder `[WRC LOGO]` until 8 Oct 2026): opens `https://whiteranncamp.travstack.com` in a new tab.
 * **Book Now** (desktop and mobile menu): a plain `<a href={bookingUrl()}>`, which loads the engine.
 * **Menu breakpoint (30 Sep 2026):** the full menu shows from 1,320 px wide, every item on one line (header box up to 1,440 px, slightly tighter letter spacing). Below that, the menu button opens the full-screen menu. With 9 items the menu no longer fits at 1,024–1,280 px without wrapping.
 * **Mobile menu:** full-screen overlay toggled by `open` state. It includes Book Now and Already booked? Check status. Book Now never wraps (`whitespace-nowrap`).
@@ -314,7 +314,7 @@ The page (`OurJourney.tsx`) held only placeholder content, so it was removed wit
 
 ### `Dining.tsx` — `/dining`
 * "Dining at The Banni". "A Taste of Kutch": multi-cuisine (Kutchi, Gujarati, Punjabi, Chinese, Continental), recommends the Kutchi thali and the gala dinner (a day's notice).
-* Images: `restaurant-kutch-safari-ab-vision-11.jpg` (426 KB since 6 Oct 2026; was 16.7 MB) + **"Food Image Placeholder" box**.
+* Images: `restaurant-kutch-safari-ab-vision-11.jpg` (426 KB since 6 Oct 2026; was 16.7 MB) and `restaurant-lake-view-table.webp` (a table laid under the canopy with the lake behind; copied from the booking engine's photos on 8 Oct 2026 in place of the "Food Image Placeholder" box).
 * The booking engine has food photos (`backend/booking-engine/assets/img/ksr/cuisine-plate.webp`, `buffet-service.webp`, `gala-dinner.webp`, `restaurant-table.webp`) that could fill this. The brochure adds: "one of the few restaurants in Kutch that serve non-vegetarian meals", multi-cuisine "overlooking the dam".
 
 ### `Experiences.tsx` — `/experiences` (rebuilt 30 Sep 2026 from the resort brochure)
@@ -383,7 +383,7 @@ _Updated 30 Sep 2026. Paths are under `frontend/src/`._
 * **Sticky header** (`sticky top-0 z-50`, `bg-[#f8f5e2]`), box up to 1,440 px wide: `logo-main.jpg` with `mix-blend-darken`.
 * **Desktop menu** from `NAV_LINKS`: Home, Stay, Dining, Experiences, **Around the Resort**, Packages, Gallery, Plan Your Visit, then a terracotta **White Rann Camp →** link. The active link turns terracotta.
   * Shown from **1,320 px** wide (`min-[1320px]:flex`), every item on one line (`whitespace-nowrap`, `tracking-wider`), spread evenly between the logo and the buttons (`justify-evenly`, at least 12 px apart; 5 Oct 2026). Below 1,320 px the ☰ button is used. With 9 items the menu cannot fit on one line at 1,024–1,280 px (measured 30 Sep 2026).
-* `[WRC LOGO]` placeholder button → `whiteranncamp.travstack.com` (new tab, `rel="noreferrer"`).
+* "White Rann Camp" button (the `[WRC LOGO]` placeholder until 8 Oct 2026) → `whiteranncamp.travstack.com` (new tab, `rel="noreferrer"`).
 * **Book Now** → `bookingUrl()` (plain `<a>`, loads the PHP engine).
 * **Menu button** (below 1,320 px): `Menu`/`X`, `aria-label` "Open menu"/"Close menu", `aria-expanded`; opens a full-screen overlay at `top-[116px]` with every menu item, Book Now and Already booked? Check status. Tapping an item closes it.
 
@@ -455,9 +455,9 @@ _Updated 30 Sep 2026._
 The old 4.5 MB `logo-mark.png` favicon (wrong MIME type) and the unused 12.8 MB `KSR_VIDEO.mp4` preload were removed on 29 Sep 2026.
 
 #### Open Graph / Twitter
-* `og:type` website, `og:url` `https://kutchsafaribhuj.in/`
+* `og:type` website, `og:url` `https://kutchsafariresort.in/`
 * `og:title` / `og:description`: same as the title and description
-* `og:image`: `https://kutchsafaribhuj.in/assets/LAKEVIEW%20KUTCH%20SAFARI1.jpeg` (180 KB since 6 Oct 2026, was 6.6 MB; the filename still has spaces, so renaming it to use hyphens is still to do). The domain in this URL is still `kutchsafaribhuj.in`.
+* `og:image`: `https://kutchsafariresort.in/assets/LAKEVIEW%20KUTCH%20SAFARI1.jpeg` (180 KB since 6 Oct 2026, was 6.6 MB; the filename still has spaces, so renaming it to use hyphens is still to do). Until 8 Oct 2026 this and `og:url` named `kutchsafaribhuj.in`, where the file does not exist, so shared links showed no picture.
 * `twitter:card` summary_large_image, plus title and description. There is no `twitter:image`.
 
 #### Fonts
@@ -476,7 +476,7 @@ User-agent: *
 Allow: /
 Disallow: /book/
 Disallow: /admin
-Sitemap: https://kutchsafaribhuj.in/sitemap.xml
+Sitemap: https://kutchsafariresort.in/sitemap.xml
 ```
 The booking engine also sends `<meta name="robots" content="noindex">`. The admin panel, check-status page and PDFs are for guests and staff only.
 
@@ -484,7 +484,7 @@ The booking engine also sends `<meta name="robots" content="noindex">`. The admi
 18 URLs: `/`, `/stay`, `/dining`, `/experiences`, `/around-the-resort`, `/gallery`, `/plan-your-visit`, `/packages`, the three `/packages/*` tours, `/white-rann-camp`, and the six `/destination/*` guides.
 
 ### Canonical address and unknown addresses (5 Oct 2026)
-`usePageTitle()` in `App.tsx` also sets `<link rel="canonical">` on every real page: `https://kutchsafaribhuj.in` + the path, with `/rann-utsav-package` and `/white-rann-camp/tariff` pointing at `/white-rann-camp`. Any other address answers with the site (the host serves `index.html` for every path), so it gets `<meta name="robots" content="noindex">`. Search engines would otherwise list it or report a "soft 404". The Express server answers a missing *file* (e.g. `/assets/x.jpg`) with a real 404.
+`usePageTitle()` in `App.tsx` also sets `<link rel="canonical">` on every real page: `https://kutchsafariresort.in` (`SITE_URL`; `kutchsafaribhuj.in` until 8 Oct 2026) + the path, with `/rann-utsav-package` and `/white-rann-camp/tariff` pointing at `/white-rann-camp`. Any other address answers with the site (the host serves `index.html` for every path), so it gets `<meta name="robots" content="noindex">`. Search engines would otherwise list it or report a "soft 404". The Express server answers a missing *file* (e.g. `/assets/x.jpg`) with a real 404.
 
 ### Remaining gaps
 1. Every page shares the meta description from `index.html` (per-page text needs the owner; `BUGS.md` O5).

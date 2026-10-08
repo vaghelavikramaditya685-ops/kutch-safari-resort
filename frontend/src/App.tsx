@@ -49,7 +49,7 @@ const DESTINATIONS: Record<string, string> = {
   "mandvi-beach-palace": "Mandvi Beach & Palace", "artisan-villages": "Artisan Villages", "kala-dungar": "Kala Dungar",
 };
 
-const SITE_URL = "https://kutchsafaribhuj.in";
+const SITE_URL = "https://kutchsafariresort.in";
 // Addresses that show the same page as another: search engines are pointed at one.
 const CANONICAL: Record<string, string> = {
   "/rann-utsav-package": "/white-rann-camp",

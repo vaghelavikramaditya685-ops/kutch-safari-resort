@@ -216,6 +216,8 @@ $CONFIG = [
     'https://whiterann.com',
     'https://incandescent-alpaca-652856.netlify.app',
     // The React site in this repo, and its dev server (pnpm dev proxies /book/ to the engine).
+    'https://kutchsafariresort.in',          // the main website since 8 Oct 2026
+    'https://www.kutchsafariresort.in',
     'https://kutchsafaribhuj.in',
     'https://www.kutchsafaribhuj.in',
     'https://kutch-safari-resort.vercel.app',

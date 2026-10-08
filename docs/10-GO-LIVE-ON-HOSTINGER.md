@@ -1,6 +1,11 @@
-# Going live on Hostinger (kutchsafaribhuj.in)
+# Going live on Hostinger (booking engine; main domain kutchsafariresort.in)
 
 _Written 5 Oct 2026. **Not done yet**: today everything runs only on the owner's PC. Follow this when the site is uploaded. Nothing in the code needs to change for local use; the steps below are only for the live upload._
+
+> **Update 8 Oct 2026, read first.** The owner chose **`kutchsafariresort.in`** as the one main domain. It is registered at Hostinger (nameservers `ns1`/`ns2.dns-parking.com`), and the **website runs on Vercel**, not Hostinger: `kutchsafariresort.in` → A `216.198.79.1`, `www` → CNAME `cname.vercel-dns.com`, and `www.` redirects to the main address (docs/09 §2.2). This document was written for `kutchsafaribhuj.in` before that decision. `kutchsafaribhuj.in` is the resort's **old** website on GoDaddy and is still live, separately. So, when the booking engine goes up:
+> * read every `kutchsafaribhuj.in` below as `kutchsafariresort.in` (booking `book.kutchsafariresort.in`, admin `admin.kutchsafariresort.in`, email `reservations@kutchsafariresort.in`);
+> * the website parts (uploading `dist/public` to `public_html`, the website `.htaccess`) apply only if the website ever moves from Vercel to Hostinger;
+> * §6 (DNS) describes the old domain. For `kutchsafariresort.in` the DNS is already at Hostinger: only the `book` and `admin` records need adding there, and the two website records must keep pointing at Vercel.
 
 ## Contents
 1. [Addresses: on this PC vs live](#1-addresses-on-this-pc-vs-live)

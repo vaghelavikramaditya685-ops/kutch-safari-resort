@@ -90,7 +90,7 @@ _(was `context/tech_stack.md`)_
 |---|---|---|
 | Razorpay | online payments, refunds | test keys on this PC; live keys exist (secret to regenerate) [DOC `docs/26`] |
 | Stayflexi | channel manager (OTAs) | off; endpoints unverified [CODE `config.php`] |
-| Vercel | website hosting (`kutchsafaribhuj.in`) | [DOC `docs/15`] |
+| Vercel | website hosting (`kutchsafariresort.in`) | [DOC `docs/15`] |
 | PHP host (cPanel) | engine + MySQL | [PLANNED] not deployed |
 | SMTP | confirmation emails | [PLANNED] not set |
 
@@ -185,7 +185,7 @@ A dark strip along the bottom of the booking page, the check-status page and eve
 | `mail.*` | from/bcc, SMTP | SMTP off |
 | `admin.idle_minutes/list_clear_days/login_attempts` | 10 / 15 / 6 | |
 | `allowed_origins`, `debug`, `timezone` | CORS, error detail, IST | |
-Website (build time) [CODE `lib/booking.ts`]: `VITE_BOOKING_URL`, default `/book/`; the planned live build sets it to `https://book.kutchsafaribhuj.in/` ([docs/10 §3.1](10-GO-LIVE-ON-HOSTINGER.md#31-booking-and-admin-links--two-build-settings-no-code-edit)). `VITE_BOOKING_ENABLED=true` switches online booking on (Book Now, Check status, `/admin`); without it (the default, and the live Vercel site since 5 Oct 2026) every Book Now is an Enquire Now. To use the engine locally, put `VITE_BOOKING_ENABLED=true` in a git-ignored `.env.local` at the project root.
+Website (build time) [CODE `lib/booking.ts`]: `VITE_BOOKING_URL`, default `/book/`; the planned live build sets it to `https://book.kutchsafariresort.in/` ([docs/10 §3.1](10-GO-LIVE-ON-HOSTINGER.md#31-booking-and-admin-links--two-build-settings-no-code-edit)). `VITE_BOOKING_ENABLED=true` switches online booking on (Book Now, Check status, `/admin`); without it (the default, and the live Vercel site since 5 Oct 2026) every Book Now is an Enquire Now. To use the engine locally, put `VITE_BOOKING_ENABLED=true` in a git-ignored `.env.local` at the project root.
 
 ### Common setup errors
 | Symptom | Cause | Fix |
@@ -315,7 +315,7 @@ Local `useState` only. There is no global store. `ThemeContext` is fixed to ligh
 * The engine's `.htaccess` blocks `config*.php`, `*.sql`, `*.sqlite`, `*.md`, `data/` and `bin/`, and forces HTTPS. It only works on Apache. Other hosts need equivalent rules.
 * Real keys go in `backend/booking-engine/config.local.php`, which is git-ignored. Set `debug => false` in production.
 * Admin sign-in: session cookie only (ends when the browser closes), per-tab, one admin at a time (`admin_lock`), 10-minute idle timeout, 6 login attempts per 15 minutes. The admin cannot be framed by another site (X-Frame-Options / CSP). `bin/` is CLI-only (the test scripts refuse to run from the web).
-* CORS: the engine only answers origins listed in `allowed_origins` in `config.php`. The kutchsafaribhuj.in domains and localhost:3000 are included.
+* CORS: the engine only answers origins listed in `allowed_origins` in `config.php`. The kutchsafariresort.in and kutchsafaribhuj.in domains and localhost:3000 are included.
 * `/api/contact` (Express) checks name, phone or email and message, stores only those fields and logs no personal details; the Vercel `api/contact.ts` stores nothing, so it answers 503 with the phone number rather than "success".
 * Performance: `frontend/public/assets` is about 140 MB (the photos were compressed on 6 Oct 2026; the rest is the hero video and unused files; see [`11-IMAGE-ASSET-INVENTORY.md`](03-DESIGN-AND-ASSETS.md#docs-11)). The engine's own photos are already WebP (3.1 MB in total).
 

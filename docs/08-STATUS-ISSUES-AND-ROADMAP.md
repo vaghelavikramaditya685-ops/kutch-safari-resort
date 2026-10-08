@@ -168,7 +168,7 @@ Set `properties.active` back to 1 for `white-rann-camp` when the camp should be 
 Fixed 29 Sep 2026 (see Resolved).
 
 #### 7. Placeholder content
-Dining (food photo box), Plan Your Visit FAQ stub, Navbar `[WRC LOGO]`.
+Plan Your Visit FAQ stub ("Frequently asked questions will be populated here"; the Footer's "FAQs" link opens it): needs the owner's questions and answers. Fixed 8 Oct 2026: the Dining food-photo box (now the resort's lake-view table photo) and the Navbar `[WRC LOGO]` (now a "White Rann Camp" button).
 
 #### 8. Destination and RannUtsavPackage use old headers and footers
 They have their own header (4.5 MB `logo-mark.png`), their own footer and no site navigation (so no "Around the Resort" menu or "Check status" link). The nested `<Link><a>` anchors were fixed on 29 Sep 2026.
