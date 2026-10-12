@@ -1,0 +1,27 @@
+{
+  "name": "white-rann-camp-copy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Website for White Rann Camp, Dhordo (sister property of Kutch Safari Resort). Local preview.",
+  "scripts": {
+    "dev": "vite --port 4400 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --port 4401"
+  },
+  "dependencies": {
+    "lucide-react": "^0.453.0",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "wouter": "^3.3.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.3",
+    "@types/react": "^19.2.1",
+    "@types/react-dom": "^19.2.1",
+    "@vitejs/plugin-react": "^5.0.4",
+    "tailwindcss": "^4.1.14",
+    "typescript": "5.6.3",
+    "vite": "^7.1.7"
+  }
+}

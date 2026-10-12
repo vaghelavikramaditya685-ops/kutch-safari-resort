@@ -1,0 +1,42 @@
+@import "tailwindcss" source("../");
+
+/*
+ * WHITE RANN palette: salt white with a little Rann blue.
+ * Mostly white (the salt flats), pale blue surfaces (the winter sky over the Rann),
+ * and a deep dusk blue for buttons, links and headings that need weight.
+ * Same type pairing as Kutch Safari Resort so the two sites read as one family:
+ * Cormorant Garamond for display, Jost for text.
+ */
+@theme {
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Jost", ui-sans-serif, system-ui, sans-serif;
+
+  --color-salt: #ffffff;
+  --color-rann-50: #f5f9fd;   /* section surfaces */
+  --color-rann-100: #e9f2fa;  /* cards, tariff boxes */
+  --color-rann-200: #d3e3f2;  /* borders */
+  --color-rann-300: #a8c7e4;
+  --color-rann-500: #3d7cbf;
+  --color-rann-600: #22629f;  /* links, icons */
+  --color-rann-700: #1b4f82;  /* buttons */
+  --color-rann-800: #163f68;  /* button hover */
+  --color-rann-900: #0f2b47;  /* dark overlays, footer */
+  --color-ink: #17212b;
+
+  --default-transition-duration: 300ms;
+  --default-transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-rann-50 text-ink font-sans antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+}
