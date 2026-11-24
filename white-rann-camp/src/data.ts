@@ -173,13 +173,21 @@ export const CAMP_PHOTOS = {
   nonacTwin: { src: "/photos/nonac-tent-twin.webp", alt: "A Non-AC Swiss tent: twin beds with quilts" },
   nonacExterior: { src: "/photos/nonac-tent-exterior.webp", alt: "A Non-AC Swiss tent from outside at night, with two chairs on a red rug" },
   nonacWashroom: { src: "/photos/nonac-tent-washroom.webp", alt: "The attached washroom of a Non-AC tent, with a western toilet and a basin stand" },
-  // The latest photos: sent from the camp on WhatsApp on 5 Nov 2026 (owner's folder "white rann photo").
-  // On 15 Nov 2026 the owner chose to file them by what each shows: the air-cooler photo under Deluxe,
-  // the twin beds with a fan and the washroom under Non-AC (the owner's folders had them the other way round).
-  new2026Cooler: { src: "/photos/wrc-2026-tent-sitting-cooler.webp", alt: "A Deluxe Air-Cool tent: a sitting area with an air cooler, on a red carpet under block-printed walls" },
-  new2026Exterior: { src: "/photos/wrc-2026-tent-exterior-dusk.webp", alt: "A Swiss tent at dusk, with a red rug at the door" },
-  new2026Twin: { src: "/photos/wrc-2026-tent-twin-fan.webp", alt: "A Non-AC Swiss tent: twin beds with floral quilts, a pedestal fan and a sitting area" },
-  new2026Washroom: { src: "/photos/wrc-2026-tent-washroom.webp", alt: "The attached washroom of a Non-AC tent: a western toilet, a basin stand and a wooden-slatted floor" },
+  // The latest photos, sorted by the owner on 24 Nov 2026 (sent from the camp in November 2026).
+  // Deluxe Air-Cool: cream block-printed walls and a red carpet. The phone's "Galaxy S23 Ultra"
+  // stamp was cropped off the bottom of four of them, as the owner asked.
+  deluxe2026Cooler: { src: "/photos/wrc-2026-deluxe-sitting-cooler.webp", alt: "A Deluxe Air-Cool tent: a sitting area with an air cooler, on a red carpet under block-printed walls" },
+  deluxe2026Twin: { src: "/photos/wrc-2026-deluxe-twin.webp", alt: "A Deluxe Air-Cool tent: twin beds with floral quilts, and a sitting area behind" },
+  deluxe2026SittingFan: { src: "/photos/wrc-2026-deluxe-sitting-fan.webp", alt: "A Deluxe Air-Cool tent: a sitting area with two low tables and a pedestal fan" },
+  deluxe2026Exterior: { src: "/photos/wrc-2026-deluxe-exterior-dusk.webp", alt: "A Deluxe Air-Cool tent from outside at dusk" },
+  deluxe2026Washroom: { src: "/photos/wrc-2026-deluxe-washroom.webp", alt: "The attached washroom of a Deluxe Air-Cool tent: a western toilet, a basin stand and a wooden-slatted floor" },
+  // Non-AC: yellow walls printed with peacocks, and a blue carpet.
+  nonac2026Double: { src: "/photos/wrc-2026-nonac-double.webp", alt: "A Non-AC Swiss tent: a double bed under yellow walls printed with peacocks" },
+  nonac2026Door: { src: "/photos/wrc-2026-nonac-double-door.webp", alt: "A Non-AC Swiss tent: the double bed, with the door out to the camp" },
+  nonac2026Washroom: { src: "/photos/wrc-2026-nonac-washroom.webp", alt: "The attached washroom of a Non-AC tent, with taps and a basin stand" },
+  nonac2026Night: { src: "/photos/wrc-2026-nonac-tents-night.webp", alt: "Non-AC Swiss tents at night, with chairs on the red walkway outside" },
+  courtyard2026Night: { src: "/photos/wrc-2026-camp-courtyard-night.webp", alt: "Rows of Swiss tents around the camp courtyard at night" },
+  dining2026: { src: "/photos/wrc-2026-dining-tent.webp", alt: "The dining tent: red chairs, laid tables and the buffet counter" },
 } satisfies Record<string, Photo>;
 
 /* ---------------------------------------------------------------- Tents and tariff */
@@ -204,8 +212,8 @@ export const TENTS: Tent[] = [
     features: ["Air cooled", "Twin beds", "Attached western washroom", "Hot & cold water", "Carpeted", "Campfire", "Folk music evening"],
     price: 7499,
     peakPrice: 8450,
-    // The latest air-cooler photo (5 Nov 2026) first, then the tent at dusk and the double bed with its cooler.
-    photos: [CAMP_PHOTOS.new2026Cooler, CAMP_PHOTOS.new2026Exterior, CAMP_PHOTOS.deluxeBed],
+    // The owner's five Deluxe photos (24 Nov 2026), the air cooler first.
+    photos: [CAMP_PHOTOS.deluxe2026Cooler, CAMP_PHOTOS.deluxe2026Twin, CAMP_PHOTOS.deluxe2026SittingFan, CAMP_PHOTOS.deluxe2026Exterior, CAMP_PHOTOS.deluxe2026Washroom],
   },
   {
     slug: "non-ac",
@@ -215,8 +223,8 @@ export const TENTS: Tent[] = [
     features: ["Twin beds", "Attached western washroom", "Hot & cold water", "Extra quilts", "Carpeted", "Campfire", "Folk music evening"],
     price: 6500,
     peakPrice: 7499,
-    // The latest photos (5 Nov 2026): inside and the washroom, then the camp's own Non-AC photo from outside.
-    photos: [CAMP_PHOTOS.new2026Twin, CAMP_PHOTOS.new2026Washroom, CAMP_PHOTOS.nonacExterior],
+    // The owner's Non-AC photos (24 Nov 2026). The dining-tent photo sent with them is in the gallery.
+    photos: [CAMP_PHOTOS.nonac2026Double, CAMP_PHOTOS.nonac2026Door, CAMP_PHOTOS.nonac2026Washroom, CAMP_PHOTOS.nonac2026Night, CAMP_PHOTOS.courtyard2026Night],
   },
 ];
 

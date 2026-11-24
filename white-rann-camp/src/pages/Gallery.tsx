@@ -8,11 +8,11 @@ const rann = Object.values(RANN);
 
 /* The camp's own photos, grouped. Most are from the owner's 2026 photo set. */
 const GROUPS: { eyebrow: string; title: string; photos: Photo[] }[] = [
-  { eyebrow: "After Dark", title: "The Camp at Night", photos: [P.entranceNight, P.campNight, P.tentsNight, P.lightsNight, P.canopyNight] },
-  { eyebrow: "Stay", title: "Inside the Tents", photos: [P.new2026Cooler, P.new2026Twin, P.deluxeSitting, P.deluxeBed, P.creamDouble, P.creamTwin, P.creamSitting, P.creamWide, P.yellowTwin, P.yellowDouble, P.yellowDoor, P.yellowBed, P.deluxeTwin, P.nonacTwin] },
-  { eyebrow: "Every Tent", title: "Attached Washrooms", photos: [P.new2026Washroom, P.washroomBasinToilet, P.washroomToilet, P.washroomCorner, P.nonacWashroom] },
-  { eyebrow: "At the Camp", title: "Dining and Crafts", photos: [P.diningTent, P.textiles] },
-  { eyebrow: "By Day", title: "The Tents in Daylight", photos: [P.new2026Exterior, P.tentsRow, P.tentsSky, P.tentDay] },
+  { eyebrow: "After Dark", title: "The Camp at Night", photos: [P.courtyard2026Night, P.nonac2026Night, P.entranceNight, P.campNight, P.tentsNight, P.lightsNight, P.canopyNight] },
+  { eyebrow: "Stay", title: "Inside the Tents", photos: [P.deluxe2026Cooler, P.deluxe2026Twin, P.deluxe2026SittingFan, P.nonac2026Double, P.nonac2026Door, P.deluxeSitting, P.deluxeBed, P.creamDouble, P.creamTwin, P.creamSitting, P.creamWide, P.yellowTwin, P.yellowDouble, P.yellowDoor, P.yellowBed, P.deluxeTwin, P.nonacTwin] },
+  { eyebrow: "Every Tent", title: "Attached Washrooms", photos: [P.deluxe2026Washroom, P.nonac2026Washroom, P.washroomBasinToilet, P.washroomToilet, P.washroomCorner, P.nonacWashroom] },
+  { eyebrow: "At the Camp", title: "Dining and Crafts", photos: [P.dining2026, P.diningTent, P.textiles] },
+  { eyebrow: "By Day", title: "The Tents in Daylight", photos: [P.deluxe2026Exterior, P.tentsRow, P.tentsSky, P.tentDay] },
 ];
 
 export default function Gallery() {
